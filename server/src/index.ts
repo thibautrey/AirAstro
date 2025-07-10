@@ -1,26 +1,24 @@
-import express, { Request, Response } from 'express';
-import path from 'path';
-import { promises as fs } from 'fs';
-import updateRouter from './routes/update.route';
-import imageRouter from './routes/image.route';
-import { checkForUpdate, downloadUpdate, installUpdate } from './update';
-import { DriverManager } from './indi';
+import express, { Request, Response } from "express";
+
+import { DriverManager } from "./indi";
+import imageRouter from "./routes/image.route";
+import updateRouter from "./routes/update.route";
 
 const app = express();
 app.use(express.json());
-const port: number = parseInt(process.env.PORT ?? '3000', 10);
+const port: number = parseInt(process.env.PORT ?? "3000", 10);
 const driverManager = new DriverManager();
 
 app.use(express.json());
 
-app.get('/api/ping', (_req: Request, res: Response) => {
-  res.json({ status: 'ok' });
+app.get("/api/ping", (_req: Request, res: Response) => {
+  res.json({ status: "ok" });
 });
 
-app.use('/api/update', updateRouter);
-app.use('/api/images', imageRouter);
+app.use("/api/update", updateRouter);
+app.use("/api/images", imageRouter);
 
-app.get('/api/drivers', async (_req: Request, res: Response) => {
+app.get("/api/drivers", async (_req: Request, res: Response) => {
   try {
     const installed = await driverManager.getInstalledDrivers();
     const running = driverManager.listRunningDrivers();
@@ -30,7 +28,7 @@ app.get('/api/drivers', async (_req: Request, res: Response) => {
   }
 });
 
-app.get('/api/drivers/available', async (_req: Request, res: Response) => {
+app.get("/api/drivers/available", async (_req: Request, res: Response) => {
   try {
     const drivers = await driverManager.getAvailableDrivers();
     res.json(drivers);
@@ -39,8 +37,8 @@ app.get('/api/drivers/available', async (_req: Request, res: Response) => {
   }
 });
 
-app.get('/api/drivers/search', async (req: Request, res: Response) => {
-  const query = (req.query.q as string) ?? '';
+app.get("/api/drivers/search", async (req: Request, res: Response) => {
+  const query = (req.query.q as string) ?? "";
   if (!query) {
     return res.json([]);
   }
@@ -52,10 +50,10 @@ app.get('/api/drivers/search', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/drivers/start', async (req: Request, res: Response) => {
+app.post("/api/drivers/start", async (req: Request, res: Response) => {
   const { name } = req.body as { name?: string };
   if (!name) {
-    return res.status(400).json({ error: 'Driver name required' });
+    return res.status(400).json({ error: "Driver name required" });
   }
   try {
     await driverManager.startDriver(name);
@@ -65,10 +63,10 @@ app.post('/api/drivers/start', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/drivers/stop', async (req: Request, res: Response) => {
+app.post("/api/drivers/stop", async (req: Request, res: Response) => {
   const { name } = req.body as { name?: string };
   if (!name) {
-    return res.status(400).json({ error: 'Driver name required' });
+    return res.status(400).json({ error: "Driver name required" });
   }
   try {
     await driverManager.stopDriver(name);
@@ -78,10 +76,10 @@ app.post('/api/drivers/stop', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/drivers/install', async (req: Request, res: Response) => {
+app.post("/api/drivers/install", async (req: Request, res: Response) => {
   const { name } = req.body as { name?: string };
   if (!name) {
-    return res.status(400).json({ error: 'Driver name required' });
+    return res.status(400).json({ error: "Driver name required" });
   }
   try {
     await driverManager.installDriver(name);
