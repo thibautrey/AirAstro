@@ -37,22 +37,22 @@ export default function DeviceWelcome() {
   }, []);
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-bg-surface text-text-primary font-sans overflow-hidden viewport-height">
+    <div className="min-h-screen w-screen flex flex-col bg-bg-surface text-text-primary font-sans overflow-hidden">
       {/* Header */}
       <header className="pt-6 pl-6 flex-shrink-0">
-        <AirAstroLogo className="h-10 text-brand-red" />
+        <AirAstroLogo className="h-10 text-brand-blue" />
       </header>
 
       {/* Hero shot */}
-      <div className="flex-1 flex items-center justify-center px-8 min-h-0">
-        <div className="w-full max-w-sm md:max-w-md">
+      <div className="flex-1 flex items-center justify-center px-8 min-h-0 py-4">
+        <div className="w-full max-w-sm md:max-w-md max-h-full">
           {/* Image placeholder - remplacez par votre PNG transparent */}
-          <div className="bg-gradient-to-br from-zinc-700 to-zinc-800 rounded-lg aspect-square flex items-center justify-center shadow-elevation relative overflow-hidden">
+          <div className="bg-gradient-to-br from-zinc-700 to-zinc-800 rounded-lg aspect-square max-h-64 sm:max-h-80 flex items-center justify-center shadow-elevation relative overflow-hidden">
             {/* Simulated device mockup */}
             <div className="text-center relative z-10">
-              <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-4 bg-brand-red/20 rounded-full flex items-center justify-center">
+              <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-4 bg-brand-blue/20 rounded-full flex items-center justify-center">
                 <svg
-                  className="w-10 h-10 md:w-12 md:h-12 text-brand-red"
+                  className="w-10 h-10 md:w-12 md:h-12 text-brand-blue"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -111,14 +111,14 @@ export default function DeviceWelcome() {
       </div>
 
       {/* Footer */}
-      <footer className="w-full p-4 bg-bg-surface/95 backdrop-blur-sm space-y-3 flex-shrink-0 pb-safe">
+      <footer className="w-full p-4 pb-6 md:pb-4 bg-bg-surface/95 backdrop-blur-sm space-y-3 flex-shrink-0 min-h-[120px]">
         {/* Location row */}
         <div
           className="rounded border border-zinc-700 flex items-center justify-between px-4 py-3 cursor-pointer hover:border-zinc-600 transition-colors active:bg-zinc-800/50"
           onClick={handleLocationClick}
         >
           <div className="flex items-center space-x-3">
-            <MapPin className="w-5 h-5 text-brand-red flex-shrink-0" />
+            <MapPin className="w-5 h-5 text-brand-blue flex-shrink-0" />
             <span className="text-text-primary font-medium">{location}</span>
           </div>
           <ChevronRight className="w-6 h-6 text-text-secondary flex-shrink-0" />
@@ -126,7 +126,7 @@ export default function DeviceWelcome() {
 
         {/* Primary CTA */}
         <button
-          className={`w-full h-11 rounded bg-gradient-to-r from-brand-red to-brand-pink text-white
+          className={`w-full h-11 rounded bg-gradient-to-r from-brand-blue to-brand-blue-light text-white
             font-semibold tracking-wide flex items-center justify-center transition-all duration-200
             ${
               hasReachableDevice

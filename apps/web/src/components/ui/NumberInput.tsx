@@ -54,7 +54,7 @@ export default function NumberInput({
           className="
             w-full bg-zinc-800 text-text-primary rounded px-3 h-9 
             border-0 outline-none transition-all
-            focus:ring-1 focus:ring-brand-red
+            focus:ring-1 focus:ring-brand-blue
             hover:bg-zinc-700
             placeholder:text-text-secondary
           "

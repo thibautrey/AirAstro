@@ -43,17 +43,20 @@ Backgrounds:
 Text:
 - Primary: #FFFFFF (White)
 - Secondary: #B0B0B0 (Light gray)
-- Alert: #FF4444 (Red for night vision)
+- Alert: #2563eb (Blue for important notifications)
+- Error: #FF4444 (Red for critical errors only)
 
 Actions:
 - Primary: #00AA00 (Green)
 - Secondary: #0080FF (Blue)
-- Danger: #FF4444 (Red)
+- Alert: #2563eb (Blue for notifications)
+- Danger: #FF4444 (Red for destructive actions only)
 
 Status:
 - Success: #00DD00 (Bright green)
 - Warning: #FFAA00 (Orange)
-- Error: #FF4444 (Red)
+- Alert: #2563eb (Blue for notifications)
+- Error: #FF4444 (Red for critical errors)
 ```
 
 ### Key Principles

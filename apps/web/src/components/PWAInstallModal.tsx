@@ -1,5 +1,5 @@
+import { Plus, Share, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { X, Share, Plus } from "lucide-react";
 
 interface PWAInstallModalProps {
   onClose: () => void;
@@ -89,7 +89,7 @@ export default function PWAInstallModal({ onClose }: PWAInstallModalProps) {
           </button>
           <button
             onClick={handleInstall}
-            className="flex-1 px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-lg hover:from-red-700 hover:to-pink-700"
+            className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600"
           >
             Compris
           </button>

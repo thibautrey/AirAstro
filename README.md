@@ -14,9 +14,9 @@ The goal is to replicate the feature set while staying easy to use. The applicat
 
 AirAstro features a specialized design system optimized for astronomy applications:
 
-- **Night Vision Preservation**: Black backgrounds with red alerts to maintain dark adaptation
+- **Night Vision Preservation**: Black backgrounds with blue alerts for important notifications and red for critical errors only
 - **High Contrast**: White text on dark backgrounds for excellent readability
-- **Consistent Colors**: Green for actions, blue for navigation, red for alerts
+- **Consistent Colors**: Green for actions, blue for navigation and alerts, red for critical errors only
 - **Modern UI**: Clean interface with subtle shadows and smooth animations
 
 See [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) for complete guidelines.
@@ -90,6 +90,7 @@ AirAstro relies on the INDI and ASCOM projects to provide hardware support. This
    ```
 
 4. **Server Development**
+
    ```bash
    cd server
    npm install

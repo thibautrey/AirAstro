@@ -22,20 +22,23 @@ AirAstro adopte un design système spécialement conçu pour l'astronomie, privi
 
 - **Texte Principal** : `#FFFFFF` (Blanc pur) - Maximum de lisibilité
 - **Texte Secondaire** : `#B0B0B0` (Gris clair) - Pour les informations secondaires
-- **Texte Rouge** : `#FF4444` (Rouge vif) - Pour les alertes et éléments critiques
+- **Texte Rouge** : `#FF4444` (Rouge vif) - Pour les erreurs critiques uniquement
+- **Texte Bleu** : `#2563eb` (Bleu vif) - Pour les alertes et éléments d'attention
 
 #### Boutons et Actions
 
 - **Bouton Principal** : `#00AA00` (Vert vif) - Actions principales et confirmations
 - **Bouton Secondaire** : `#0080FF` (Bleu vif) - Actions secondaires et navigation
-- **Bouton Danger** : `#FF4444` (Rouge vif) - Actions destructives
+- **Bouton Attention** : `#2563eb` (Bleu moyen) - Actions d'attention et alertes
+- **Bouton Danger** : `#FF4444` (Rouge vif) - Actions destructives uniquement
 - **Bouton Désactivé** : `#666666` (Gris moyen) - États inactifs
 
 #### États et Indicateurs
 
 - **Succès** : `#00DD00` (Vert clair) - Statuts positifs
 - **Attention** : `#FFAA00` (Orange) - Avertissements
-- **Erreur** : `#FF4444` (Rouge vif) - Erreurs et problèmes
+- **Alerte** : `#2563eb` (Bleu) - Alertes et notifications importantes
+- **Erreur** : `#FF4444` (Rouge vif) - Erreurs critiques et problèmes graves
 - **Information** : `#00AAFF` (Bleu clair) - Informations neutres
 
 ### Code Couleurs (Swift)
@@ -93,12 +96,20 @@ extension Color {
 - Padding : 12pt vertical, 20pt horizontal
 - Border radius : 6pt
 
+#### Bouton Attention (Bleu Moyen)
+
+- Background : `#2563eb`
+- Texte : `astronomyTextPrimary`
+- Padding : 12pt vertical, 20pt horizontal
+- Border radius : 6pt
+
 #### Bouton Danger (Rouge)
 
 - Background : `astronomyRed`
 - Texte : `astronomyTextPrimary`
 - Padding : 12pt vertical, 20pt horizontal
 - Border radius : 6pt
+- Utilisation : Actions destructives uniquement
 
 ### Cartes et Conteneurs
 

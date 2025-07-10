@@ -20,7 +20,7 @@ export default function TopBar({
       case "Connecting…":
         return "text-yellow-400";
       case "Lost":
-        return "text-brand-red";
+        return "text-brand-blue";
       default:
         return "text-text-secondary";
     }

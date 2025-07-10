@@ -14,8 +14,8 @@ module.exports = {
       },
       colors: {
         "bg-surface": "#1e1f24",
-        "brand-red": "#c6283c",
-        "brand-pink": "#d22656",
+        "brand-blue": "#2563eb",
+        "brand-blue-light": "#3b82f6",
         "cta-green": "#00b331",
         "text-primary": "#ffffffde",
         "text-secondary": "#ffffff8a",
@@ -27,7 +27,7 @@ module.exports = {
         textSecondary: "#B0B0B0",
         astronomyGreen: "#00AA00",
         astronomyBlue: "#0080FF",
-        astronomyRed: "#FF4444",
+        astronomyBlue2: "#2563eb",
         astronomyOrange: "#FFAA00",
       },
       borderRadius: {

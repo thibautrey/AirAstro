@@ -14,9 +14,10 @@ AirAstro follows a strict design system optimized for astronomy applications. **
 
 - **Backgrounds**: Black (`#000000`) and dark grays (`#1A1A1A`, `#2D2D2D`)
 - **Text**: White (`#FFFFFF`) for primary text, light gray (`#B0B0B0`) for secondary
-- **Buttons**: Green (`#00AA00`) for primary actions, Blue (`#0080FF`) for secondary actions
-- **Alerts**: Red (`#FF4444`) for critical elements and errors
-- **Status**: Green for success, Orange (`#FFAA00`) for warnings, Red for errors
+- **Buttons**: Green (`#00AA00`) for primary actions, Blue (`#0080FF`, `#2563eb`) for secondary actions and alerts
+- **Alerts**: Blue (`#2563eb`) for important notifications and alerts
+- **Errors**: Red (`#FF4444`) for critical errors only
+- **Status**: Green for success, Orange (`#FFAA00`) for warnings, Red for critical errors
 
 ### Design Principles
 
