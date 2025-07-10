@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import AirAstroLogo from "./AirAstroLogo";
 import LocationSelector from "./LocationSelector";
 import LocationStatusIcon from "./LocationStatusIcon";
+import { useAirAstroDevice } from "../hooks/useAirAstroDevice";
 import { useLocation } from "../hooks/useLocation";
 import { useNavigate } from "react-router-dom";
 
 export default function DeviceWelcome() {
   const navigate = useNavigate();
-  const [hasReachableDevice, setHasReachableDevice] = useState(false);
   const [isLocationSelectorOpen, setIsLocationSelectorOpen] = useState(false);
   const {
     location,
@@ -18,6 +18,8 @@ export default function DeviceWelcome() {
     updateLocation,
     getLocationName,
   } = useLocation();
+
+  const { device, isReachable, isChecking } = useAirAstroDevice();
 
   const handleEnterDevice = () => {
     // Ne permettre l'accès que si on a une localisation
@@ -61,35 +63,28 @@ export default function DeviceWelcome() {
     return "border-zinc-700";
   };
 
-  const canEnterDevice = hasReachableDevice && location;
+  const canEnterDevice = isReachable && location;
 
   const handleLocationClick = () => {
     setIsLocationSelectorOpen(true);
   };
 
   const getButtonText = () => {
-    if (!hasReachableDevice) return "Recherche d'appareils...";
+    if (isChecking) return "Recherche d'appareils...";
+    if (!isReachable) return "Aucun appareil détecté";
     if (!location) return "Localisation requise";
     return "Entrer dans l'appareil";
   };
 
   const getButtonStyle = () => {
-    if (!hasReachableDevice || !location) {
+    if (!isReachable || !location) {
       return "opacity-40 cursor-not-allowed";
     }
     return "active:scale-[0.98] hover:shadow-lg shadow-elevation";
   };
 
-  // Simuler la détection d'appareils
-  useEffect(() => {
-    const checkDevices = setTimeout(() => {
-      setHasReachableDevice(true); // Pour la démo, on simule qu'un appareil est trouvé
-    }, 2000);
-
-    return () => {
-      clearTimeout(checkDevices);
-    };
-  }, []);
+  // La vérification des appareils est maintenant gérée par le hook useAirAstroDevice
+  // Pas besoin de simulation ici
 
   return (
     <div className="h-viewport w-screen flex flex-col bg-bg-surface text-text-primary font-sans overflow-hidden">
@@ -107,11 +102,25 @@ export default function DeviceWelcome() {
                          landscape-card-adaptive
                          flex items-center justify-center shadow-elevation relative overflow-hidden"
           >
-            {/* Simulated device mockup */}
+            {/* Real device status */}
             <div className="text-center relative z-10">
-              <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-4 bg-brand-blue/20 rounded-full flex items-center justify-center">
+              <div
+                className={`w-20 h-20 md:w-24 md:h-24 mx-auto mb-4 rounded-full flex items-center justify-center transition-colors ${
+                  isChecking
+                    ? "bg-yellow-500/20 animate-pulse"
+                    : isReachable
+                    ? "bg-green-500/20"
+                    : "bg-red-500/20"
+                }`}
+              >
                 <svg
-                  className="w-10 h-10 md:w-12 md:h-12 text-brand-blue"
+                  className={`w-10 h-10 md:w-12 md:h-12 transition-colors ${
+                    isChecking
+                      ? "text-yellow-500"
+                      : isReachable
+                      ? "text-green-500"
+                      : "text-red-500"
+                  }`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -125,8 +134,17 @@ export default function DeviceWelcome() {
                 </svg>
               </div>
               <p className="text-text-secondary text-sm font-medium">
-                AirAstro Device
+                {isChecking
+                  ? "Recherche AirAstro..."
+                  : isReachable
+                  ? `AirAstro Device`
+                  : "Aucun appareil détecté"}
               </p>
+              {isReachable && device.url && (
+                <p className="text-text-tertiary text-xs mt-1">
+                  {device.url.replace("http://", "")}
+                </p>
+              )}
             </div>
 
             {/* Background constellation pattern */}
@@ -194,6 +212,14 @@ export default function DeviceWelcome() {
           <div className="px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded text-yellow-400 text-xs">
             📍 La localisation est requise pour le calcul astronomique et la
             calibration des montures
+          </div>
+        )}
+
+        {/* Device detection notice */}
+        {!isReachable && !isChecking && (
+          <div className="px-3 py-2 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-xs">
+            🔍 Aucun serveur AirAstro détecté. Vérifiez que votre appareil est
+            connecté et allumé.
           </div>
         )}
 

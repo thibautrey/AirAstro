@@ -1,16 +1,29 @@
 import express, { Request, Response } from "express";
-import path from "path";
 
 import { DriverManager } from "./indi";
+import cors from "cors";
 import imageRouter from "./routes/image.route";
+import path from "path";
 import updateRouter from "./routes/update.route";
 
 const app = express();
+
+// Enable CORS for all routes
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "http://airastro.local:5173",
+      "http://10.42.0.1:5173",
+    ],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 const port: number = parseInt(process.env.PORT ?? "3000", 10);
 const driverManager = new DriverManager();
-
-app.use(express.json());
 
 app.get("/api/ping", (_req: Request, res: Response) => {
   res.json({ status: "ok" });
