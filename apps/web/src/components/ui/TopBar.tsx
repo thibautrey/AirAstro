@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import { ChevronLeft } from "lucide-react";
 
 interface TopBarProps {
@@ -13,6 +15,18 @@ export default function TopBar({
   serialNumber = "AS-2024-001",
   appVersion = "v1.0.0",
 }: TopBarProps) {
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    // Détecter si on est en mode PWA/standalone
+    const standalone =
+      (navigator as any).standalone === true ||
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches;
+
+    setIsStandalone(standalone);
+  }, []);
+
   const getStatusColor = () => {
     switch (status) {
       case "Connected":
@@ -27,8 +41,12 @@ export default function TopBar({
   };
 
   return (
-    <div className="h-11 bg-black/70 backdrop-blur-sm overflow-x-auto">
-      <div className="flex items-center justify-between px-4 min-w-max">
+    <div
+      className={`min-h-11 bg-black/70 backdrop-blur-sm overflow-x-auto ${
+        isStandalone ? "safe-area-top" : ""
+      }`}
+    >
+      <div className="flex items-center justify-between px-4 min-w-max min-h-11">
         {/* Left: Back button + wordmark */}
         <div className="flex items-center space-x-3 flex-shrink-0">
           {onBack && (

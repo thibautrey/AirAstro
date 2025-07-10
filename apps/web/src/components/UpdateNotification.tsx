@@ -25,7 +25,7 @@ export default function UpdateNotification({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed top-16 right-4 z-40 animate-in slide-in-from-right">
+    <div className="fixed top-16 right-4 z-notification animate-in slide-in-from-right">
       <div className="bg-bg-surface border border-yellow-500/30 rounded-lg shadow-lg p-4 max-w-sm">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0">

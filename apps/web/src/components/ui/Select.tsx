@@ -48,7 +48,7 @@ export default function Select({
           className={`
             w-full bg-zinc-800 text-text-primary rounded px-3 h-9
             flex items-center justify-between transition-all
-            ${isOpen ? "ring-1 ring-brand-red z-30" : ""}
+            ${isOpen ? "ring-1 ring-brand-red z-dropdown" : ""}
             hover:bg-zinc-700
           `}
         >
@@ -70,12 +70,12 @@ export default function Select({
           <>
             {/* Overlay pour fermer le dropdown */}
             <div
-              className="fixed inset-0 z-20"
+              className="fixed inset-0 z-dropdown"
               onClick={() => setIsOpen(false)}
             />
 
             {/* Dropdown menu */}
-            <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 rounded shadow-elevation z-30 border border-zinc-700">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 rounded shadow-elevation z-dropdown border border-zinc-700">
               {options.map((option) => (
                 <button
                   key={option.value}

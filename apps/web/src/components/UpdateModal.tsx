@@ -199,7 +199,7 @@ export default function UpdateModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-modal-download flex items-center justify-center p-4">
       <div className="bg-bg-surface border border-zinc-700 rounded-xl max-w-md w-full shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-zinc-700">

@@ -129,7 +129,7 @@ export default function LocationSelector({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-modal-content flex items-center justify-center p-4">
       <div className="bg-zinc-900 border border-zinc-700 rounded-lg max-w-md w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-zinc-700">
