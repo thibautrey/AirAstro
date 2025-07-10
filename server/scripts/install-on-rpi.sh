@@ -35,11 +35,14 @@ fi
 
 cd "$INSTALL_DIR/server"
 
-log "Installing server dependencies"
-npm install --omit=dev
+log "Installing all dependencies (including dev dependencies for build)"
+npm install
 
 log "Building server"
 npm run build
+
+log "Cleaning up dev dependencies"
+npm install --omit=dev
 
 log "Installing hotspot service"
 run "cp $INSTALL_DIR/server/scripts/start-hotspot.service /etc/systemd/system/"
