@@ -6,6 +6,7 @@ import { DriverManager } from "./indi";
 import bonjour from "bonjour";
 import cors from "cors";
 import imageRouter from "./routes/image.route";
+import equipmentRouter from "./routes/equipment.route";
 import path from "path";
 import updateRouter from "./routes/update.route";
 
@@ -49,6 +50,7 @@ app.get("/api/ping", (_req: Request, res: Response) => {
 
 app.use("/api/update", updateRouter);
 app.use("/api/images", imageRouter);
+app.use("/api/equipment", equipmentRouter);
 
 // Serve the web UI built from apps/web
 const webDir = path.resolve(__dirname, "../..", "apps/web/dist");
