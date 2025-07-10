@@ -37,7 +37,7 @@ export default function DeviceWelcome() {
   }, []);
 
   return (
-    <div className="min-h-screen w-screen flex flex-col bg-bg-surface text-text-primary font-sans overflow-hidden">
+    <div className="h-viewport w-screen flex flex-col bg-bg-surface text-text-primary font-sans overflow-hidden">
       {/* Header */}
       <header className="pt-6 pl-6 flex-shrink-0">
         <AirAstroLogo className="h-10 text-brand-blue" />

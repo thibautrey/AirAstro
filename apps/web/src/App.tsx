@@ -6,10 +6,14 @@ import DeviceWelcome from "./components/DeviceWelcome";
 import EquipmentSetup from "./components/EquipmentSetup";
 import PWAInstallModal from "./components/PWAInstallModal";
 import { usePWAInstall } from "./hooks/usePWAInstall";
+import { useViewportHeight } from "./hooks/useViewportHeight";
 
 export default function App() {
   const { canShowInstallPrompt } = usePWAInstall();
   const [showInstallModal, setShowInstallModal] = useState(false);
+
+  // Initialiser la gestion de la hauteur de viewport au niveau de l'app
+  useViewportHeight();
 
   useEffect(() => {
     // Show install modal after a delay if PWA is not installed

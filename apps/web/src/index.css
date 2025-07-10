@@ -5,6 +5,13 @@
 @import "./dashboard.css";
 
 /* Global styles to prevent browser scrolling and adapt to actual viewport */
+:root {
+  /* Variables CSS pour les hauteurs dynamiques */
+  --viewport-height: 100vh;
+  --adjusted-viewport-height: 100vh;
+  --visual-viewport-height: 100vh;
+}
+
 html,
 body {
   height: 100%;
@@ -18,11 +25,8 @@ body {
 }
 
 #root {
-  /* Use dynamic viewport units that adapt to actual visible area */
-  height: 100dvh; /* Dynamic viewport height - adapts to visible area */
-  width: 100dvw; /* Dynamic viewport width */
-  /* Fallback for older browsers */
-  height: 100vh;
+  /* Utiliser la propriété CSS personnalisée mise à jour par le hook */
+  height: var(--viewport-height);
   width: 100vw;
   overflow: hidden;
   position: relative;
@@ -39,31 +43,24 @@ body {
     /* Ensure we use the safe area properly */
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
-    /* Adjust height to account for safe area insets */
+    /* Utiliser la hauteur ajustée qui prend en compte les safe areas */
     height: calc(
-      100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)
-    );
-    height: calc(
-      100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+      var(--viewport-height) - env(safe-area-inset-top) -
+        env(safe-area-inset-bottom)
     );
   }
 }
 
 /* PWA detection styles */
 .viewport-height {
-  /* Use dynamic viewport units that adapt to actual visible area */
-  height: 100dvh; /* Dynamic viewport height - adapts to visible area */
-  width: 100dvw; /* Dynamic viewport width */
-  /* Fallback for older browsers */
-  height: 100vh;
+  /* Utiliser la propriété CSS personnalisée */
+  height: var(--viewport-height);
   width: 100vw;
 }
 
 .dashboard-content-height {
-  /* Dashboard content height minus header */
-  height: calc(100dvh - 44px);
-  /* Fallback for older browsers */
-  height: calc(100vh - 44px);
+  /* Dashboard content height minus header - utiliser la hauteur ajustée */
+  height: calc(var(--adjusted-viewport-height) - 44px);
 }
 
 .pwa-install-modal {
@@ -134,4 +131,27 @@ textarea {
   -moz-user-select: text;
   -ms-user-select: text;
   user-select: text;
+}
+
+/* Utilitaires pour les hauteurs de viewport dynamiques */
+@layer utilities {
+  .h-viewport {
+    height: var(--viewport-height);
+  }
+
+  .h-viewport-adjusted {
+    height: var(--adjusted-viewport-height);
+  }
+
+  .h-visual-viewport {
+    height: var(--visual-viewport-height);
+  }
+
+  .min-h-viewport {
+    min-height: var(--viewport-height);
+  }
+
+  .min-h-viewport-adjusted {
+    min-height: var(--adjusted-viewport-height);
+  }
 }
