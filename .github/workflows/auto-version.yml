@@ -42,13 +42,18 @@ jobs:
 
           echo "Analysis result: $VERSION_TYPE"
 
+          # Vérifier que VERSION_TYPE est valide
           if [ "$VERSION_TYPE" = "IGNORE" ]; then
             echo "Commit should be ignored for versioning"
-            echo "should_version=false" >> $GITHUB_OUTPUT
+            echo "should_version=false" >> "$GITHUB_OUTPUT"
             exit 0
+          elif [ "$VERSION_TYPE" = "major" ] || [ "$VERSION_TYPE" = "minor" ] || [ "$VERSION_TYPE" = "patch" ]; then
+            echo "should_version=true" >> "$GITHUB_OUTPUT"
+            echo "version_type=$VERSION_TYPE" >> "$GITHUB_OUTPUT"
           else
-            echo "should_version=true" >> $GITHUB_OUTPUT
-            echo "version_type=$VERSION_TYPE" >> $GITHUB_OUTPUT
+            echo "Error: Invalid version type: $VERSION_TYPE"
+            echo "should_version=false" >> "$GITHUB_OUTPUT"
+            exit 1
           fi
 
           # Récupérer les fichiers modifiés
@@ -78,9 +83,9 @@ jobs:
             fi
           done <<< "$CHANGED_FILES"
 
-          echo "server_changed=$SERVER_CHANGED" >> $GITHUB_OUTPUT
-          echo "web_changed=$WEB_CHANGED" >> $GITHUB_OUTPUT
-          echo "mobile_changed=$MOBILE_CHANGED" >> $GITHUB_OUTPUT
+          echo "server_changed=$SERVER_CHANGED" >> "$GITHUB_OUTPUT"
+          echo "web_changed=$WEB_CHANGED" >> "$GITHUB_OUTPUT"
+          echo "mobile_changed=$MOBILE_CHANGED" >> "$GITHUB_OUTPUT"
 
       - name: Install jq for JSON manipulation
         if: steps.changed-files.outputs.should_version == 'true'
@@ -94,6 +99,12 @@ jobs:
           echo "Current server version: $CURRENT_VERSION"
           VERSION_TYPE="${{ steps.changed-files.outputs.version_type }}"
 
+          # Validation du VERSION_TYPE
+          if [ -z "$VERSION_TYPE" ] || [ "$VERSION_TYPE" = "null" ]; then
+            echo "Error: VERSION_TYPE is empty or null"
+            exit 1
+          fi
+
           # Parse current version
           IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
           MAJOR=${VERSION_PARTS[0]}
@@ -110,9 +121,13 @@ jobs:
               NEW_MINOR=$((MINOR + 1))
               NEW_VERSION="$MAJOR.$NEW_MINOR.0"
               ;;
-            *)
+            "patch")
               NEW_PATCH=$((PATCH + 1))
               NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+              ;;
+            *)
+              echo "Error: Invalid version type: $VERSION_TYPE"
+              exit 1
               ;;
           esac
 
@@ -121,7 +136,7 @@ jobs:
           # Update package.json
           jq ".version = \"$NEW_VERSION\"" package.json > package.json.tmp && mv package.json.tmp package.json
 
-          echo "SERVER_NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "SERVER_NEW_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
 
       - name: Update Web Version
         if: steps.changed-files.outputs.should_version == 'true' && steps.changed-files.outputs.web_changed == 'true'
@@ -131,6 +146,12 @@ jobs:
           echo "Current web version: $CURRENT_VERSION"
           VERSION_TYPE="${{ steps.changed-files.outputs.version_type }}"
 
+          # Validation du VERSION_TYPE
+          if [ -z "$VERSION_TYPE" ] || [ "$VERSION_TYPE" = "null" ]; then
+            echo "Error: VERSION_TYPE is empty or null"
+            exit 1
+          fi
+
           # Parse current version
           IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
           MAJOR=${VERSION_PARTS[0]}
@@ -147,9 +168,13 @@ jobs:
               NEW_MINOR=$((MINOR + 1))
               NEW_VERSION="$MAJOR.$NEW_MINOR.0"
               ;;
-            *)
+            "patch")
               NEW_PATCH=$((PATCH + 1))
               NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+              ;;
+            *)
+              echo "Error: Invalid version type: $VERSION_TYPE"
+              exit 1
               ;;
           esac
 
@@ -158,7 +183,7 @@ jobs:
           # Update package.json
           jq ".version = \"$NEW_VERSION\"" package.json > package.json.tmp && mv package.json.tmp package.json
 
-          echo "WEB_NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "WEB_NEW_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
 
       - name: Update Mobile Version
         if: steps.changed-files.outputs.should_version == 'true' && steps.changed-files.outputs.mobile_changed == 'true'
@@ -168,6 +193,12 @@ jobs:
           echo "Current mobile version: $CURRENT_VERSION"
           VERSION_TYPE="${{ steps.changed-files.outputs.version_type }}"
 
+          # Validation du VERSION_TYPE
+          if [ -z "$VERSION_TYPE" ] || [ "$VERSION_TYPE" = "null" ]; then
+            echo "Error: VERSION_TYPE is empty or null"
+            exit 1
+          fi
+
           # Parse current version
           IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
           MAJOR=${VERSION_PARTS[0]}
@@ -184,9 +215,13 @@ jobs:
               NEW_MINOR=$((MINOR + 1))
               NEW_VERSION="$MAJOR.$NEW_MINOR.0"
               ;;
-            *)
+            "patch")
               NEW_PATCH=$((PATCH + 1))
               NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+              ;;
+            *)
+              echo "Error: Invalid version type: $VERSION_TYPE"
+              exit 1
               ;;
           esac
 
@@ -195,7 +230,7 @@ jobs:
           # Update package.json
           jq ".version = \"$NEW_VERSION\"" package.json > package.json.tmp && mv package.json.tmp package.json
 
-          echo "MOBILE_NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "MOBILE_NEW_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
 
       - name: Commit version changes
         if: steps.changed-files.outputs.should_version == 'true'
@@ -209,15 +244,15 @@ jobs:
           # Construire le message de commit
           COMMIT_MSG="chore: auto-increment version(s) [${{ steps.changed-files.outputs.version_type }}]"
 
-          if [ "${{ steps.changed-files.outputs.server_changed }}" = "true" ]; then
+          if [ "${{ steps.changed-files.outputs.server_changed }}" = "true" ] && [ -n "$SERVER_NEW_VERSION" ]; then
             COMMIT_MSG="$COMMIT_MSG - server: $SERVER_NEW_VERSION"
           fi
 
-          if [ "${{ steps.changed-files.outputs.web_changed }}" = "true" ]; then
+          if [ "${{ steps.changed-files.outputs.web_changed }}" = "true" ] && [ -n "$WEB_NEW_VERSION" ]; then
             COMMIT_MSG="$COMMIT_MSG - web: $WEB_NEW_VERSION"
           fi
 
-          if [ "${{ steps.changed-files.outputs.mobile_changed }}" = "true" ]; then
+          if [ "${{ steps.changed-files.outputs.mobile_changed }}" = "true" ] && [ -n "$MOBILE_NEW_VERSION" ]; then
             COMMIT_MSG="$COMMIT_MSG - mobile: $MOBILE_NEW_VERSION"
           fi
 
@@ -242,23 +277,25 @@ jobs:
         if: steps.changed-files.outputs.should_version == 'true'
         run: |
           # Créer des tags pour chaque version mise à jour
-          if [ "${{ steps.changed-files.outputs.server_changed }}" = "true" ]; then
+          if [ "${{ steps.changed-files.outputs.server_changed }}" = "true" ] && [ -n "$SERVER_NEW_VERSION" ]; then
             git tag "server-v$SERVER_NEW_VERSION"
             echo "Created tag: server-v$SERVER_NEW_VERSION"
           fi
 
-          if [ "${{ steps.changed-files.outputs.web_changed }}" = "true" ]; then
+          if [ "${{ steps.changed-files.outputs.web_changed }}" = "true" ] && [ -n "$WEB_NEW_VERSION" ]; then
             git tag "web-v$WEB_NEW_VERSION"
             echo "Created tag: web-v$WEB_NEW_VERSION"
           fi
 
-          if [ "${{ steps.changed-files.outputs.mobile_changed }}" = "true" ]; then
+          if [ "${{ steps.changed-files.outputs.mobile_changed }}" = "true" ] && [ -n "$MOBILE_NEW_VERSION" ]; then
             git tag "mobile-v$MOBILE_NEW_VERSION"
             echo "Created tag: mobile-v$MOBILE_NEW_VERSION"
           fi
 
-          # Pousser les tags
-          if git tag -l | grep -E "(server-v|web-v|mobile-v)" | tail -1 > /dev/null; then
+          # Pousser les tags seulement s'il y en a de nouveaux
+          if git tag -l | grep -E "^(server-v|web-v|mobile-v)" | tail -1 > /dev/null; then
             git push origin --tags
             echo "Tags pushed to repository"
+          else
+            echo "No new tags to push"
           fi
