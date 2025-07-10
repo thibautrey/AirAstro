@@ -100,16 +100,53 @@ install_dependencies() {
 add_indi_repository() {
     log_info "Ajout du dépôt INDI..."
 
-    # Ajouter la clé GPG
-    wget -qO - https://www.indilib.org/jdownloads/Ubuntu/indilib.gpg | sudo apt-key add -
+    # Installer ca-certificates et gnupg si nécessaire
+    sudo apt-get install -y ca-certificates gnupg > /dev/null 2>&1
 
-    # Ajouter le dépôt
-    echo "deb https://ppa.launchpadcontent.net/mutlaqja/ppa/ubuntu/ focal main" | sudo tee /etc/apt/sources.list.d/indi.list
+    # Créer le répertoire des clés si nécessaire
+    sudo mkdir -p /etc/apt/keyrings
+
+    # Télécharger et ajouter la clé GPG de manière moderne
+    if wget -qO - https://www.indilib.org/jdownloads/Ubuntu/indilib.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/indilib.gpg; then
+        log_success "Clé GPG INDI ajoutée"
+    else
+        log_warning "Échec du téléchargement de la clé GPG officielle, utilisation de la clé PPA"
+        # Fallback: utiliser la clé du PPA Launchpad
+        sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 568A4C4F > /dev/null 2>&1 || true
+    fi
+
+    # Détecter la version Ubuntu/Debian
+    local codename
+    if [[ -f /etc/os-release ]]; then
+        . /etc/os-release
+        case "$VERSION_CODENAME" in
+            "bookworm"|"bullseye"|"buster")
+                codename="focal"  # Utiliser focal pour Debian
+                ;;
+            "jammy"|"focal"|"bionic")
+                codename="$VERSION_CODENAME"
+                ;;
+            *)
+                codename="focal"  # Défaut
+                ;;
+        esac
+    else
+        codename="focal"
+    fi
+
+    # Ajouter le dépôt avec la nouvelle syntaxe
+    if [[ -f /etc/apt/keyrings/indilib.gpg ]]; then
+        echo "deb [signed-by=/etc/apt/keyrings/indilib.gpg] https://ppa.launchpadcontent.net/mutlaqja/ppa/ubuntu/ $codename main" | sudo tee /etc/apt/sources.list.d/indi.list > /dev/null
+    else
+        echo "deb https://ppa.launchpadcontent.net/mutlaqja/ppa/ubuntu/ $codename main" | sudo tee /etc/apt/sources.list.d/indi.list > /dev/null
+    fi
 
     # Mettre à jour
-    sudo apt-get update > /dev/null 2>&1
-
-    log_success "Dépôt INDI ajouté"
+    if sudo apt-get update > /dev/null 2>&1; then
+        log_success "Dépôt INDI ajouté avec succès"
+    else
+        log_warning "Erreur lors de la mise à jour, mais le dépôt a été ajouté"
+    fi
 }
 
 # Installer INDI Core
