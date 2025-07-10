@@ -54,11 +54,14 @@ export interface UseEquipmentResult {
   forceUpdateDatabase: () => Promise<void>;
 }
 
-export function useEquipment(options?: {
+export interface UseEquipmentOptions {
   enablePolling?: boolean;
   pollingInterval?: number;
-}): UseEquipmentResult {
-  const { enablePolling = false, pollingInterval = 30000 } = options || {};
+  includeUnknown?: boolean;
+}
+
+export function useEquipment(options?: UseEquipmentOptions): UseEquipmentResult {
+  const { enablePolling = false, pollingInterval = 30000, includeUnknown = false } = options || {};
   const { buildApiUrl, isOnline } = useAirAstroUrl();
 
   const [equipment, setEquipment] = useState<DetectedEquipment[]>([]);
@@ -81,7 +84,7 @@ export function useEquipment(options?: {
     setError(null);
 
     try {
-      const url = buildApiUrl("/api/equipment");
+      const url = buildApiUrl(`/api/equipment${includeUnknown ? '?includeUnknown=true' : ''}`);
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -111,7 +114,7 @@ export function useEquipment(options?: {
     } finally {
       setLoading(false);
     }
-  }, [buildApiUrl, isOnline]);
+  }, [buildApiUrl, isOnline, includeUnknown]);
 
   const performAutoSetup = useCallback(async (): Promise<AutoSetupResult> => {
     setLoading(true);

@@ -414,3 +414,38 @@ Les équipements sont automatiquement détectés depuis les dépôts INDI. Pour 
 - Interface de configuration avancée
 - Profils d'équipements personnalisés
 - Export/import de configurations
+
+## Filtrage des Équipements
+
+### 🧹 Filtrage Automatique
+
+Le système filtre automatiquement les équipements inconnus et peu fiables pour améliorer la qualité de l'interface :
+
+- **Équipements filtrés** : Type "unknown" avec confiance < 50
+- **Contrôleurs génériques** : Hubs USB, adaptateurs, bridges
+- **Appareils série non identifiés** : Ports série génériques
+
+### 🎛️ Contrôle du Filtrage
+
+```typescript
+// Affichage par défaut (équipements pertinents uniquement)
+const { equipment } = useEquipment({
+  enablePolling: true,
+});
+
+// Affichage de tous les équipements
+const { equipment } = useEquipment({
+  enablePolling: true,
+  includeUnknown: true,
+});
+```
+
+### 🔍 API REST
+
+```bash
+# Équipements filtrés (par défaut)
+curl http://airastro.local:3000/api/equipment
+
+# Tous les équipements
+curl http://airastro.local:3000/api/equipment?includeUnknown=true
+```

@@ -53,17 +53,39 @@ router.get("/", async (req: Request, res: Response) => {
   try {
     const equipment = await equipmentManager.getEquipmentList();
     const status = equipmentManager.getEquipmentStatus();
+    const includeUnknown = req.query.includeUnknown === 'true';
 
     // Combiner les informations de détection et de statut
-    const enrichedEquipment = equipment.map((device) => {
-      const deviceStatus = status.find((s) => s.id === device.id);
-      return {
-        ...device,
-        status: deviceStatus?.status || "disconnected",
-        lastSeen: deviceStatus?.lastSeen,
-        errorMessage: deviceStatus?.errorMessage,
-      };
-    });
+    const enrichedEquipment = equipment
+      .filter((device) => {
+        // Si includeUnknown est true, ne pas filtrer
+        if (includeUnknown) {
+          return true;
+        }
+        
+        // Filtrer les équipements complètement inconnus avec faible confiance
+        // ou les équipements série/USB génériques de très faible confiance
+        if (device.type === "unknown" && device.confidence < 50) {
+          return false;
+        }
+        
+        // Filtrer également les équipements avec une confiance extrêmement faible (< 10)
+        // qui sont probablement des contrôleurs ou des hubs
+        if (device.confidence < 10) {
+          return false;
+        }
+        
+        return true;
+      })
+      .map((device) => {
+        const deviceStatus = status.find((s) => s.id === device.id);
+        return {
+          ...device,
+          status: deviceStatus?.status || "disconnected",
+          lastSeen: deviceStatus?.lastSeen,
+          errorMessage: deviceStatus?.errorMessage,
+        };
+      });
 
     res.json({
       equipment: enrichedEquipment,

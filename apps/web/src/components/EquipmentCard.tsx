@@ -84,6 +84,20 @@ const getDriverStatusColor = (
   }
 };
 
+const getConfidenceColor = (confidence: number) => {
+  if (confidence >= 80) return "text-green-400";
+  if (confidence >= 50) return "text-yellow-400";
+  if (confidence >= 20) return "text-orange-400";
+  return "text-red-400";
+};
+
+const getConfidenceText = (confidence: number) => {
+  if (confidence >= 80) return "Élevée";
+  if (confidence >= 50) return "Moyenne";
+  if (confidence >= 20) return "Faible";
+  return "Très faible";
+};
+
 const EquipmentCard = ({
   equipment,
   onSetup,
@@ -132,9 +146,14 @@ const EquipmentCard = ({
             {getStatusText(equipment.status)}
           </span>
           {equipment.confidence && (
-            <span className="text-xs text-gray-500">
-              Confiance: {equipment.confidence}%
-            </span>
+            <div className="text-xs text-right">
+              <span className={getConfidenceColor(equipment.confidence)}>
+                {getConfidenceText(equipment.confidence)}
+              </span>
+              <span className="text-gray-500 ml-1">
+                ({equipment.confidence}%)
+              </span>
+            </div>
           )}
         </div>
       </div>

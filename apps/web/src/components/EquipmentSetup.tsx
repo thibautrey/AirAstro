@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import AirAstroConnectionManager from "./AirAstroConnectionManager";
 import EquipmentCard from "./EquipmentCard";
+import EquipmentFilterInfo from "./EquipmentFilterInfo";
 import LocationDisplay from "./LocationDisplay";
 import NumberInput from "./ui/NumberInput";
 import Select from "./ui/Select";
@@ -13,6 +14,8 @@ import { useNavigate } from "react-router-dom";
 export default function EquipmentSetup() {
   const navigate = useNavigate();
   const { location } = useLocation();
+  const [showAllEquipment, setShowAllEquipment] = useState(false);
+
   const {
     equipment,
     summary,
@@ -24,7 +27,11 @@ export default function EquipmentSetup() {
     restartDevice,
     scanEquipment,
     forceUpdateDatabase,
-  } = useEquipment({ enablePolling: true, pollingInterval: 30000 }); // Polling activé sur cette page
+  } = useEquipment({
+    enablePolling: true,
+    pollingInterval: 30000,
+    includeUnknown: showAllEquipment, // Filtrage conditionnel
+  });
 
   const [formData, setFormData] = useState({
     mount: "",
@@ -217,6 +224,22 @@ export default function EquipmentSetup() {
               </div>
             </div>
 
+            {/* Option pour afficher tous les équipements */}
+            <div className="mb-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showAllEquipment}
+                  onChange={(e) => setShowAllEquipment(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <span className="text-sm text-gray-300">
+                  Afficher tous les équipements (y compris les contrôleurs
+                  inconnus)
+                </span>
+              </label>
+            </div>
+
             {setupMessage && (
               <div className="mb-4 p-3 bg-zinc-900 rounded-md">
                 <p className="text-sm text-white">{setupMessage}</p>
@@ -230,12 +253,20 @@ export default function EquipmentSetup() {
             )}
           </div>
 
+          {/* Informations sur le filtrage */}
+          <EquipmentFilterInfo
+            equipment={equipment}
+            showAllEquipment={showAllEquipment}
+            onToggleFilter={setShowAllEquipment}
+          />
+
           {/* Detected Equipment */}
           {equipment.length > 0 && (
             <div className="mb-8">
               <h2 className="text-lg font-semibold text-white mb-4">
                 Équipements détectés
               </h2>
+
               <div className="space-y-4">
                 {equipment.map((item) => (
                   <EquipmentCard

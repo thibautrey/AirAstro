@@ -182,10 +182,22 @@ export class EquipmentDetectorService {
     let type: DetectedDevice["type"] = "unknown";
     let confidence = 20;
 
-    if (desc.includes("camera") || desc.includes("cam")) {
+    // Filtrer les appareils qui sont clairement des contrôleurs/hubs ou des composants système
+    if (desc.includes("hub") || desc.includes("controller") || 
+        desc.includes("bridge") || desc.includes("adapter") ||
+        desc.includes("wireless") || desc.includes("bluetooth") ||
+        desc.includes("usb-serial") || desc.includes("cp210") ||
+        desc.includes("ftdi") || desc.includes("ch340") ||
+        desc.includes("pl2303") || desc.includes("usb2.0") ||
+        desc.includes("root hub") || desc.includes("host controller") ||
+        desc.includes("mass storage") || desc.includes("card reader") ||
+        desc.includes("keyboard") || desc.includes("mouse") ||
+        desc.includes("audio") || desc.includes("sound")) {
+      confidence = 5; // Confiance très faible pour ces appareils génériques
+    } else if (desc.includes("camera") || desc.includes("cam") || desc.includes("ccd")) {
       type = "camera";
       confidence = 60;
-    } else if (desc.includes("mount") || desc.includes("telescope")) {
+    } else if (desc.includes("mount") || desc.includes("telescope") || desc.includes("eq")) {
       type = "mount";
       confidence = 60;
     } else if (desc.includes("focuser") || desc.includes("focus")) {
@@ -193,6 +205,15 @@ export class EquipmentDetectorService {
       confidence = 60;
     } else if (desc.includes("filter") || desc.includes("wheel")) {
       type = "filter-wheel";
+      confidence = 60;
+    } else if (desc.includes("guider") || desc.includes("guide")) {
+      type = "guide-camera";
+      confidence = 60;
+    } else if (desc.includes("dome")) {
+      type = "dome";
+      confidence = 60;
+    } else if (desc.includes("weather") || desc.includes("sensor")) {
+      type = "weather";
       confidence = 60;
     }
 
@@ -254,7 +275,8 @@ export class EquipmentDetectorService {
   ): Promise<DetectedDevice | null> {
     // Pour les appareils série, nous devons essayer de communiquer
     // Ceci est plus complexe et nécessiterait une implémentation spécifique
-    // Pour l'instant, nous retournons un appareil générique
+    // Pour l'instant, nous retournons un appareil générique avec confiance très faible
+    // pour qu'il soit filtré par défaut
 
     return {
       id: `serial-${port.replace(/\//g, "-")}`,
@@ -269,7 +291,7 @@ export class EquipmentDetectorService {
       },
       driverStatus: "not-found",
       autoInstallable: false,
-      confidence: 30,
+      confidence: 10, // Confiance très faible pour filtrer ces appareils
     };
   }
 
