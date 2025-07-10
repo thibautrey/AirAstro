@@ -60,3 +60,28 @@ curl -fsSL https://raw.githubusercontent.com/thibautrey/AirAstro/main/server/scr
 
 The script installs dependencies, clones this repository to `~/AirAstro`, builds the server and sets up systemd services for the server and Wi-Fi hotspot.
 
+
+## Project Structure
+
+The server code is organized using controllers, routes and services:
+
+- **controllers** handle HTTP specifics and call into services.
+- **services** implement the business logic (currently mostly placeholders).
+- **routes** wire controllers to Express routers.
+
+Additional services such as camera control, plate solving or guiding are defined
+as stubs in the `services` directory for future development.
+
+### Image Library API
+
+A small image library is available to manage pictures captured by the system.
+Images can be marked as `temporary` (for plate solving or guiding) or
+`permanent`. The following endpoints are provided:
+
+- `POST /api/images` – register a new image (placeholder implementation).
+- `GET /api/images` – list images, filterable by type.
+- `GET /api/images/:id` – retrieve information about a single image.
+- `DELETE /api/images/:id` – remove an image from the library.
+
+These endpoints currently store data in memory and will be expanded in the
+future to handle real files.
