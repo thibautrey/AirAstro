@@ -1,12 +1,14 @@
 import express, { Request, Response } from "express";
 
 import { DriverManager } from "./indi";
+import bonjour from "bonjour";
 import cors from "cors";
 import imageRouter from "./routes/image.route";
 import path from "path";
 import updateRouter from "./routes/update.route";
 
 const app = express();
+const bonjourInstance = bonjour();
 
 // Enable CORS for all routes
 app.use(
@@ -14,15 +16,15 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:3000",
-      "http://airastro.local:5173",
-      "http://10.42.0.1:5173",
+      "http://airastro.local",
+      "http://10.42.0.1",
     ],
     credentials: true,
   })
 );
 
 app.use(express.json());
-const port: number = parseInt(process.env.PORT ?? "3000", 10);
+const port: number = parseInt(process.env.PORT ?? "80", 10);
 const driverManager = new DriverManager();
 
 app.get("/api/ping", (_req: Request, res: Response) => {
@@ -123,4 +125,38 @@ app.get("*", (_req: Request, res: Response) => {
 
 app.listen(port, () => {
   console.log(`AirAstro server listening on port ${port}`);
+
+  // Annonce le service mDNS avec le nom airastro.local
+  const service = bonjourInstance.publish({
+    name: "airastro",
+    type: "http",
+    port: port,
+    txt: {
+      description: "AirAstro Astronomy Server",
+      version: "0.0.1",
+    },
+  });
+
+  service.on("up", () => {
+    console.log("✅ Service airastro.local announced on network");
+  });
+
+  service.on("error", (err: Error) => {
+    console.error("❌ mDNS service error:", err);
+  });
+
+  // Arrêt propre du service mDNS lors de l'arrêt du serveur
+  process.on("SIGINT", () => {
+    console.log("\n🛑 Shutting down server...");
+    service.stop();
+    bonjourInstance.destroy();
+    process.exit(0);
+  });
+
+  process.on("SIGTERM", () => {
+    console.log("\n🛑 Shutting down server...");
+    service.stop();
+    bonjourInstance.destroy();
+    process.exit(0);
+  });
 });
