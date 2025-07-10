@@ -19,7 +19,7 @@ function compareVersions(a: string, b: string): number {
 }
 
 async function getPackageVersion(): Promise<string> {
-  const pkgPath = path.join(__dirname, "..", "package.json");
+  const pkgPath = path.join(process.cwd(), "package.json");
   const data = await fs.readFile(pkgPath, "utf8");
   const pkg = JSON.parse(data);
   return pkg.version as string;
@@ -61,12 +61,11 @@ export async function downloadUpdate(): Promise<string> {
   if (!res.ok || !res.body) {
     throw new Error("Failed to download update");
   }
-  const fileStream = (await fs.open(archivePath, "w")).createWriteStream();
-  await new Promise((resolve, reject) => {
-    res.body!.pipe(fileStream);
-    res.body!.on("error", reject);
-    fileStream.on("finish", resolve);
-  });
+
+  // Convert Web ReadableStream to Buffer
+  const arrayBuffer = await res.arrayBuffer();
+  await fs.writeFile(archivePath, Buffer.from(arrayBuffer));
+
   return archivePath;
 }
 
