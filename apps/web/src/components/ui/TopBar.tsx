@@ -27,34 +27,36 @@ export default function TopBar({
   };
 
   return (
-    <div className="h-11 bg-black/70 backdrop-blur-sm flex items-center justify-between px-4">
-      {/* Left: Back button + wordmark */}
-      <div className="flex items-center space-x-3">
-        {onBack && (
-          <button
-            onClick={onBack}
-            className="text-text-primary hover:text-white transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-        )}
-        <span className="text-text-primary font-semibold text-sm">
-          AirAstro
-        </span>
-      </div>
+    <div className="h-11 bg-black/70 backdrop-blur-sm overflow-x-auto">
+      <div className="flex items-center justify-between px-4 min-w-max">
+        {/* Left: Back button + wordmark */}
+        <div className="flex items-center space-x-3 flex-shrink-0">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="text-text-primary hover:text-white transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+          <span className="text-text-primary font-semibold text-sm whitespace-nowrap">
+            AirAstro
+          </span>
+        </div>
 
-      {/* Center: Status */}
-      <div
-        className={`text-sm font-medium tracking-wide uppercase ${getStatusColor()}`}
-      >
-        {status}
-      </div>
+        {/* Center: Status */}
+        <div
+          className={`text-sm font-medium tracking-wide uppercase flex-shrink-0 px-4 ${getStatusColor()}`}
+        >
+          {status}
+        </div>
 
-      {/* Right: Serial & Version */}
-      <div className="text-text-secondary text-xs space-x-2">
-        <span>{serialNumber}</span>
-        <span>•</span>
-        <span>{appVersion}</span>
+        {/* Right: Serial & Version */}
+        <div className="text-text-secondary text-xs space-x-2 flex-shrink-0 whitespace-nowrap">
+          <span>{serialNumber}</span>
+          <span>•</span>
+          <span>{appVersion}</span>
+        </div>
       </div>
     </div>
   );
