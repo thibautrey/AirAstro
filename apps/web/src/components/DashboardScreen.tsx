@@ -10,12 +10,12 @@ export default function DashboardScreen() {
   const { id } = useParams<{ id: string }>();
 
   return (
-    <div className="h-screen w-full bg-bg-surface overflow-hidden relative">
+    <div className="viewport-height bg-bg-surface overflow-hidden relative">
       {/* Global toolbar at top */}
       <TopBarDashboard deviceId={id} />
 
       {/* Main content area with overlays */}
-      <div className="relative h-[calc(100vh-44px)] flex">
+      <div className="relative dashboard-content-height flex">
         {/* Left vertical mode rail */}
         <ModeRail />
 

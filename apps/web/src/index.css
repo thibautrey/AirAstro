@@ -3,3 +3,135 @@
 @tailwind utilities;
 
 @import "./dashboard.css";
+
+/* Global styles to prevent browser scrolling and adapt to actual viewport */
+html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent browser-level scrolling */
+  position: fixed; /* Prevent any movement */
+  background: #000000;
+  -webkit-overflow-scrolling: touch;
+}
+
+#root {
+  /* Use dynamic viewport units that adapt to actual visible area */
+  height: 100dvh; /* Dynamic viewport height - adapts to visible area */
+  width: 100dvw; /* Dynamic viewport width */
+  /* Fallback for older browsers */
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Safe area insets for devices with notches */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  #root {
+    /* Ensure we use the safe area properly */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    /* Adjust height to account for safe area insets */
+    height: calc(
+      100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+    );
+    height: calc(
+      100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+    );
+  }
+}
+
+/* PWA detection styles */
+.viewport-height {
+  /* Use dynamic viewport units that adapt to actual visible area */
+  height: 100dvh; /* Dynamic viewport height - adapts to visible area */
+  width: 100dvw; /* Dynamic viewport width */
+  /* Fallback for older browsers */
+  height: 100vh;
+  width: 100vw;
+}
+
+.dashboard-content-height {
+  /* Dashboard content height minus header */
+  height: calc(100dvh - 44px);
+  /* Fallback for older browsers */
+  height: calc(100vh - 44px);
+}
+
+.pwa-install-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.pwa-install-content {
+  background: #1a1a1a;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 320px;
+  width: 100%;
+  text-align: center;
+  border: 1px solid #333;
+}
+
+.pwa-install-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  background: linear-gradient(135deg, #d62656, #ff6b9d);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pwa-install-steps {
+  text-align: left;
+  margin: 16px 0;
+  padding: 16px;
+  background: #2a2a2a;
+  border-radius: 8px;
+}
+
+.pwa-install-step {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #e5e5e5;
+}
+
+/* Prevent text selection and context menus on mobile */
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Allow text selection only in input fields */
+input,
+textarea {
+  -webkit-user-select: text;
+  -khtml-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}

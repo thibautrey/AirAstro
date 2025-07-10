@@ -1,0 +1,23 @@
+{
+  "name": "AirAstro",
+  "short_name": "AirAstro",
+  "description": "Contrôlez votre équipement d'astrophotographie",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "any",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["utilities", "productivity"],
+  "lang": "fr",
+  "dir": "ltr"
+}

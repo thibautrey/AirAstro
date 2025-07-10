@@ -62,7 +62,7 @@ export default function EquipmentSetup() {
   };
 
   return (
-    <div className="min-h-screen bg-bg-surface">
+    <div className="viewport-height bg-bg-surface overflow-hidden flex flex-col">
       <TopBar
         onBack={handleBack}
         status={status}
@@ -70,7 +70,7 @@ export default function EquipmentSetup() {
         appVersion="v1.0.0"
       />
 
-      <div className="px-4 py-8">
+      <div className="flex-1 overflow-y-auto px-4 py-8">
         <div className="max-w-lg mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-semibold text-text-primary mb-2">

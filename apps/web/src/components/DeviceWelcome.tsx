@@ -37,14 +37,14 @@ export default function DeviceWelcome() {
   }, []);
 
   return (
-    <div className="h-screen flex flex-col bg-bg-surface text-text-primary font-sans">
+    <div className="h-screen w-screen flex flex-col bg-bg-surface text-text-primary font-sans overflow-hidden viewport-height">
       {/* Header */}
-      <header className="pt-6 pl-6">
+      <header className="pt-6 pl-6 flex-shrink-0">
         <AirAstroLogo className="h-10 text-brand-red" />
       </header>
 
       {/* Hero shot */}
-      <div className="flex-1 flex items-center justify-center px-8">
+      <div className="flex-1 flex items-center justify-center px-8 min-h-0">
         <div className="w-full max-w-sm md:max-w-md">
           {/* Image placeholder - remplacez par votre PNG transparent */}
           <div className="bg-gradient-to-br from-zinc-700 to-zinc-800 rounded-lg aspect-square flex items-center justify-center shadow-elevation relative overflow-hidden">
@@ -111,7 +111,7 @@ export default function DeviceWelcome() {
       </div>
 
       {/* Footer */}
-      <footer className="w-full p-4 bg-bg-surface/95 backdrop-blur-sm space-y-3 pb-safe">
+      <footer className="w-full p-4 bg-bg-surface/95 backdrop-blur-sm space-y-3 flex-shrink-0 pb-safe">
         {/* Location row */}
         <div
           className="rounded border border-zinc-700 flex items-center justify-between px-4 py-3 cursor-pointer hover:border-zinc-600 transition-colors active:bg-zinc-800/50"
