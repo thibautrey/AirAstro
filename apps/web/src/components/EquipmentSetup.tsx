@@ -1,11 +1,14 @@
+import LocationDisplay from "./LocationDisplay";
 import NumberInput from "./ui/NumberInput";
 import Select from "./ui/Select";
 import TopBar from "./ui/TopBar";
+import { useLocation } from "../hooks/useLocation";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 export default function EquipmentSetup() {
   const navigate = useNavigate();
+  const { location } = useLocation();
   const [formData, setFormData] = useState({
     mount: "",
     mainCamera: "",
@@ -80,6 +83,15 @@ export default function EquipmentSetup() {
               Configurez votre monture et vos caméras pour commencer
               l'observation
             </p>
+          </div>
+
+          {/* Location Display */}
+          <div className="mb-6">
+            <LocationDisplay
+              location={location}
+              showAccuracy={true}
+              className="mb-4"
+            />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

@@ -2,37 +2,92 @@ import { ChevronRight, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import AirAstroLogo from "./AirAstroLogo";
+import LocationSelector from "./LocationSelector";
+import LocationStatusIcon from "./LocationStatusIcon";
+import { useLocation } from "../hooks/useLocation";
 import { useNavigate } from "react-router-dom";
 
 export default function DeviceWelcome() {
   const navigate = useNavigate();
   const [hasReachableDevice, setHasReachableDevice] = useState(false);
-  const [location, setLocation] = useState("Detecting location...");
+  const [isLocationSelectorOpen, setIsLocationSelectorOpen] = useState(false);
+  const {
+    location,
+    isLoading: isLocationLoading,
+    autoLocationStatus,
+    updateLocation,
+    getLocationName,
+  } = useLocation();
 
   const handleEnterDevice = () => {
-    navigate("/setup");
+    // Ne permettre l'accès que si on a une localisation
+    if (location) {
+      navigate("/setup");
+    }
   };
+
+  const getLocationDisplayText = () => {
+    if (isLocationLoading) return "Chargement de la localisation...";
+
+    switch (autoLocationStatus) {
+      case "checking":
+        return "Vérification des permissions GPS...";
+      case "requesting":
+        return "Demande d'accès à la géolocalisation...";
+      case "denied":
+        return "Géolocalisation refusée - Cliquez pour saisir manuellement";
+      case "unavailable":
+        return "GPS indisponible - Cliquez pour saisir manuellement";
+      case "error":
+        return "Erreur GPS - Cliquez pour réessayer";
+      case "success":
+        return getLocationName(location);
+      default:
+        return location
+          ? getLocationName(location)
+          : "Cliquez pour définir votre localisation";
+    }
+  };
+
+  const getLocationBorderColor = () => {
+    if (
+      !location &&
+      (autoLocationStatus === "denied" ||
+        autoLocationStatus === "unavailable" ||
+        autoLocationStatus === "error")
+    ) {
+      return "border-yellow-500/70";
+    }
+    return "border-zinc-700";
+  };
+
+  const canEnterDevice = hasReachableDevice && location;
 
   const handleLocationClick = () => {
-    // Ici vous pourriez ouvrir un modal de sélection de localisation
-    console.log("Opening location selector...");
+    setIsLocationSelectorOpen(true);
   };
 
-  // Simuler la détection d'appareils et de localisation
+  const getButtonText = () => {
+    if (!hasReachableDevice) return "Recherche d'appareils...";
+    if (!location) return "Localisation requise";
+    return "Entrer dans l'appareil";
+  };
+
+  const getButtonStyle = () => {
+    if (!hasReachableDevice || !location) {
+      return "opacity-40 cursor-not-allowed";
+    }
+    return "active:scale-[0.98] hover:shadow-lg shadow-elevation";
+  };
+
+  // Simuler la détection d'appareils
   useEffect(() => {
-    // Simuler une vérification d'appareils
     const checkDevices = setTimeout(() => {
       setHasReachableDevice(true); // Pour la démo, on simule qu'un appareil est trouvé
     }, 2000);
 
-    // Simuler la détection de localisation
-    const detectLocation = setTimeout(() => {
-      setLocation("Paris, France"); // Localisation par défaut pour la démo
-    }, 1500);
-
     return () => {
       clearTimeout(checkDevices);
-      clearTimeout(detectLocation);
     };
   }, []);
 
@@ -114,31 +169,49 @@ export default function DeviceWelcome() {
       <footer className="w-full p-4 pb-6 md:pb-4 bg-bg-surface/95 backdrop-blur-sm space-y-3 flex-shrink-0 min-h-[120px]">
         {/* Location row */}
         <div
-          className="rounded border border-zinc-700 flex items-center justify-between px-4 py-3 cursor-pointer hover:border-zinc-600 transition-colors active:bg-zinc-800/50"
+          className={`rounded border flex items-center justify-between px-4 py-3 cursor-pointer hover:border-zinc-600 transition-colors active:bg-zinc-800/50 ${getLocationBorderColor()}`}
           onClick={handleLocationClick}
         >
           <div className="flex items-center space-x-3">
-            <MapPin className="w-5 h-5 text-brand-blue flex-shrink-0" />
-            <span className="text-text-primary font-medium">{location}</span>
+            <LocationStatusIcon
+              status={autoLocationStatus}
+              hasLocation={!!location}
+              className="w-5 h-5 flex-shrink-0"
+            />
+            <span className="text-text-primary font-medium">
+              {getLocationDisplayText()}
+            </span>
           </div>
           <ChevronRight className="w-6 h-6 text-text-secondary flex-shrink-0" />
         </div>
+
+        {/* Location requirement notice */}
+        {!location && (
+          <div className="px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded text-yellow-400 text-xs">
+            📍 La localisation est requise pour le calcul astronomique et la
+            calibration des montures
+          </div>
+        )}
 
         {/* Primary CTA */}
         <button
           className={`w-full h-11 rounded bg-gradient-to-r from-brand-blue to-brand-blue-light text-white
             font-semibold tracking-wide flex items-center justify-center transition-all duration-200
-            ${
-              hasReachableDevice
-                ? "active:scale-[0.98] hover:shadow-lg shadow-elevation"
-                : "opacity-40 cursor-not-allowed"
-            }`}
-          onClick={hasReachableDevice ? handleEnterDevice : undefined}
-          disabled={!hasReachableDevice}
+            ${getButtonStyle()}`}
+          onClick={canEnterDevice ? handleEnterDevice : undefined}
+          disabled={!canEnterDevice}
         >
-          {hasReachableDevice ? "Enter Device" : "Searching for devices..."}
+          {getButtonText()}
         </button>
       </footer>
+
+      {/* Location Selector Modal */}
+      <LocationSelector
+        isOpen={isLocationSelectorOpen}
+        onClose={() => setIsLocationSelectorOpen(false)}
+        onLocationSelected={updateLocation}
+        currentLocation={location || undefined}
+      />
     </div>
   );
 }
