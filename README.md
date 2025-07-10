@@ -1,1 +1,26 @@
 # AirAstro
+
+AirAstro is a monorepo aiming to create an open source alternative to commercial astrophotography controllers such as ASIAIR and Stellarmate. The project delivers:
+
+- **iOS application** – a simple user interface to control astrophotography equipment.
+- **Android application** – identical features and interface as the iOS app.
+- **Raspberry Pi server** – runs INDI/ASCOM drivers and exposes control APIs.
+
+The goal is to replicate the ASIAIR feature set while staying easy to use. The applications communicate with the server which is designed to run on a Raspberry Pi.
+
+## Repository Structure
+
+```
+apps/          - Mobile applications
+  ios/         - iOS specific code
+  android/     - Android specific code
+server/        - Raspberry Pi server implementation
+```
+
+## Using Open Source Drivers
+
+AirAstro relies on the INDI and ASCOM projects to provide hardware support. This avoids the need to implement device drivers from scratch.
+
+## Status
+
+This repository currently contains folder placeholders only. Contributions are welcome to flesh out the server and mobile applications.
