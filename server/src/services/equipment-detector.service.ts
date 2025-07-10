@@ -6,6 +6,7 @@ import {
 import { DriverManager } from "../indi";
 import { exec as execCallback } from "child_process";
 import { promises as fs } from "fs";
+import path from "path";
 import { promisify } from "util";
 
 const exec = promisify(execCallback);
@@ -471,6 +472,74 @@ export class EquipmentDetectorService {
     }
 
     return { success, failed };
+  }
+
+  async autoConfigureASIDrivers(): Promise<boolean> {
+    try {
+      console.log("🔧 Configuration automatique des drivers ASI...");
+
+      // Vérifier si des caméras ASI sont connectées
+      const devices = await this.detectAllEquipment();
+      const asiDevices = devices.filter(
+        (device) =>
+          device.manufacturer === "ZWO" && device.type === "guide-camera"
+      );
+
+      if (asiDevices.length === 0) {
+        console.log(
+          "Aucune caméra ASI détectée, skip de la configuration automatique"
+        );
+        return false;
+      }
+
+      console.log(`${asiDevices.length} caméra(s) ASI détectée(s)`);
+
+      // Vérifier si le driver est installé
+      const installedDrivers = await this.driverManager.getInstalledDrivers();
+      const asiDriverInstalled = installedDrivers.some(
+        (driver) => driver.includes("indi_asi") || driver.includes("asi")
+      );
+
+      if (!asiDriverInstalled) {
+        console.log(
+          "Driver ASI non installé, lancement de l'installation automatique..."
+        );
+
+        // Exécuter le script d'auto-installation
+        const { exec } = require("child_process");
+        const { promisify } = require("util");
+        const execAsync = promisify(exec);
+
+        const scriptPath = path.join(
+          __dirname,
+          "../..",
+          "scripts",
+          "auto-install-asi.sh"
+        );
+
+        try {
+          await execAsync(`bash ${scriptPath}`);
+          console.log("✅ Installation automatique des drivers ASI terminée");
+
+          // Invalider le cache pour forcer une nouvelle détection
+          this.detectionCache.clear();
+
+          return true;
+        } catch (error) {
+          console.error("❌ Erreur lors de l'installation automatique:", error);
+          return false;
+        }
+      } else {
+        console.log("✅ Driver ASI déjà installé");
+        return true;
+      }
+    } catch (error) {
+      console.error(
+        "❌ Erreur lors de la configuration automatique des drivers ASI:",
+        error
+      );
+      return false;
+    }
   }
 
   private isCacheValid(cacheKey: string): boolean {

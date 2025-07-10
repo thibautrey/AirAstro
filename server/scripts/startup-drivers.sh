@@ -98,12 +98,19 @@ mark_first_startup_done() {
 install_all_drivers() {
     log_info "Installation de tous les drivers INDI..."
 
-    if [[ -f "$SCRIPT_DIR/install-indi-drivers.sh" ]]; then
+    # Utiliser le script unifié d'installation
+    if [[ -f "$SCRIPT_DIR/install-all-drivers.sh" ]]; then
+        chmod +x "$SCRIPT_DIR/install-all-drivers.sh"
+        "$SCRIPT_DIR/install-all-drivers.sh" --full
+        log_success "Installation des drivers terminée"
+    elif [[ -f "$SCRIPT_DIR/install-indi-drivers.sh" ]]; then
+        # Fallback vers l'ancien script
+        log_warning "Utilisation du script d'installation legacy"
         chmod +x "$SCRIPT_DIR/install-indi-drivers.sh"
         "$SCRIPT_DIR/install-indi-drivers.sh" full
         log_success "Installation des drivers terminée"
     else
-        log_error "Script d'installation des drivers non trouvé"
+        log_error "Aucun script d'installation des drivers trouvé"
         return 1
     fi
 }

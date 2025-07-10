@@ -31,6 +31,10 @@ export class DriverManager {
       "/usr/local/lib/indi",
       "/usr/lib/indi",
       "/opt/indi/bin",
+      "/usr/lib/x86_64-linux-gnu/indi",
+      "/usr/lib/aarch64-linux-gnu/indi",
+      "/usr/lib/arm-linux-gnueabihf/indi",
+      "/usr/share/indi",
     ];
   }
 
@@ -95,6 +99,8 @@ export class DriverManager {
 
   async getInstalledDrivers(): Promise<string[]> {
     const found = new Set<string>();
+
+    // Recherche dans les répertoires standards
     for (const dir of this.searchDirs) {
       try {
         const files = await fs.readdir(dir);
@@ -107,6 +113,21 @@ export class DriverManager {
         // ignore missing directories
       }
     }
+
+    // Recherche supplémentaire avec find pour les drivers qui pourraient être ailleurs
+    try {
+      const { stdout } = await exec(
+        'find /usr /opt -name "indi_*" -type f -executable 2>/dev/null || true'
+      );
+      const foundDrivers = stdout.trim().split("\n").filter(Boolean);
+      for (const driverPath of foundDrivers) {
+        const driverName = path.basename(driverPath);
+        found.add(driverName);
+      }
+    } catch (error) {
+      console.warn("Erreur lors de la recherche étendue des drivers:", error);
+    }
+
     return Array.from(found).sort();
   }
 
@@ -114,6 +135,8 @@ export class DriverManager {
     if (path.isAbsolute(name)) {
       return name;
     }
+
+    // Recherche dans les répertoires standards
     for (const dir of this.searchDirs) {
       const full = path.join(dir, name);
       try {
@@ -123,6 +146,20 @@ export class DriverManager {
         // try next
       }
     }
+
+    // Recherche avec find si pas trouvé
+    try {
+      const { stdout } = await exec(
+        `find /usr /opt -name "${name}" -type f -executable 2>/dev/null | head -1`
+      );
+      const foundPath = stdout.trim();
+      if (foundPath) {
+        return foundPath;
+      }
+    } catch (error) {
+      console.warn(`Erreur lors de la recherche du driver ${name}:`, error);
+    }
+
     return "";
   }
 

@@ -68,6 +68,26 @@ else
   log "Script de configuration mDNS non trouvé, configuration manuelle nécessaire"
 fi
 
+# Installation des drivers INDI
+log "Installation des drivers INDI"
+if [ -f "$INSTALL_DIR/server/scripts/install-all-drivers.sh" ]; then
+  chmod +x "$INSTALL_DIR/server/scripts/install-all-drivers.sh"
+  "$INSTALL_DIR/server/scripts/install-all-drivers.sh" --full
+else
+  log "Script d'installation unifié des drivers non trouvé, utilisation des scripts individuels"
+
+  # Fallback vers les scripts individuels
+  if [ -f "$INSTALL_DIR/server/scripts/install-drivers.sh" ]; then
+    chmod +x "$INSTALL_DIR/server/scripts/install-drivers.sh"
+    "$INSTALL_DIR/server/scripts/install-drivers.sh"
+  fi
+
+  if [ -f "$INSTALL_DIR/server/scripts/install-indi-drivers.sh" ]; then
+    chmod +x "$INSTALL_DIR/server/scripts/install-indi-drivers.sh"
+    "$INSTALL_DIR/server/scripts/install-indi-drivers.sh" full
+  fi
+fi
+
 AIRASTRO_SERVICE=/etc/systemd/system/airastro.service
 TARGET_USER=${SUDO_USER:-$(whoami)}
 

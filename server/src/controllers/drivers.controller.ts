@@ -1,12 +1,18 @@
 import { Request, Response } from "express";
 
 import { EquipmentDatabaseService } from "../services/equipment-database.service";
+import { EquipmentDetectorService } from "../services/equipment-detector.service";
 
 export class DriversController {
   private equipmentService: EquipmentDatabaseService;
+  private detectorService: EquipmentDetectorService;
 
-  constructor(equipmentService: EquipmentDatabaseService) {
+  constructor(
+    equipmentService: EquipmentDatabaseService,
+    detectorService: EquipmentDetectorService
+  ) {
     this.equipmentService = equipmentService;
+    this.detectorService = detectorService;
   }
 
   // Obtenir le statut des drivers
@@ -274,6 +280,32 @@ export class DriversController {
       res.status(500).json({
         success: false,
         error: "Erreur lors de la mise à jour de la base de données",
+        details: error instanceof Error ? error.message : "Erreur inconnue",
+      });
+    }
+  }
+
+  // Auto-configuration des drivers ASI
+  async autoConfigureASI(req: Request, res: Response): Promise<void> {
+    try {
+      const success = await this.detectorService.autoConfigureASIDrivers();
+
+      if (success) {
+        res.json({
+          success: true,
+          message:
+            "Configuration automatique des drivers ASI terminée avec succès",
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: "Échec de la configuration automatique des drivers ASI",
+        });
+      }
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: "Erreur lors de la configuration automatique des drivers ASI",
         details: error instanceof Error ? error.message : "Erreur inconnue",
       });
     }
