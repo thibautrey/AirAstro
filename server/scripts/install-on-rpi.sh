@@ -59,6 +59,15 @@ log "Installing hotspot service"
 run "cp $INSTALL_DIR/server/scripts/start-hotspot.service /etc/systemd/system/"
 run "systemctl enable start-hotspot.service"
 
+# Configuration mDNS au niveau système
+log "Configuration de la découverte de service mDNS"
+if [ -f "$INSTALL_DIR/server/scripts/configure-mdns.sh" ]; then
+  chmod +x "$INSTALL_DIR/server/scripts/configure-mdns.sh"
+  "$INSTALL_DIR/server/scripts/configure-mdns.sh"
+else
+  log "Script de configuration mDNS non trouvé, configuration manuelle nécessaire"
+fi
+
 AIRASTRO_SERVICE=/etc/systemd/system/airastro.service
 TARGET_USER=${SUDO_USER:-$(whoami)}
 
@@ -84,5 +93,26 @@ run "systemctl daemon-reload"
 run "systemctl enable airastro.service"
 run "systemctl restart airastro.service"
 
+# Rendre les scripts mDNS exécutables
+log "Configuration des scripts de gestion mDNS"
+chmod +x "$INSTALL_DIR/server/scripts/"*.sh
+
+# Vérification finale de la configuration mDNS
+log "Vérification de la configuration mDNS"
+if [ -f "$INSTALL_DIR/server/scripts/check-mdns.sh" ]; then
+  sleep 3  # Attendre que les services se stabilisent
+  "$INSTALL_DIR/server/scripts/check-mdns.sh"
+fi
+
 log "Installation complete!"
+log ""
+log "🎯 AirAstro est maintenant accessible via:"
+log "   - http://airastro.local (découverte automatique)"
+log "   - http://10.42.0.1 (point d'accès WiFi)"
+log "   - http://$(hostname -I | awk '{print $1}') (IP locale)"
+log ""
+log "🔧 Scripts de gestion mDNS disponibles:"
+log "   - $INSTALL_DIR/server/scripts/check-mdns.sh (diagnostic)"
+log "   - $INSTALL_DIR/server/scripts/configure-mdns.sh (reconfiguration)"
+log "   - $INSTALL_DIR/server/scripts/cleanup-mdns.sh (nettoyage)"
 
