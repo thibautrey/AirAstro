@@ -20,6 +20,10 @@ For development you can run `npm run dev` to start the server using `ts-node` wi
 
 The server listens on the port specified by the `PORT` environment variable (defaults to `3000`). A simple health check endpoint is available at `/api/ping`.
 
+### Web Interface
+
+The install script and update process automatically build the web application located in `apps/web`. Once built, the generated `dist/` directory is served automatically. While connected to the AirAstro Wi-Fi you can navigate to `http://airastro.local` in your browser to use the interface.
+
 ### Update API
 
 The Pi can check for new versions of AirAstro using GitHub releases. Three endpoints are exposed:
@@ -59,6 +63,7 @@ curl -fsSL https://raw.githubusercontent.com/thibautrey/AirAstro/main/server/scr
 ```
 
 The script installs dependencies, clones this repository to `~/AirAstro`, builds the server and sets up systemd services for the server and Wi-Fi hotspot.
+It also builds the web interface so it is immediately available after installation.
 
 
 ## Project Structure

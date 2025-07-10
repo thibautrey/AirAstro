@@ -4,6 +4,7 @@ AirAstro is a monorepo aiming to create an open source alternative to commercial
 
 - **iOS application** – a simple user interface to control astrophotography equipment with modern astronomy-optimized design.
 - **Android application** – identical features and interface as the iOS app using React Native.
+- **Web application** – a browser-based UI served by the Raspberry Pi.
 - **Raspberry Pi server** – Node.js service that runs INDI/ASCOM drivers and
   exposes control APIs.
 
@@ -94,6 +95,14 @@ AirAstro relies on the INDI and ASCOM projects to provide hardware support. This
    npm install
    npm start
    ```
+
+5. **Web Interface (Development)**
+   ```bash
+   cd apps/web
+   npm install
+   npm run build
+   ```
+   The Raspberry Pi install and update scripts automatically build the web interface, but you can run these commands locally for development. The built files will be served at `http://airastro.local` when the server is running.
 
 ## Status
 

@@ -47,6 +47,14 @@ npm run build
 log "Cleaning up dev dependencies"
 npm install --omit=dev
 
+cd "$INSTALL_DIR/apps/web"
+
+log "Building web interface"
+rm -rf node_modules package-lock.json
+npm install
+npm run build
+rm -rf node_modules package-lock.json
+
 log "Installing hotspot service"
 run "cp $INSTALL_DIR/server/scripts/start-hotspot.service /etc/systemd/system/"
 run "systemctl enable start-hotspot.service"
