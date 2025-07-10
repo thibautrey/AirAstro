@@ -7,25 +7,29 @@ Le système de détection d'équipements AirAstro a été entièrement refondu p
 ## Fonctionnalités principales
 
 ### 🔄 Base de données dynamique
+
 - **Base complète** : Télécharge automatiquement la liste complète des drivers INDI depuis GitHub
-- **Deux sources** : 
+- **Deux sources** :
   - [INDI Core](https://github.com/indilib/indi/tree/master/drivers) - Drivers officiels
   - [INDI 3rd Party](https://github.com/indilib/indi-3rdparty) - Drivers tiers
 - **Mise à jour automatique** : Mise à jour quotidienne via systemd
 - **Fonctionnement offline** : Utilise la base locale après une première synchronisation
 
 ### 🎯 Détection automatique
+
 - **Détection USB** : Scan automatique des périphériques USB avec mapping VID/PID
 - **Détection série** : Identification des ports série
 - **Détection réseau** : Découverte des équipements en réseau
 - **Types supportés** : Mount, Camera, Focuser, Filter-wheel, Guide-camera, Dome, Weather, Aux
 
 ### 📡 Polling intelligent
+
 - **Polling conditionnel** : Actif uniquement sur la page de configuration
 - **Interval configurable** : 30 secondes par défaut
 - **Détection en temps réel** : Détecte les connexions/déconnexions à chaud
 
 ### 🔧 Installation automatique
+
 - **Détection des drivers** : Identifie automatiquement les drivers nécessaires
 - **Installation automatique** : Installe les packages INDI appropriés
 - **Configuration auto** : Configure les drivers avec les paramètres optimaux
@@ -121,9 +125,11 @@ sudo ./scripts/setup-equipment-database.sh
 ### Endpoints principaux
 
 #### GET `/api/equipment`
+
 Retourne la liste complète des équipements détectés avec leurs statuts.
 
 **Response:**
+
 ```json
 {
   "equipment": [
@@ -146,15 +152,19 @@ Retourne la liste complète des équipements détectés avec leurs statuts.
 ```
 
 #### POST `/api/equipment/auto-setup`
+
 Lance la configuration automatique de tous les équipements détectés.
 
 #### POST `/api/equipment/database/update`
+
 Force la mise à jour de la base de données d'équipements.
 
 #### GET `/api/equipment/database/stats`
+
 Retourne les statistiques de la base de données.
 
 **Response:**
+
 ```json
 {
   "totalEquipment": 1247,
@@ -207,35 +217,33 @@ service.initializeDatabase().then(() => console.log('✅ OK'));
 ### Hook useEquipment
 
 ```tsx
-import { useEquipment } from '../hooks/useEquipment';
+import { useEquipment } from "../hooks/useEquipment";
 
 function EquipmentSetup() {
-  const { 
-    equipment, 
-    summary, 
-    loading, 
+  const {
+    equipment,
+    summary,
+    loading,
     error,
     refreshEquipment,
     performAutoSetup,
-    forceUpdateDatabase
-  } = useEquipment({ 
-    enablePolling: true, 
-    pollingInterval: 30000 
+    forceUpdateDatabase,
+  } = useEquipment({
+    enablePolling: true,
+    pollingInterval: 30000,
   });
 
   // Polling actif uniquement sur cette page
   // Actualisation automatique toutes les 30 secondes
-  
+
   return (
     <div>
-      {equipment.map(device => (
+      {equipment.map((device) => (
         <EquipmentCard key={device.id} device={device} />
       ))}
-      
-      <button onClick={performAutoSetup}>
-        Configuration automatique
-      </button>
-      
+
+      <button onClick={performAutoSetup}>Configuration automatique</button>
+
       <button onClick={forceUpdateDatabase}>
         Mettre à jour la base de données
       </button>
@@ -274,6 +282,7 @@ systemctl list-timers airastro-db-update.timer
 ### Problèmes courants
 
 #### 1. Base de données vide
+
 ```bash
 # Vérifier la connexion Internet
 curl -I https://api.github.com
@@ -283,6 +292,7 @@ curl -I https://api.github.com
 ```
 
 #### 2. Équipements non détectés
+
 ```bash
 # Vérifier les périphériques USB
 lsusb
@@ -292,6 +302,7 @@ lsusb
 ```
 
 #### 3. Drivers non installés
+
 ```bash
 # Vérifier les drivers INDI
 dpkg -l | grep indi-
@@ -316,6 +327,7 @@ export DEBUG=airastro:usb*
 ### Mise à jour de la base de données
 
 La base de données est mise à jour automatiquement :
+
 - **Quotidiennement** via systemd timer
 - **Au démarrage** si plus de 24h depuis la dernière mise à jour
 - **Manuellement** via API ou script
@@ -344,7 +356,16 @@ La base de données utilise le format suivant :
 interface EquipmentDatabase {
   [vendorProduct: string]: {
     name: string;
-    type: 'mount' | 'camera' | 'focuser' | 'filter-wheel' | 'guide-camera' | 'dome' | 'weather' | 'aux' | 'unknown';
+    type:
+      | "mount"
+      | "camera"
+      | "focuser"
+      | "filter-wheel"
+      | "guide-camera"
+      | "dome"
+      | "weather"
+      | "aux"
+      | "unknown";
     manufacturer: string;
     model: string;
     driverName: string;
@@ -381,11 +402,13 @@ Les équipements sont automatiquement détectés depuis les dépôts INDI. Pour 
 ## Limitations et améliorations futures
 
 ### Limitations actuelles
+
 - La détection réseau est basique
 - Certains drivers propriétaires ne sont pas dans les dépôts INDI
 - La détection série nécessite parfois une configuration manuelle
 
 ### Améliorations prévues
+
 - Détection Bluetooth
 - Support des drivers propriétaires
 - Interface de configuration avancée

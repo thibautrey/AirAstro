@@ -1,16 +1,27 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from "react";
+
+import { useAirAstroUrl } from "./useAirAstroUrl";
 
 export interface DetectedEquipment {
   id: string;
   name: string;
-  type: 'mount' | 'camera' | 'focuser' | 'filter-wheel' | 'guide-camera' | 'dome' | 'weather' | 'aux' | 'unknown';
+  type:
+    | "mount"
+    | "camera"
+    | "focuser"
+    | "filter-wheel"
+    | "guide-camera"
+    | "dome"
+    | "weather"
+    | "aux"
+    | "unknown";
   manufacturer: string;
   model: string;
-  connection: 'usb' | 'serial' | 'network';
-  driverStatus: 'not-found' | 'found' | 'installed' | 'running';
+  connection: "usb" | "serial" | "network";
+  driverStatus: "not-found" | "found" | "installed" | "running";
   autoInstallable: boolean;
   confidence: number;
-  status: 'disconnected' | 'connected' | 'error' | 'configuring';
+  status: "disconnected" | "connected" | "error" | "configuring";
   lastSeen?: Date;
   errorMessage?: string;
 }
@@ -43,230 +54,260 @@ export interface UseEquipmentResult {
   forceUpdateDatabase: () => Promise<void>;
 }
 
-export function useEquipment(options?: { enablePolling?: boolean; pollingInterval?: number }): UseEquipmentResult {
+export function useEquipment(options?: {
+  enablePolling?: boolean;
+  pollingInterval?: number;
+}): UseEquipmentResult {
   const { enablePolling = false, pollingInterval = 30000 } = options || {};
-  
+  const { buildApiUrl, isOnline } = useAirAstroUrl();
+
   const [equipment, setEquipment] = useState<DetectedEquipment[]>([]);
   const [summary, setSummary] = useState<EquipmentSummary>({
     totalCount: 0,
     connectedCount: 0,
     isMonitoring: false,
-    isSetupInProgress: false
+    isSetupInProgress: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refreshEquipment = useCallback(async () => {
+    if (!isOnline) {
+      setError("AirAstro n'est pas en ligne");
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch('/api/equipment');
-      
+      const url = buildApiUrl("/api/equipment");
+      const response = await fetch(url);
+
       if (!response.ok) {
         throw new Error(`Erreur HTTP: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       // Convertir les dates
       const equipmentWithDates = data.equipment.map((item: any) => ({
         ...item,
-        lastSeen: item.lastSeen ? new Date(item.lastSeen) : undefined
+        lastSeen: item.lastSeen ? new Date(item.lastSeen) : undefined,
       }));
-      
+
       setEquipment(equipmentWithDates);
       setSummary({
         totalCount: data.totalCount,
         connectedCount: data.connectedCount,
         isMonitoring: data.isMonitoring,
-        isSetupInProgress: data.isSetupInProgress
+        isSetupInProgress: data.isSetupInProgress,
       });
-      
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
+      const errorMessage =
+        err instanceof Error ? err.message : "Erreur inconnue";
       setError(errorMessage);
-      console.error('Erreur lors de la récupération des équipements:', err);
+      console.error("Erreur lors de la récupération des équipements:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [buildApiUrl, isOnline]);
 
   const performAutoSetup = useCallback(async (): Promise<AutoSetupResult> => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch('/api/equipment/auto-setup', {
-        method: 'POST',
+      const url = buildApiUrl("/api/equipment/auto-setup");
+      const response = await fetch(url, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `Erreur HTTP: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       // Rafraîchir la liste des équipements
       await refreshEquipment();
-      
+
       return data.result;
-      
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
+      const errorMessage =
+        err instanceof Error ? err.message : "Erreur inconnue";
       setError(errorMessage);
-      console.error('Erreur lors de la configuration automatique:', err);
+      console.error("Erreur lors de la configuration automatique:", err);
       throw err;
     } finally {
       setLoading(false);
     }
-  }, [refreshEquipment]);
+  }, [refreshEquipment, buildApiUrl]);
 
-  const setupDevice = useCallback(async (deviceId: string): Promise<boolean> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await fetch(`/api/equipment/${deviceId}/setup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Erreur HTTP: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      // Rafraîchir la liste des équipements
-      await refreshEquipment();
-      
-      return data.success;
-      
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
-      setError(errorMessage);
-      console.error(`Erreur lors de la configuration de l'équipement ${deviceId}:`, err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [refreshEquipment]);
+  const setupDevice = useCallback(
+    async (deviceId: string): Promise<boolean> => {
+      setLoading(true);
+      setError(null);
 
-  const restartDevice = useCallback(async (deviceId: string): Promise<boolean> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await fetch(`/api/equipment/${deviceId}/restart`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Erreur HTTP: ${response.status}`);
+      try {
+        const url = buildApiUrl(`/api/equipment/${deviceId}/setup`);
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Erreur HTTP: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Rafraîchir la liste des équipements
+        await refreshEquipment();
+
+        return data.success;
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Erreur inconnue";
+        setError(errorMessage);
+        console.error(
+          `Erreur lors de la configuration de l'équipement ${deviceId}:`,
+          err
+        );
+        throw err;
+      } finally {
+        setLoading(false);
       }
-      
-      const data = await response.json();
-      
-      // Rafraîchir la liste des équipements
-      await refreshEquipment();
-      
-      return data.success;
-      
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
-      setError(errorMessage);
-      console.error(`Erreur lors du redémarrage de l'équipement ${deviceId}:`, err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [refreshEquipment]);
+    },
+    [refreshEquipment]
+  );
+
+  const restartDevice = useCallback(
+    async (deviceId: string): Promise<boolean> => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const url = buildApiUrl(`/api/equipment/${deviceId}/restart`);
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Erreur HTTP: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Rafraîchir la liste des équipements
+        await refreshEquipment();
+
+        return data.success;
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Erreur inconnue";
+        setError(errorMessage);
+        console.error(
+          `Erreur lors du redémarrage de l'équipement ${deviceId}:`,
+          err
+        );
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [refreshEquipment, buildApiUrl]
+  );
 
   const scanEquipment = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch('/api/equipment/scan', {
-        method: 'POST',
+      const url = buildApiUrl("/api/equipment/scan");
+      const response = await fetch(url, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `Erreur HTTP: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       // Convertir les dates
       const equipmentWithDates = data.equipment.map((item: any) => ({
         ...item,
-        lastSeen: item.lastSeen ? new Date(item.lastSeen) : undefined
+        lastSeen: item.lastSeen ? new Date(item.lastSeen) : undefined,
       }));
-      
+
       setEquipment(equipmentWithDates);
       setSummary({
         totalCount: data.totalCount,
         connectedCount: data.connectedCount,
         isMonitoring: true,
-        isSetupInProgress: false
+        isSetupInProgress: false,
       });
-      
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
+      const errorMessage =
+        err instanceof Error ? err.message : "Erreur inconnue";
       setError(errorMessage);
-      console.error('Erreur lors du scan des équipements:', err);
+      console.error("Erreur lors du scan des équipements:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [buildApiUrl]);
 
   const forceUpdateDatabase = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch('/api/equipment/database/update', {
-        method: 'POST',
+      const url = buildApiUrl("/api/equipment/database/update");
+      const response = await fetch(url, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `Erreur HTTP: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      console.log('Base de données mise à jour:', data);
-      
+      console.log("Base de données mise à jour:", data);
+
       // Rafraîchir la liste des équipements
       await refreshEquipment();
-      
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
+      const errorMessage =
+        err instanceof Error ? err.message : "Erreur inconnue";
       setError(errorMessage);
-      console.error('Erreur lors de la mise à jour de la base de données:', err);
+      console.error(
+        "Erreur lors de la mise à jour de la base de données:",
+        err
+      );
     } finally {
       setLoading(false);
     }
-  }, [refreshEquipment]);
+  }, [refreshEquipment, buildApiUrl]);
 
   // Chargement initial des équipements
   useEffect(() => {
@@ -276,7 +317,7 @@ export function useEquipment(options?: { enablePolling?: boolean; pollingInterva
   // Actualisation périodique (seulement si enablePolling est true)
   useEffect(() => {
     if (!enablePolling) return;
-    
+
     const interval = setInterval(() => {
       refreshEquipment();
     }, pollingInterval);
@@ -294,6 +335,6 @@ export function useEquipment(options?: { enablePolling?: boolean; pollingInterva
     setupDevice,
     restartDevice,
     scanEquipment,
-    forceUpdateDatabase
+    forceUpdateDatabase,
   };
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import AirAstroConnectionManager from "./AirAstroConnectionManager";
 import EquipmentCard from "./EquipmentCard";
 import LocationDisplay from "./LocationDisplay";
 import NumberInput from "./ui/NumberInput";
@@ -197,6 +198,22 @@ export default function EquipmentSetup() {
                     ? "Configuration..."
                     : "Auto Config"}
                 </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await forceUpdateDatabase();
+                      setSetupMessage("✅ Base de données mise à jour !");
+                    } catch (error) {
+                      console.error("Erreur lors de la mise à jour:", error);
+                      setSetupMessage("❌ Erreur lors de la mise à jour.");
+                    }
+                  }}
+                  disabled={loading}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-sm"
+                  title="Met à jour la base de données d'équipements depuis GitHub"
+                >
+                  {loading ? "MAJ..." : "MAJ DB"}
+                </button>
               </div>
             </div>
 
@@ -299,6 +316,9 @@ export default function EquipmentSetup() {
               />
             </div>
           </div>
+
+          {/* Gestionnaire de connexion AirAstro */}
+          <AirAstroConnectionManager />
         </div>
       </div>
 

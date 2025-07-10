@@ -6,8 +6,8 @@ import { DriverManager } from "./indi";
 import { EquipmentDatabaseService } from "./services/equipment-database.service";
 import bonjour from "bonjour";
 import cors from "cors";
-import imageRouter from "./routes/image.route";
 import equipmentRouter from "./routes/equipment.route";
+import imageRouter from "./routes/image.route";
 import path from "path";
 import updateRouter from "./routes/update.route";
 

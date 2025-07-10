@@ -1,8 +1,12 @@
+import {
+  EquipmentDatabase,
+  EquipmentDatabaseService,
+} from "./equipment-database.service";
+
 import { DriverManager } from "../indi";
 import { exec as execCallback } from "child_process";
 import { promises as fs } from "fs";
 import { promisify } from "util";
-import { EquipmentDatabaseService, EquipmentDatabase } from './equipment-database.service';
 
 const exec = promisify(execCallback);
 
@@ -44,7 +48,10 @@ export class EquipmentDetectorService {
   private detectionCache: Map<string, DetectedDevice[]> = new Map();
   private readonly CACHE_DURATION = 5000; // 5 secondes
 
-  constructor(driverManager: DriverManager, equipmentDatabase: EquipmentDatabaseService) {
+  constructor(
+    driverManager: DriverManager,
+    equipmentDatabase: EquipmentDatabaseService
+  ) {
     this.driverManager = driverManager;
     this.equipmentDatabase = equipmentDatabase;
   }
@@ -115,11 +122,16 @@ export class EquipmentDetectorService {
     const [vendorId, productId] = vendorProduct.split(":");
 
     // Recherche dans la base de données dynamique
-    let deviceInfo = this.equipmentDatabase.findEquipmentByUsbId(vendorId, productId);
+    let deviceInfo = this.equipmentDatabase.findEquipmentByUsbId(
+      vendorId,
+      productId
+    );
 
     // Recherche par nom/description si pas trouvé
     if (!deviceInfo) {
-      const searchResults = this.equipmentDatabase.findEquipmentByName(usbDevice.description);
+      const searchResults = this.equipmentDatabase.findEquipmentByName(
+        usbDevice.description
+      );
       if (searchResults.length > 0) {
         deviceInfo = searchResults[0];
       }
@@ -155,9 +167,11 @@ export class EquipmentDetectorService {
     return device;
   }
 
-  private findDeviceByDescription(description: string): EquipmentDatabase[string] | null {
+  private findDeviceByDescription(
+    description: string
+  ): EquipmentDatabase[string] | null {
     const lowerDesc = description.toLowerCase();
-    
+
     const results = this.equipmentDatabase.findEquipmentByName(lowerDesc);
     return results.length > 0 ? results[0] : null;
   }

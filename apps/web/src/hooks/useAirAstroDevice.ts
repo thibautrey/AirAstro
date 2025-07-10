@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { useAirAstroUrl } from "./useAirAstroUrl";
+
 type DeviceStatus = "checking" | "found" | "not-found" | "error";
 
 interface AirAstroDevice {
@@ -10,9 +12,9 @@ interface AirAstroDevice {
   error?: string;
 }
 
-const DEFAULT_SERVERS = ["http://airastro.local:3000", "http://10.42.0.1:3000"];
-
 export function useAirAstroDevice() {
+  const { baseUrl, isOnline, isDetecting, detectAirAstro } = useAirAstroUrl();
+
   const [device, setDevice] = useState<AirAstroDevice>({
     status: "checking",
     isChecking: true,
