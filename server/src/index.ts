@@ -124,9 +124,12 @@ app.get("*", (_req: Request, res: Response) => {
 });
 
 app.listen(port, () => {
-  console.log(`AirAstro server listening on port ${port}`);
+  console.log(`🚀 AirAstro server running on port ${port}`);
+  console.log(`🌐 Local access: http://localhost:${port}`);
+  console.log(`🔗 Network access: http://airastro.local:${port}`);
+  console.log(`📡 mDNS discovery: Dual-layer (System + Application)`);
 
-  // Annonce le service mDNS avec le nom airastro.local
+  // Configuration mDNS au niveau application (complément du système)
   const service = bonjourInstance.publish({
     name: "airastro",
     type: "http",
@@ -134,15 +137,22 @@ app.listen(port, () => {
     txt: {
       description: "AirAstro Astronomy Server",
       version: "0.0.1",
+      layer: "application", // Indique que c'est la couche application
+      systemMdns: "enabled", // Indique que mDNS système est actif
+      features: "imaging,guiding,platesolving,scheduler",
+      interface: "web",
+      path: "/",
     },
   });
 
   service.on("up", () => {
-    console.log("✅ Service airastro.local announced on network");
+    console.log("✅ Application mDNS service announced");
+    console.log("   Note: System-level mDNS is also active via Avahi");
   });
 
   service.on("error", (err: Error) => {
-    console.error("❌ mDNS service error:", err);
+    console.error("❌ Application mDNS service error:", err);
+    console.log("   System-level mDNS via Avahi should still work");
   });
 
   // Arrêt propre du service mDNS lors de l'arrêt du serveur
