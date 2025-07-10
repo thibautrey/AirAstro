@@ -47,7 +47,7 @@ if command -v avahi-resolve-host-name >/dev/null; then
     else
         warning "⚠️  airastro.local ne résout pas"
     fi
-    
+
     if timeout 5 avahi-resolve-host-name $(hostname).local >/dev/null 2>&1; then
         IP=$(avahi-resolve-host-name $(hostname).local 2>/dev/null | cut -f2)
         echo "✅ $(hostname).local résout vers: $IP"
@@ -63,7 +63,7 @@ log "5. Services mDNS annoncés"
 if command -v avahi-browse >/dev/null; then
     echo "Services HTTP détectés:"
     timeout 3 avahi-browse -t _http._tcp --resolve 2>/dev/null | grep -E "(hostname|address|port)" | head -10 || echo "   Aucun service HTTP détecté"
-    
+
     echo
     echo "Services SSH détectés:"
     timeout 3 avahi-browse -t _ssh._tcp --resolve 2>/dev/null | grep -E "(hostname|address|port)" | head -10 || echo "   Aucun service SSH détecté"
@@ -88,22 +88,33 @@ done
 log "7. Vérification du service AirAstro"
 if ss -tuln | grep -q ":80 "; then
     echo "✅ Port 80 en écoute"
+elif ss -tuln | grep -q ":3000 "; then
+    echo "✅ Port 3000 en écoute (port alternatif)"
 else
-    warning "⚠️  Port 80 non en écoute"
+    warning "⚠️  Aucun port HTTP en écoute (80 ou 3000)"
     echo "   Vérifiez que le service AirAstro est démarré"
+    echo "   Pour diagnostic: ./debug-airastro.sh"
+    echo "   Pour réparation: sudo ./fix-airastro.sh"
 fi
 
 # Test de connectivité HTTP
 log "8. Test de connectivité HTTP"
 if command -v curl >/dev/null; then
+    # Test port 80
     if curl -s --connect-timeout 3 http://localhost/api/ping >/dev/null 2>&1; then
-        echo "✅ Service HTTP local répond"
+        echo "✅ Service HTTP local répond (port 80)"
+    elif curl -s --connect-timeout 3 http://localhost:3000/api/ping >/dev/null 2>&1; then
+        echo "✅ Service HTTP local répond (port 3000)"
     else
         warning "⚠️  Service HTTP local ne répond pas"
+        echo "   Essayez: sudo ./fix-airastro.sh"
     fi
-    
+
+    # Test mDNS
     if curl -s --connect-timeout 3 http://airastro.local/api/ping >/dev/null 2>&1; then
         echo "✅ Service HTTP via mDNS répond"
+    elif curl -s --connect-timeout 3 http://airastro.local:3000/api/ping >/dev/null 2>&1; then
+        echo "✅ Service HTTP via mDNS répond (port 3000)"
     else
         warning "⚠️  Service HTTP via mDNS ne répond pas"
     fi
@@ -116,9 +127,16 @@ log "Diagnostic terminé"
 
 # Suggestions de dépannage
 echo
+log "🔧 Outils de dépannage disponibles:"
+echo "• Diagnostic AirAstro: ./debug-airastro.sh"
+echo "• Réparation automatique: sudo ./fix-airastro.sh"
+echo "• Test connectivité à distance: ./test-remote-connectivity.sh"
+echo
 log "Suggestions de dépannage en cas de problème:"
-echo "1. Redémarrer Avahi: sudo systemctl restart avahi-daemon"
-echo "2. Reconfigurer mDNS: sudo ./configure-mdns.sh"
-echo "3. Redémarrer AirAstro: sudo systemctl restart airastro"
-echo "4. Redémarrer le réseau: sudo systemctl restart networking"
-echo "5. Redémarrer complètement le système"
+echo "1. Diagnostic complet du service: ./debug-airastro.sh"
+echo "2. Réparation automatique: sudo ./fix-airastro.sh"
+echo "3. Redémarrer Avahi: sudo systemctl restart avahi-daemon"
+echo "4. Reconfigurer mDNS: sudo ./configure-mdns.sh"
+echo "5. Redémarrer AirAstro: sudo systemctl restart airastro"
+echo "6. Redémarrer le réseau: sudo systemctl restart networking"
+echo "7. Redémarrer complètement le système"

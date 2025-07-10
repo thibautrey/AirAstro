@@ -43,6 +43,20 @@ sudo ./update-mdns.sh
 
 ---
 
+#### `build-server.sh`
+**Compilation du serveur AirAstro**
+```bash
+./build-server.sh
+```
+
+**Actions :**
+- Vérification des dépendances
+- Compilation TypeScript
+- Tests de syntaxe
+- Validation du démarrage
+
+---
+
 ### 🔍 Diagnostic
 
 #### `check-mdns.sh`
@@ -58,6 +72,22 @@ sudo ./update-mdns.sh
 - Services annoncés
 - Connectivité réseau
 - Fonctionnement HTTP
+
+---
+
+#### `debug-airastro.sh`
+**Diagnostic approfondi du service AirAstro**
+```bash
+./debug-airastro.sh
+```
+
+**Analyses :**
+- État du service systemd
+- Vérification des fichiers
+- Configuration Node.js
+- Ports et processus
+- Dépendances
+- Suggestions de réparation
 
 ---
 
@@ -78,6 +108,24 @@ sudo ./update-mdns.sh
 - Connectivité HTTP
 - Interface web
 - Découverte de services
+
+---
+
+### 🛠️ Réparation
+
+#### `fix-airastro.sh`
+**Réparation automatique du service AirAstro**
+```bash
+sudo ./fix-airastro.sh
+```
+
+**Actions :**
+- Arrêt du service défaillant
+- Mise à jour des dépendances
+- Recompilation de l'application
+- Reconfiguration du service systemd
+- Tests de validation
+- Redémarrage sécurisé
 
 ---
 
@@ -110,18 +158,33 @@ sudo ./install-on-rpi.sh
 sudo ./update-mdns.sh
 ```
 
+### Build/Compilation
+```bash
+# Compilation du serveur
+./build-server.sh
+```
+
 ### Diagnostic
 ```bash
-# Vérification de la configuration
+# Vérification de la configuration mDNS
 ./check-mdns.sh
+
+# Diagnostic approfondi d'AirAstro
+./debug-airastro.sh
 
 # Test depuis un autre appareil
 ./test-remote-connectivity.sh airastro.local
 ```
 
+### Réparation
+```bash
+# Réparation automatique complète
+sudo ./fix-airastro.sh
+```
+
 ### Dépannage
 ```bash
-# Reconfiguration complète
+# Reconfiguration complète mDNS
 sudo ./configure-mdns.sh
 
 # En cas de problème, nettoyage
