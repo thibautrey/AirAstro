@@ -18,3 +18,7 @@ DerivedData/
 # Android
 *.iml
 **/build/
+# Node
+node_modules/
+npm-debug.log*
+server/dist/
