@@ -11,11 +11,13 @@ Pour améliorer la qualité de l'interface utilisateur, le système de détectio
 Les équipements suivants sont automatiquement filtrés de la liste par défaut :
 
 1. **Équipements de type "unknown" avec confiance < 50** :
+
    - Appareils USB non identifiés
    - Contrôleurs génériques
    - Hubs USB et adaptateurs
 
 2. **Équipements série avec confiance très faible** :
+
    - Ports série génériques
    - Adaptateurs USB-Série
 
@@ -28,6 +30,7 @@ Les équipements suivants sont automatiquement filtrés de la liste par défaut 
 Les équipements suivants sont **toujours** affichés :
 
 1. **Équipements avec confiance élevée (≥ 50)** :
+
    - Équipements reconnus dans la base de données
    - Équipements avec drivers INDI disponibles
 
@@ -108,14 +111,14 @@ curl http://airastro.local:3000/api/equipment?includeUnknown=true
 
 Le système utilise un score de confiance (0-100) pour évaluer la pertinence des équipements :
 
-| Score | Signification | Affiché par défaut |
-|-------|---------------|-------------------|
-| 95-100 | Équipement parfaitement identifié | ✅ Oui |
-| 60-94 | Équipement reconnu par type | ✅ Oui |
-| 50-59 | Équipement probablement utile | ✅ Oui |
-| 20-49 | Équipement générique | ❌ Non |
-| 5-19 | Équipement probablement inutile | ❌ Non |
-| 0-4 | Équipement clairement inutile | ❌ Non |
+| Score  | Signification                     | Affiché par défaut |
+| ------ | --------------------------------- | ------------------ |
+| 95-100 | Équipement parfaitement identifié | ✅ Oui             |
+| 60-94  | Équipement reconnu par type       | ✅ Oui             |
+| 50-59  | Équipement probablement utile     | ✅ Oui             |
+| 20-49  | Équipement générique              | ❌ Non             |
+| 5-19   | Équipement probablement inutile   | ❌ Non             |
+| 0-4    | Équipement clairement inutile     | ❌ Non             |
 
 ## Exemples d'Équipements Filtrés
 
@@ -180,6 +183,7 @@ Le système utilise un score de confiance (0-100) pour évaluer la pertinence de
 Si un équipement important est filtré par erreur :
 
 1. **Vérifier avec `includeUnknown: true`** :
+
    ```typescript
    const { equipment } = useEquipment({ includeUnknown: true });
    ```

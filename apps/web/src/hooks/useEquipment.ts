@@ -60,8 +60,14 @@ export interface UseEquipmentOptions {
   includeUnknown?: boolean;
 }
 
-export function useEquipment(options?: UseEquipmentOptions): UseEquipmentResult {
-  const { enablePolling = false, pollingInterval = 30000, includeUnknown = false } = options || {};
+export function useEquipment(
+  options?: UseEquipmentOptions
+): UseEquipmentResult {
+  const {
+    enablePolling = false,
+    pollingInterval = 30000,
+    includeUnknown = false,
+  } = options || {};
   const { buildApiUrl, isOnline } = useAirAstroUrl();
 
   const [equipment, setEquipment] = useState<DetectedEquipment[]>([]);
@@ -84,7 +90,9 @@ export function useEquipment(options?: UseEquipmentOptions): UseEquipmentResult 
     setError(null);
 
     try {
-      const url = buildApiUrl(`/api/equipment${includeUnknown ? '?includeUnknown=true' : ''}`);
+      const url = buildApiUrl(
+        `/api/equipment${includeUnknown ? "?includeUnknown=true" : ""}`
+      );
       const response = await fetch(url);
 
       if (!response.ok) {

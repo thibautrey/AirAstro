@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { DetectedEquipment } from "../hooks/useEquipment";
+import { useState } from "react";
 
 interface EquipmentFilterInfoProps {
   equipment: DetectedEquipment[];
@@ -52,7 +52,9 @@ const EquipmentFilterInfo = ({
           <div className="mt-2 pt-2 border-t border-zinc-700/50 text-xs text-gray-400 space-y-1">
             <div>• {knownEquipment.length} équipements identifiés</div>
             <div>• {unknownEquipment.length} équipements non identifiés</div>
-            <div>• {lowConfidenceEquipment.length} contrôleurs/hubs potentiels</div>
+            <div>
+              • {lowConfidenceEquipment.length} contrôleurs/hubs potentiels
+            </div>
           </div>
         )}
       </div>
@@ -88,7 +90,8 @@ const EquipmentFilterInfo = ({
             <div>• Adaptateurs série et bridges</div>
             <div>• Équipements de très faible confiance (&lt; 50%)</div>
             <div className="text-blue-300 mt-2">
-              Ces équipements sont généralement des composants système non pertinents pour l'astronomie.
+              Ces équipements sont généralement des composants système non
+              pertinents pour l'astronomie.
             </div>
           </div>
         )}

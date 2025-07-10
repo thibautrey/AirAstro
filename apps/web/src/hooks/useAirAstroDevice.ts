@@ -2,6 +2,21 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useAirAstroUrl } from "./useAirAstroUrl";
 
+// URLs par défaut à tester pour la détection AirAstro
+const DEFAULT_SERVERS = [
+  "http://airastro.local",
+  "http://airastro.local:3000",
+  "http://airastro.local:80",
+  "http://192.168.1.1:3000",
+  "http://192.168.1.10:3000",
+  "http://192.168.1.100:3000",
+  "http://192.168.0.1:3000",
+  "http://192.168.0.10:3000",
+  "http://192.168.0.100:3000",
+  "http://10.42.0.1:3000", // Hotspot Raspberry Pi
+  "http://10.42.0.1:80",
+];
+
 type DeviceStatus = "checking" | "found" | "not-found" | "error";
 
 interface AirAstroDevice {

@@ -183,21 +183,41 @@ export class EquipmentDetectorService {
     let confidence = 20;
 
     // Filtrer les appareils qui sont clairement des contrôleurs/hubs ou des composants système
-    if (desc.includes("hub") || desc.includes("controller") || 
-        desc.includes("bridge") || desc.includes("adapter") ||
-        desc.includes("wireless") || desc.includes("bluetooth") ||
-        desc.includes("usb-serial") || desc.includes("cp210") ||
-        desc.includes("ftdi") || desc.includes("ch340") ||
-        desc.includes("pl2303") || desc.includes("usb2.0") ||
-        desc.includes("root hub") || desc.includes("host controller") ||
-        desc.includes("mass storage") || desc.includes("card reader") ||
-        desc.includes("keyboard") || desc.includes("mouse") ||
-        desc.includes("audio") || desc.includes("sound")) {
+    if (
+      desc.includes("hub") ||
+      desc.includes("controller") ||
+      desc.includes("bridge") ||
+      desc.includes("adapter") ||
+      desc.includes("wireless") ||
+      desc.includes("bluetooth") ||
+      desc.includes("usb-serial") ||
+      desc.includes("cp210") ||
+      desc.includes("ftdi") ||
+      desc.includes("ch340") ||
+      desc.includes("pl2303") ||
+      desc.includes("usb2.0") ||
+      desc.includes("root hub") ||
+      desc.includes("host controller") ||
+      desc.includes("mass storage") ||
+      desc.includes("card reader") ||
+      desc.includes("keyboard") ||
+      desc.includes("mouse") ||
+      desc.includes("audio") ||
+      desc.includes("sound")
+    ) {
       confidence = 5; // Confiance très faible pour ces appareils génériques
-    } else if (desc.includes("camera") || desc.includes("cam") || desc.includes("ccd")) {
+    } else if (
+      desc.includes("camera") ||
+      desc.includes("cam") ||
+      desc.includes("ccd")
+    ) {
       type = "camera";
       confidence = 60;
-    } else if (desc.includes("mount") || desc.includes("telescope") || desc.includes("eq")) {
+    } else if (
+      desc.includes("mount") ||
+      desc.includes("telescope") ||
+      desc.includes("eq")
+    ) {
       type = "mount";
       confidence = 60;
     } else if (desc.includes("focuser") || desc.includes("focus")) {

@@ -53,7 +53,7 @@ router.get("/", async (req: Request, res: Response) => {
   try {
     const equipment = await equipmentManager.getEquipmentList();
     const status = equipmentManager.getEquipmentStatus();
-    const includeUnknown = req.query.includeUnknown === 'true';
+    const includeUnknown = req.query.includeUnknown === "true";
 
     // Combiner les informations de détection et de statut
     const enrichedEquipment = equipment
@@ -62,19 +62,19 @@ router.get("/", async (req: Request, res: Response) => {
         if (includeUnknown) {
           return true;
         }
-        
+
         // Filtrer les équipements complètement inconnus avec faible confiance
         // ou les équipements série/USB génériques de très faible confiance
         if (device.type === "unknown" && device.confidence < 50) {
           return false;
         }
-        
+
         // Filtrer également les équipements avec une confiance extrêmement faible (< 10)
         // qui sont probablement des contrôleurs ou des hubs
         if (device.confidence < 10) {
           return false;
         }
-        
+
         return true;
       })
       .map((device) => {
