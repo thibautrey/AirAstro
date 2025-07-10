@@ -7,7 +7,7 @@ AirAstro is a monorepo aiming to create an open source alternative to commercial
 - **Raspberry Pi server** – Node.js service that runs INDI/ASCOM drivers and
   exposes control APIs.
 
-The goal is to replicate the ASIAIR feature set while staying easy to use. The applications communicate with the server which is designed to run on a Raspberry Pi.
+The goal is to replicate the feature set while staying easy to use. The applications communicate with the server which is designed to run on a Raspberry Pi.
 
 ## 🌌 Design System
 
@@ -33,7 +33,7 @@ server/        - Node.js implementation of the Raspberry Pi server
 
 ### iOS Application
 
-- **SwiftUI** with custom astronomy design system
+- **React Native** for cross-platform consistency
 - **Dark mode optimized** for night vision preservation
 - **Modern UI components** following astronomy color palette
 - **Landscape-first design** for telescope mounting
@@ -98,7 +98,7 @@ AirAstro relies on the INDI and ASCOM projects to provide hardware support. This
 ## Status
 
 - ✅ **Design System**: Complete astronomy-optimized color palette and components
-- ✅ **iOS App**: Basic SwiftUI implementation with modern design
+- 🚧 **iOS App**: Basic SwiftUI implementation with modern design
 - 🚧 **Android App**: React Native setup guide and configuration ready
 - 📋 **Server**: Placeholder for future development
 - 📋 **Hardware Integration**: INDI/ASCOM drivers to be implemented
