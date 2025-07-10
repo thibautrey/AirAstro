@@ -61,7 +61,7 @@ update_repositories() {
 # Installer les dépendances de base
 install_dependencies() {
     log_info "Installation des dépendances de base..."
-    
+
     local packages=(
         "build-essential"
         "cmake"
@@ -85,61 +85,128 @@ install_dependencies() {
         "libcurl4-gnutls-dev"
         "libgeos-dev"
     )
-    
+
     for package in "${packages[@]}"; do
         if ! dpkg -l | grep -q "^ii  $package "; then
             log_info "Installation de $package..."
             sudo apt-get install -y "$package" > /dev/null 2>&1
         fi
     done
-    
+
     log_success "Dépendances installées"
 }
 
 # Ajouter le dépôt INDI
 add_indi_repository() {
     log_info "Ajout du dépôt INDI..."
-    
+
     # Ajouter la clé GPG
     wget -qO - https://www.indilib.org/jdownloads/Ubuntu/indilib.gpg | sudo apt-key add -
-    
+
     # Ajouter le dépôt
     echo "deb https://ppa.launchpadcontent.net/mutlaqja/ppa/ubuntu/ focal main" | sudo tee /etc/apt/sources.list.d/indi.list
-    
+
     # Mettre à jour
     sudo apt-get update > /dev/null 2>&1
-    
+
     log_success "Dépôt INDI ajouté"
 }
 
 # Installer INDI Core
 install_indi_core() {
     log_info "Installation d'INDI Core..."
-    
+
     local packages=(
         "indi-bin"
         "libindi1"
         "libindi-dev"
         "indi-data"
     )
-    
+
     for package in "${packages[@]}"; do
         sudo apt-get install -y "$package" > /dev/null 2>&1
     done
-    
+
     log_success "INDI Core installé"
 }
 
-# Installer les drivers les plus courants
-install_common_drivers() {
-    log_info "Installation des drivers les plus courants..."
-    
-    local drivers=(
-        "indi-asi"           # ZWO ASI cameras
-        "indi-qhy"           # QHY cameras  
-        "indi-gphoto"        # Canon/Nikon DSLR
-        "indi-eqmod"         # Sky-Watcher/Orion mounts
-        "indi-celestron"     # Celestron mounts
+# Installer TOUS les drivers INDI disponibles
+install_all_indi_drivers() {
+    log_info "Installation de TOUS les drivers INDI disponibles..."
+
+    # Obtenir la liste complète des packages indi-* disponibles
+    local available_drivers
+    available_drivers=$(apt-cache search "^indi-" | grep -E "^indi-[a-zA-Z]" | awk '{print $1}' | sort)
+
+    if [[ -z "$available_drivers" ]]; then
+        log_error "Aucun driver INDI trouvé dans les dépôts"
+        return 1
+    fi
+
+    local total_drivers
+    total_drivers=$(echo "$available_drivers" | wc -l)
+    log_info "Trouvé $total_drivers drivers INDI disponibles"
+
+    local installed=0
+    local failed=0
+    local current=0
+
+    # Installer chaque driver
+    while read -r driver; do
+        ((current++))
+        log_info "[$current/$total_drivers] Installation de $driver..."
+
+        # Vérifier si le driver est déjà installé
+        if dpkg -l | grep -q "^ii  $driver "; then
+            log_info "$driver déjà installé"
+            ((installed++))
+            continue
+        fi
+
+        # Installer le driver
+        if sudo apt-get install -y "$driver" > /dev/null 2>&1; then
+            ((installed++))
+            log_success "✅ $driver installé"
+        else
+            log_warning "⚠️ Échec de l'installation de $driver"
+            ((failed++))
+        fi
+    done <<< "$available_drivers"
+
+    log_success "Installation terminée: $installed drivers installés avec succès ($failed échecs)"
+
+    # Sauvegarder la liste des drivers installés
+    echo "$available_drivers" > /tmp/indi-drivers-installed.txt
+
+    return 0
+}
+
+# Fonction pour mettre à jour tous les drivers
+update_all_indi_drivers() {
+    log_info "Mise à jour de tous les drivers INDI..."
+
+    # Mettre à jour la liste des packages
+    sudo apt-get update > /dev/null 2>&1
+
+    # Installer tous les nouveaux drivers disponibles
+    install_all_indi_drivers
+
+    # Mettre à jour les drivers existants
+    sudo apt-get upgrade -y indi-* > /dev/null 2>&1
+
+    log_success "Mise à jour terminée"
+}
+
+# Fonction pour installer des drivers spécifiques en priorité
+install_priority_drivers() {
+    log_info "Installation des drivers prioritaires..."
+
+    local priority_drivers=(
+        "indi-asi"           # ZWO ASI cameras - PRIORITAIRE
+        "indi-qhy"           # QHY cameras - PRIORITAIRE
+        "indi-gphoto"        # Canon/Nikon DSLR - PRIORITAIRE
+        "indi-eqmod"         # Sky-Watcher/Orion mounts - PRIORITAIRE
+        "indi-celestron"     # Celestron mounts - PRIORITAIRE
         "indi-sbig"          # SBIG cameras
         "indi-sx"            # Starlight Express
         "indi-inovaplx"      # iNova PLX
@@ -166,35 +233,36 @@ install_common_drivers() {
         "indi-watchdog"      # Watchdog
         "indi-weewx"         # WeeWX weather
     )
-    
+
     local installed=0
     local failed=0
-    
-    for driver in "${drivers[@]}"; do
-        log_info "Installation de $driver..."
+
+    for driver in "${priority_drivers[@]}"; do
+        log_info "Installation prioritaire de $driver..."
         if sudo apt-get install -y "$driver" > /dev/null 2>&1; then
             ((installed++))
+            log_success "✅ $driver installé"
         else
-            log_warning "Échec de l'installation de $driver"
+            log_warning "⚠️ Échec de l'installation de $driver"
             ((failed++))
         fi
     done
-    
-    log_success "$installed drivers installés avec succès ($failed échecs)"
+
+    log_success "$installed drivers prioritaires installés avec succès ($failed échecs)"
 }
 
 # Configurer les permissions USB
 configure_usb_permissions() {
     log_info "Configuration des permissions USB..."
-    
+
     # Créer le groupe indi si nécessaire
     if ! getent group indi > /dev/null 2>&1; then
         sudo groupadd indi
     fi
-    
+
     # Ajouter l'utilisateur actuel au groupe indi
     sudo usermod -a -G indi "$USER"
-    
+
     # Créer les règles udev pour les appareils astronomiques
     cat << 'EOF' | sudo tee /etc/udev/rules.d/99-astro-devices.rules > /dev/null
 # ZWO ASI cameras
@@ -224,18 +292,18 @@ SUBSYSTEM=="tty", ATTRS{idVendor}=="067b", GROUP="indi", MODE="0664"
 SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", GROUP="indi", MODE="0664"
 SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", GROUP="indi", MODE="0664"
 EOF
-    
+
     # Recharger les règles udev
     sudo udevadm control --reload-rules
     sudo udevadm trigger
-    
+
     log_success "Permissions USB configurées"
 }
 
 # Créer un service systemd pour INDI server
 create_indi_service() {
     log_info "Création du service INDI..."
-    
+
     cat << 'EOF' | sudo tee /etc/systemd/system/indi.service > /dev/null
 [Unit]
 Description=INDI Server
@@ -252,40 +320,60 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
-    
+
     # Créer l'utilisateur indi si nécessaire
     if ! id "indi" > /dev/null 2>&1; then
         sudo useradd -r -s /bin/false -d /var/lib/indi indi
         sudo mkdir -p /var/lib/indi
         sudo chown indi:indi /var/lib/indi
     fi
-    
+
     # Activer le service
     sudo systemctl daemon-reload
     sudo systemctl enable indi.service
-    
+
     log_success "Service INDI créé"
 }
 
 # Fonction principale
 main() {
     log_info "Démarrage de l'installation automatique des drivers INDI pour AirAstro"
-    
+
+    # Vérifier le mode d'installation
+    local install_mode="${1:-full}"
+
     check_system
     check_sudo
     update_repositories
     install_dependencies
     add_indi_repository
     install_indi_core
-    install_common_drivers
+
+    case "$install_mode" in
+        "priority")
+            log_info "Mode installation prioritaire"
+            install_priority_drivers
+            ;;
+        "update")
+            log_info "Mode mise à jour"
+            update_all_indi_drivers
+            ;;
+        "full"|*)
+            log_info "Mode installation complète"
+            install_priority_drivers
+            install_all_indi_drivers
+            ;;
+    esac
+
     configure_usb_permissions
     create_indi_service
-    
+
     log_success "Installation terminée avec succès!"
     log_info "Notes importantes:"
     log_info "1. Redémarrez le système pour que les permissions USB prennent effet"
     log_info "2. Les drivers seront disponibles via l'API AirAstro"
     log_info "3. Le service INDI est maintenant disponible sur le port 7624"
+    log_info "4. Pour voir tous les drivers installés: dpkg -l | grep indi-"
     log_warning "Vous devez vous déconnecter et reconnecter pour que les permissions groupes prennent effet"
 }
 

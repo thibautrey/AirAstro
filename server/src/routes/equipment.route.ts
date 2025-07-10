@@ -467,6 +467,36 @@ router.post("/install-drivers", async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/equipment/required-drivers - Récupérer les drivers requis par la base de données
+router.get("/required-drivers", async (req: Request, res: Response) => {
+  try {
+    // Récupérer tous les drivers uniques de la base de données
+    const database = equipmentDatabase.getDatabase();
+    const drivers = new Set<string>();
+
+    Object.values(database).forEach((equipment) => {
+      if (equipment.driverName) {
+        drivers.add(equipment.driverName);
+      }
+    });
+
+    // Convertir en array et trier
+    const driverList = Array.from(drivers).sort();
+
+    res.json({
+      drivers: driverList,
+      count: driverList.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error("Erreur lors de la récupération des drivers requis:", error);
+    res.status(500).json({
+      error: "Erreur lors de la récupération des drivers requis",
+      details: error.message,
+    });
+  }
+});
+
 // POST /api/equipment/database/update - Forcer la mise à jour de la base de données d'équipements
 router.post("/database/update", async (req: Request, res: Response) => {
   try {

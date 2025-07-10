@@ -409,14 +409,16 @@ export class EquipmentDatabaseService {
       },
       "03c3:120b": {
         name: "ASI120MM",
-        type: "guide-camera",
+        type: "camera", // Changé de "guide-camera" à "camera" pour permettre usage principal
         manufacturer: "ZWO",
         model: "ASI120MM",
         driverName: "indi-asi",
         packageName: "indi-asi",
         autoInstallable: true,
-        aliases: ["asi120mm", "zwo asi120mm"],
+        aliases: ["asi120mm", "zwo asi120mm", "asi 120mm"],
         category: "ccd",
+        description:
+          "Caméra ZWO ASI120MM - Peut être utilisée comme caméra principale ou de guidage",
         lastUpdated: new Date().toISOString(),
       },
       "03c3:120c": {
@@ -827,53 +829,51 @@ export class EquipmentDatabaseService {
     await this.saveLocalDatabase();
   }
 
+  // Méthodes pour accéder à la base de données
   getDatabase(): EquipmentDatabase {
     return this.database;
   }
 
-  findEquipmentByUsbId(
-    vendorId: string,
-    productId: string
-  ): EquipmentDatabase[string] | null {
-    const usbId = `${vendorId.toLowerCase()}:${productId.toLowerCase()}`;
-
-    // Recherche exacte
-    if (this.database[usbId]) {
-      return this.database[usbId];
-    }
-
-    // Recherche avec wildcard
-    const wildcardId = `${vendorId.toLowerCase()}:*`;
-    if (this.database[wildcardId]) {
-      return this.database[wildcardId];
-    }
-
-    return null;
+  getLastUpdate(): Date | null {
+    return this.lastUpdate;
   }
 
-  findEquipmentByName(name: string): EquipmentDatabase[string][] {
-    const searchTerm = name.toLowerCase();
-    const results: EquipmentDatabase[string][] = [];
+  // Méthode pour obtenir les statistiques de la base de données
+  getDatabaseStats() {
+    const stats = {
+      totalEquipment: Object.keys(this.database).length,
+      byType: {} as Record<string, number>,
+      byManufacturer: {} as Record<string, number>,
+      byDriver: {} as Record<string, number>,
+      autoInstallableCount: 0,
+      lastUpdate: this.lastUpdate,
+    };
 
-    for (const equipment of Object.values(this.database)) {
-      if (
-        equipment.name.toLowerCase().includes(searchTerm) ||
-        equipment.manufacturer.toLowerCase().includes(searchTerm) ||
-        equipment.model.toLowerCase().includes(searchTerm) ||
-        equipment.aliases.some((alias) =>
-          alias.toLowerCase().includes(searchTerm)
-        )
-      ) {
-        results.push(equipment);
+    Object.values(this.database).forEach((equipment) => {
+      // Compter par type
+      stats.byType[equipment.type] = (stats.byType[equipment.type] || 0) + 1;
+
+      // Compter par fabricant
+      stats.byManufacturer[equipment.manufacturer] =
+        (stats.byManufacturer[equipment.manufacturer] || 0) + 1;
+
+      // Compter par driver
+      if (equipment.driverName) {
+        stats.byDriver[equipment.driverName] =
+          (stats.byDriver[equipment.driverName] || 0) + 1;
       }
-    }
 
-    return results;
+      // Compter les auto-installables
+      if (equipment.autoInstallable) {
+        stats.autoInstallableCount++;
+      }
+    });
+
+    return stats;
   }
 
+  // Méthode pour forcer la mise à jour publique
   async forceUpdate(): Promise<void> {
-    console.log("🔄 Mise à jour forcée de la base de données...");
-    this.lastUpdate = null;
     await this.updateFromRemote();
   }
 

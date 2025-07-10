@@ -98,8 +98,11 @@ export class CameraService extends EventEmitter {
   }
 
   async getAvailableCameras(): Promise<CameraInfo[]> {
-    // Simuler les caméras disponibles - dans un vrai système, on interrogerait INDI
-    return [
+    // Récupérer les caméras détectées depuis le système d'équipements
+    const detectedCameras = await this.getDetectedCameras();
+
+    // Ajouter les caméras simulées pour la démo
+    const simulatedCameras: CameraInfo[] = [
       {
         name: "ZWO ASI294MC",
         driver: "indi-asi",
@@ -125,6 +128,133 @@ export class CameraService extends EventEmitter {
         supportedFormats: ["RAW", "TIFF"],
       },
     ];
+
+    // Combiner les caméras détectées et simulées
+    return [...detectedCameras, ...simulatedCameras];
+  }
+
+  private async getDetectedCameras(): Promise<CameraInfo[]> {
+    try {
+      // Récupérer les équipements détectés
+      const response = await fetch("http://localhost:3000/api/equipment");
+      if (!response.ok) {
+        console.warn("Impossible de récupérer les équipements détectés");
+        return [];
+      }
+
+      const equipment = await response.json();
+      const cameras: CameraInfo[] = [];
+
+      // Filtrer et convertir les équipements caméra
+      for (const device of equipment) {
+        if (device.type === "camera" || device.type === "guide-camera") {
+          // Permettre aux caméras guide d'être utilisées comme caméras principales
+          const cameraInfo: CameraInfo = {
+            name: device.name,
+            driver: device.driverName || "unknown",
+            model: device.model || device.name,
+            maxBinning: this.getCameraMaxBinning(device),
+            pixelSize: this.getCameraPixelSize(device),
+            sensorWidth: this.getCameraSensorWidth(device),
+            sensorHeight: this.getCameraSensorHeight(device),
+            hasCooling: this.getCameraHasCooling(device),
+            hasFilterWheel: false,
+            supportedFormats: this.getCameraSupportedFormats(device),
+          };
+          cameras.push(cameraInfo);
+        }
+      }
+
+      return cameras;
+    } catch (error) {
+      console.error(
+        "Erreur lors de la récupération des caméras détectées:",
+        error
+      );
+      return [];
+    }
+  }
+
+  private getCameraMaxBinning(device: any): number {
+    // Définir le binning maximum basé sur le modèle
+    const model = device.model?.toLowerCase() || "";
+
+    if (model.includes("asi120")) return 2;
+    if (model.includes("asi178")) return 2;
+    if (model.includes("asi290")) return 2;
+    if (model.includes("asi294")) return 4;
+    if (model.includes("asi2600")) return 4;
+
+    return 1; // Défaut
+  }
+
+  private getCameraPixelSize(device: any): number {
+    // Définir la taille de pixel basée sur le modèle
+    const model = device.model?.toLowerCase() || "";
+
+    if (model.includes("asi120")) return 3.75;
+    if (model.includes("asi178")) return 2.4;
+    if (model.includes("asi290")) return 2.9;
+    if (model.includes("asi294")) return 4.63;
+    if (model.includes("asi2600")) return 3.76;
+
+    return 4.0; // Défaut
+  }
+
+  private getCameraSensorWidth(device: any): number {
+    // Définir la largeur du capteur basée sur le modèle
+    const model = device.model?.toLowerCase() || "";
+
+    if (model.includes("asi120")) return 1280;
+    if (model.includes("asi178")) return 3096;
+    if (model.includes("asi290")) return 1936;
+    if (model.includes("asi294")) return 4144;
+    if (model.includes("asi2600")) return 6248;
+
+    return 1920; // Défaut
+  }
+
+  private getCameraSensorHeight(device: any): number {
+    // Définir la hauteur du capteur basée sur le modèle
+    const model = device.model?.toLowerCase() || "";
+
+    if (model.includes("asi120")) return 960;
+    if (model.includes("asi178")) return 2080;
+    if (model.includes("asi290")) return 1096;
+    if (model.includes("asi294")) return 2822;
+    if (model.includes("asi2600")) return 4176;
+
+    return 1080; // Défaut
+  }
+
+  private getCameraHasCooling(device: any): boolean {
+    // Définir si la caméra a un refroidissement basé sur le modèle
+    const model = device.model?.toLowerCase() || "";
+
+    // Les caméras ASI120 n'ont généralement pas de refroidissement
+    if (model.includes("asi120")) return false;
+    if (model.includes("asi178")) return false;
+    if (model.includes("asi290")) return false;
+
+    // Les caméras plus avancées ont généralement un refroidissement
+    if (model.includes("asi294")) return true;
+    if (model.includes("asi2600")) return true;
+
+    return false; // Défaut
+  }
+
+  private getCameraSupportedFormats(device: any): string[] {
+    // Tous les appareils INDI supportent FITS
+    const formats = ["FITS"];
+
+    // Ajouter d'autres formats selon le driver
+    if (device.driverName === "indi-gphoto") {
+      formats.push("RAW", "TIFF");
+    } else if (device.driverName === "indi-asi") {
+      formats.push("TIFF", "RAW");
+    }
+
+    return formats;
   }
 
   async selectCamera(cameraName: string): Promise<void> {

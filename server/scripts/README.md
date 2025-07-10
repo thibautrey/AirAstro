@@ -1,52 +1,108 @@
-# Scripts de Gestion mDNS pour AirAstro
+# Scripts de Gestion des Drivers INDI - AirAstro
 
-Ce répertoire contient les scripts pour configurer et gérer la découverte de service mDNS/Zeroconf au niveau système pour AirAstro.
+Ce répertoire contient les scripts pour gérer automatiquement tous les drivers INDI dans le système AirAstro.
 
-## Vue d'ensemble
+## 🎯 Objectif
 
-AirAstro utilise une approche **double couche** pour la découverte de service :
+Le système AirAstro télécharge et installe automatiquement **TOUS** les drivers INDI disponibles pour s'assurer qu'aucun équipement ne soit rejeté à cause d'un driver manquant.
 
-- **Couche Système** : Avahi (daemon mDNS du système)
-- **Couche Application** : Bibliothèque Bonjour Node.js
+## 📋 Scripts Disponibles
 
-Cette approche garantit une découverte robuste même en cas de redémarrage de l'application.
+### 1. `install-indi-drivers.sh`
 
-## Scripts Disponibles
-
-### 🔧 Configuration
-
-#### `configure-mdns.sh`
-
-**Configuration complète du mDNS système**
+**Script principal d'installation des drivers INDI**
 
 ```bash
-sudo ./configure-mdns.sh
+# Installation complète (prioritaires + tous les autres)
+./install-indi-drivers.sh full
+
+# Installation des drivers prioritaires uniquement
+./install-indi-drivers.sh priority
+
+# Mise à jour des drivers existants
+./install-indi-drivers.sh update
 ```
 
-**Actions :**
+**Fonctionnalités :**
 
-- Installation d'Avahi et dépendances
-- Configuration du hostname `airastro`
-- Création du service Avahi
-- Configuration optimisée du daemon
-- Tests de validation
+- Installe TOUS les drivers INDI disponibles dans les dépôts
+- Priorité aux drivers les plus courants (ZWO, QHY, Celestron, etc.)
+- Configuration automatique des permissions USB
+- Création du service INDI systemd
+
+### 2. `maintain-indi-drivers.sh`
+
+**Script de maintenance et mise à jour des drivers**
+
+```bash
+# Lister les drivers disponibles
+./maintain-indi-drivers.sh list-available
+
+# Installer tous les drivers manquants
+./maintain-indi-drivers.sh install-missing
+
+# Mettre à jour tous les drivers
+./maintain-indi-drivers.sh update-all
+
+# Générer un rapport complet
+./maintain-indi-drivers.sh report
+
+# Configurer la mise à jour automatique quotidienne
+./maintain-indi-drivers.sh setup-auto-update
+```
+
+### 3. `update-airastro-system.sh`
+
+**Script de mise à jour complète du système**
+
+```bash
+# Mise à jour complète
+./update-airastro-system.sh
+
+# Mise à jour des drivers uniquement
+./update-airastro-system.sh --drivers-only
+```
+
+### 4. `startup-drivers.sh`
+
+**Script de démarrage automatique**
+
+Ce script s'exécute automatiquement au démarrage du serveur AirAstro.
+
+## 🎯 Résolution du problème ZWO ASI120MM
+
+### Problème identifié
+
+- La caméra ZWO ASI120MM était classée comme "guide-camera" uniquement
+- Le driver `indi-asi` n'était pas installé automatiquement
+- Confiance élevée mais driver "not-found"
+
+### Solution implémentée
+
+1. **Base de données mise à jour** : ASI120MM reclassée comme "camera"
+2. **Installation automatique** : Tous les drivers ZWO installés
+3. **Détection améliorée** : Caméras guide utilisables comme principales
+4. **Mise à jour continue** : Système de mise à jour automatique
+
+## 🚀 Installation et Configuration
+
+### 1. Installation initiale
+
+```bash
+cd /path/to/airastro/server/scripts
+chmod +x *.sh
+./install-indi-drivers.sh full
+```
+
+### 2. Configuration de la mise à jour automatique
+
+```bash
+./maintain-indi-drivers.sh setup-auto-update
+```
 
 ---
 
-#### `update-mdns.sh`
-
-**Mise à jour mDNS pour installations existantes**
-
-```bash
-sudo ./update-mdns.sh
-```
-
-**Actions :**
-
-- Sauvegarde de la configuration actuelle
-- Application de la nouvelle configuration mDNS
-- Redémarrage des services
-- Vérification finale
+## Scripts mDNS (existants)
 
 ---
 
