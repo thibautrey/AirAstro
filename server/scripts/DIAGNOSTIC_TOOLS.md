@@ -5,10 +5,13 @@ Suite d'outils pour diagnostiquer et réparer les problèmes du service AirAstro
 ## 📊 Aperçu Rapide
 
 ### `status.sh`
+
 ```bash
 ./status.sh
 ```
+
 **Aperçu instantané de l'état du système**
+
 - ✅ État des services (AirAstro, mDNS)
 - 🌐 Connectivité réseau et HTTP
 - 🔧 Utilisation des ressources
@@ -17,10 +20,13 @@ Suite d'outils pour diagnostiquer et réparer les problèmes du service AirAstro
 ## 🚀 Réparation Rapide
 
 ### `quick-fix.sh`
+
 ```bash
 sudo ./quick-fix.sh
 ```
+
 **Résolution automatique des problèmes courants**
+
 - 🔄 Redémarrage des services
 - 🛠️ Compilation automatique
 - 🔧 Permissions et dépendances
@@ -29,10 +35,13 @@ sudo ./quick-fix.sh
 ## 🔍 Diagnostic Approfondi
 
 ### `debug-airastro.sh`
+
 ```bash
 ./debug-airastro.sh
 ```
+
 **Analyse complète du service AirAstro**
+
 - 🔍 État systemd détaillé
 - 📁 Vérification des fichiers
 - 🟢 Node.js et dépendances
@@ -40,10 +49,13 @@ sudo ./quick-fix.sh
 - 💡 Suggestions de réparation
 
 ### `check-mdns.sh`
+
 ```bash
 ./check-mdns.sh
 ```
+
 **Diagnostic de la configuration mDNS**
+
 - 🔍 État d'Avahi
 - 🏠 Configuration hostname
 - 🌐 Résolution mDNS
@@ -53,10 +65,13 @@ sudo ./quick-fix.sh
 ## 🛠️ Réparation Complète
 
 ### `fix-airastro.sh`
+
 ```bash
 sudo ./fix-airastro.sh
 ```
+
 **Réparation complète et reconfiguration**
+
 - 🛑 Arrêt sécurisé
 - 📦 Mise à jour des dépendances
 - 🔨 Recompilation complète
@@ -65,10 +80,13 @@ sudo ./fix-airastro.sh
 - ✅ Tests de validation
 
 ### `build-server.sh`
+
 ```bash
 ./build-server.sh
 ```
+
 **Compilation et validation du serveur**
+
 - 📦 Vérification des dépendances
 - 🔨 Compilation TypeScript
 - ✅ Tests syntaxiques
@@ -77,20 +95,26 @@ sudo ./fix-airastro.sh
 ## 🔧 Configuration
 
 ### `configure-mdns.sh`
+
 ```bash
 sudo ./configure-mdns.sh
 ```
+
 **Configuration mDNS système**
+
 - 📥 Installation d'Avahi
 - 🏠 Configuration hostname
 - 📡 Services mDNS
 - ⚙️ Configuration optimisée
 
 ### `update-mdns.sh`
+
 ```bash
 sudo ./update-mdns.sh
 ```
+
 **Mise à jour mDNS existant**
+
 - 💾 Sauvegarde configuration
 - 🔄 Mise à jour mDNS
 - 🔧 Redémarrage services
@@ -98,10 +122,13 @@ sudo ./update-mdns.sh
 ## 🧪 Tests
 
 ### `test-remote-connectivity.sh`
+
 ```bash
 ./test-remote-connectivity.sh [hostname]
 ```
+
 **Test de connectivité à distance**
+
 - 🌐 Résolution DNS/mDNS
 - 🏓 Test ping
 - 🔗 Connectivité HTTP
@@ -110,10 +137,13 @@ sudo ./update-mdns.sh
 ## 🧹 Maintenance
 
 ### `cleanup-mdns.sh`
+
 ```bash
 sudo ./cleanup-mdns.sh
 ```
+
 **Nettoyage configuration mDNS**
+
 - 🗑️ Suppression services
 - 🔙 Restauration configuration
 - 🏠 Réinitialisation hostname
@@ -123,6 +153,7 @@ sudo ./cleanup-mdns.sh
 ## 🎯 Utilisation selon le Problème
 
 ### Service ne démarre pas
+
 ```bash
 # Diagnostic rapide
 ./status.sh
@@ -136,6 +167,7 @@ sudo ./fix-airastro.sh
 ```
 
 ### Service démarre mais ne répond pas
+
 ```bash
 # Vérification des ports et API
 ./debug-airastro.sh
@@ -148,6 +180,7 @@ sudo ./fix-airastro.sh
 ```
 
 ### Problème de découverte réseau
+
 ```bash
 # Test mDNS
 ./check-mdns.sh
@@ -160,6 +193,7 @@ sudo ./configure-mdns.sh
 ```
 
 ### Problème de compilation
+
 ```bash
 # Build complet
 ./build-server.sh
@@ -169,6 +203,7 @@ sudo ./fix-airastro.sh
 ```
 
 ### Après mise à jour système
+
 ```bash
 # Mise à jour configuration
 sudo ./update-mdns.sh
@@ -192,16 +227,16 @@ sudo ./update-mdns.sh
 
 ## 📋 Scripts par Catégorie
 
-| Catégorie | Script | Privilèges | Durée |
-|-----------|--------|------------|-------|
-| **Statut** | `status.sh` | Utilisateur | 5s |
-| **Réparation** | `quick-fix.sh` | Sudo | 30s |
-| **Diagnostic** | `debug-airastro.sh` | Utilisateur | 10s |
-| **Diagnostic** | `check-mdns.sh` | Utilisateur | 15s |
-| **Réparation** | `fix-airastro.sh` | Sudo | 2-5min |
-| **Build** | `build-server.sh` | Utilisateur | 1-3min |
-| **Configuration** | `configure-mdns.sh` | Sudo | 1-2min |
-| **Test** | `test-remote-connectivity.sh` | Utilisateur | 15s |
+| Catégorie         | Script                        | Privilèges  | Durée  |
+| ----------------- | ----------------------------- | ----------- | ------ |
+| **Statut**        | `status.sh`                   | Utilisateur | 5s     |
+| **Réparation**    | `quick-fix.sh`                | Sudo        | 30s    |
+| **Diagnostic**    | `debug-airastro.sh`           | Utilisateur | 10s    |
+| **Diagnostic**    | `check-mdns.sh`               | Utilisateur | 15s    |
+| **Réparation**    | `fix-airastro.sh`             | Sudo        | 2-5min |
+| **Build**         | `build-server.sh`             | Utilisateur | 1-3min |
+| **Configuration** | `configure-mdns.sh`           | Sudo        | 1-2min |
+| **Test**          | `test-remote-connectivity.sh` | Utilisateur | 15s    |
 
 ---
 

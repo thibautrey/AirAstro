@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import express, { Request, Response } from "express";
 
 import { DriverManager } from "./indi";
@@ -24,7 +26,21 @@ app.use(
 );
 
 app.use(express.json());
-const port: number = parseInt(process.env.PORT ?? "80", 10);
+
+// Configuration du port avec gestion des erreurs
+const DEFAULT_PORT = 3000;
+const requestedPort = parseInt(process.env.PORT ?? DEFAULT_PORT.toString(), 10);
+
+// Validation du port
+const port =
+  requestedPort >= 1 && requestedPort <= 65535 ? requestedPort : DEFAULT_PORT;
+
+if (port !== requestedPort) {
+  console.warn(
+    `⚠️  Port ${requestedPort} invalide, utilisation du port ${port}`
+  );
+}
+
 const driverManager = new DriverManager();
 
 app.get("/api/ping", (_req: Request, res: Response) => {
@@ -123,10 +139,18 @@ app.get("*", (_req: Request, res: Response) => {
   res.sendFile(path.join(webDir, "index.html"));
 });
 
-app.listen(port, () => {
+// Gestion des erreurs de serveur
+const server = app.listen(port, () => {
   console.log(`🚀 AirAstro server running on port ${port}`);
   console.log(`🌐 Local access: http://localhost:${port}`);
-  console.log(`🔗 Network access: http://airastro.local:${port}`);
+
+  // Affichage conditionnel en fonction du port
+  if (port === 80) {
+    console.log(`🔗 Network access: http://airastro.local`);
+  } else {
+    console.log(`🔗 Network access: http://airastro.local:${port}`);
+  }
+
   console.log(`📡 mDNS discovery: Dual-layer (System + Application)`);
 
   // Configuration mDNS au niveau application (complément du système)
@@ -169,4 +193,27 @@ app.listen(port, () => {
     bonjourInstance.destroy();
     process.exit(0);
   });
+});
+
+// Gestion des erreurs de serveur
+server.on("error", (err: any) => {
+  if (err.code === "EACCES") {
+    console.error(`❌ Permission denied for port ${port}`);
+    console.error(`💡 Solutions possibles:`);
+    console.error(`   1. Utiliser un port > 1024 (ex: PORT=3000)`);
+    console.error(`   2. Lancer avec sudo (non recommandé)`);
+    console.error(
+      `   3. Configurer les capacités: sudo setcap 'cap_net_bind_service=+ep' $(which node)`
+    );
+    process.exit(1);
+  } else if (err.code === "EADDRINUSE") {
+    console.error(`❌ Port ${port} déjà utilisé`);
+    console.error(`💡 Solutions possibles:`);
+    console.error(`   1. Utiliser un autre port (ex: PORT=3001)`);
+    console.error(`   2. Arrêter le processus utilisant ce port`);
+    process.exit(1);
+  } else {
+    console.error(`❌ Erreur serveur:`, err);
+    process.exit(1);
+  }
 });

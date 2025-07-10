@@ -75,17 +75,26 @@ fi
 
 # 4. Test de démarrage rapide
 log "4. Test de démarrage de l'application"
-timeout 10 node dist/index.js >/dev/null 2>&1 &
+
+# Vérification préalable des permissions de port
+DEFAULT_PORT="80"
+if [ "$(id -u)" -ne 0 ] && ! sudo -u "${SUDO_USER:-$(whoami)}" timeout 2 nc -l 80 >/dev/null 2>&1; then
+    warning "⚠️  Port 80 non accessible sans privilèges, test avec port 3000"
+    DEFAULT_PORT="3000"
+fi
+
+# Test avec le port approprié
+PORT=$DEFAULT_PORT timeout 10 node dist/index.js >/dev/null 2>&1 &
 TEST_PID=$!
 sleep 3
 
 if kill -0 $TEST_PID 2>/dev/null; then
-    success "✅ Application démarre correctement"
+    success "✅ Application démarre correctement sur le port $DEFAULT_PORT"
     kill $TEST_PID 2>/dev/null || true
 else
     error "❌ Application ne démarre pas correctement"
     echo "Logs d'erreur:"
-    node dist/index.js 2>&1 | head -10
+    PORT=$DEFAULT_PORT node dist/index.js 2>&1 | head -10
     exit 1
 fi
 
@@ -109,7 +118,7 @@ RestartSec=10
 User=$TARGET_USER
 Group=$TARGET_USER
 Environment=NODE_ENV=production
-Environment=PORT=80
+Environment=PORT=$DEFAULT_PORT
 
 # Sécurité
 NoNewPrivileges=true

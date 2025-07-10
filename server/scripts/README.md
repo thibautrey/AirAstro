@@ -5,6 +5,7 @@ Ce répertoire contient les scripts pour configurer et gérer la découverte de 
 ## Vue d'ensemble
 
 AirAstro utilise une approche **double couche** pour la découverte de service :
+
 - **Couche Système** : Avahi (daemon mDNS du système)
 - **Couche Application** : Bibliothèque Bonjour Node.js
 
@@ -15,12 +16,15 @@ Cette approche garantit une découverte robuste même en cas de redémarrage de 
 ### 🔧 Configuration
 
 #### `configure-mdns.sh`
+
 **Configuration complète du mDNS système**
+
 ```bash
 sudo ./configure-mdns.sh
 ```
 
 **Actions :**
+
 - Installation d'Avahi et dépendances
 - Configuration du hostname `airastro`
 - Création du service Avahi
@@ -30,12 +34,15 @@ sudo ./configure-mdns.sh
 ---
 
 #### `update-mdns.sh`
+
 **Mise à jour mDNS pour installations existantes**
+
 ```bash
 sudo ./update-mdns.sh
 ```
 
 **Actions :**
+
 - Sauvegarde de la configuration actuelle
 - Application de la nouvelle configuration mDNS
 - Redémarrage des services
@@ -44,12 +51,15 @@ sudo ./update-mdns.sh
 ---
 
 #### `build-server.sh`
+
 **Compilation du serveur AirAstro**
+
 ```bash
 ./build-server.sh
 ```
 
 **Actions :**
+
 - Vérification des dépendances
 - Compilation TypeScript
 - Tests de syntaxe
@@ -60,12 +70,15 @@ sudo ./update-mdns.sh
 ### 🔍 Diagnostic
 
 #### `check-mdns.sh`
+
 **Diagnostic complet de la configuration mDNS**
+
 ```bash
 ./check-mdns.sh
 ```
 
 **Vérifications :**
+
 - État du service Avahi
 - Configuration du hostname
 - Résolution mDNS
@@ -76,12 +89,15 @@ sudo ./update-mdns.sh
 ---
 
 #### `debug-airastro.sh`
+
 **Diagnostic approfondi du service AirAstro**
+
 ```bash
 ./debug-airastro.sh
 ```
 
 **Analyses :**
+
 - État du service systemd
 - Vérification des fichiers
 - Configuration Node.js
@@ -92,17 +108,21 @@ sudo ./update-mdns.sh
 ---
 
 #### `test-remote-connectivity.sh`
+
 **Test de connectivité depuis un autre appareil**
+
 ```bash
 ./test-remote-connectivity.sh [hostname]
 ```
 
 **Exemple :**
+
 ```bash
 ./test-remote-connectivity.sh airastro.local
 ```
 
 **Tests :**
+
 - Résolution DNS/mDNS
 - Ping
 - Connectivité HTTP
@@ -114,12 +134,15 @@ sudo ./update-mdns.sh
 ### 🛠️ Réparation
 
 #### `fix-airastro.sh`
+
 **Réparation automatique du service AirAstro**
+
 ```bash
 sudo ./fix-airastro.sh
 ```
 
 **Actions :**
+
 - Arrêt du service défaillant
 - Mise à jour des dépendances
 - Recompilation de l'application
@@ -132,12 +155,15 @@ sudo ./fix-airastro.sh
 ### 🧹 Maintenance
 
 #### `cleanup-mdns.sh`
+
 **Nettoyage de la configuration mDNS**
+
 ```bash
 sudo ./cleanup-mdns.sh
 ```
 
 **Actions :**
+
 - Suppression du service AirAstro
 - Restauration de la configuration originale
 - Option de restauration du hostname
@@ -147,24 +173,28 @@ sudo ./cleanup-mdns.sh
 ## Utilisation Typique
 
 ### Installation Fraîche
+
 ```bash
 # Lors de l'installation, configure-mdns.sh est appelé automatiquement
 sudo ./install-on-rpi.sh
 ```
 
 ### Installation Existante
+
 ```bash
 # Mise à jour d'une installation existante
 sudo ./update-mdns.sh
 ```
 
 ### Build/Compilation
+
 ```bash
 # Compilation du serveur
 ./build-server.sh
 ```
 
 ### Diagnostic
+
 ```bash
 # Vérification de la configuration mDNS
 ./check-mdns.sh
@@ -177,12 +207,14 @@ sudo ./update-mdns.sh
 ```
 
 ### Réparation
+
 ```bash
 # Réparation automatique complète
 sudo ./fix-airastro.sh
 ```
 
 ### Dépannage
+
 ```bash
 # Reconfiguration complète mDNS
 sudo ./configure-mdns.sh
@@ -194,6 +226,7 @@ sudo ./cleanup-mdns.sh
 ## Configuration Générée
 
 ### Service Avahi (`/etc/avahi/services/airastro.service`)
+
 ```xml
 <service-group>
   <name replace-wildcards="yes">AirAstro sur %h</name>
@@ -206,21 +239,23 @@ sudo ./cleanup-mdns.sh
 ```
 
 ### Hostname Système
+
 - **Hostname** : `airastro`
 - **mDNS** : `airastro.local`
 - **Fichiers** : `/etc/hostname`, `/etc/hosts`
 
 ## Services Annoncés
 
-| Service | Type | Port | Description |
-|---------|------|------|-------------|
-| HTTP Principal | `_http._tcp` | 80 | Interface web AirAstro |
-| SSH | `_ssh._tcp` | 22 | Accès administration |
-| Développement | `_http._tcp` | 3000 | Serveur dev (si actif) |
+| Service        | Type         | Port | Description            |
+| -------------- | ------------ | ---- | ---------------------- |
+| HTTP Principal | `_http._tcp` | 80   | Interface web AirAstro |
+| SSH            | `_ssh._tcp`  | 22   | Accès administration   |
+| Développement  | `_http._tcp` | 3000 | Serveur dev (si actif) |
 
 ## Intégration avec Node.js
 
 Le code Node.js est configuré pour :
+
 - Détecter la présence d'Avahi
 - Annoncer des métadonnées enrichies
 - Maintenir la compatibilité avec les deux couches
@@ -244,6 +279,7 @@ const service = bonjourInstance.publish({
 ## Dépannage Courant
 
 ### Service non découvert
+
 ```bash
 # Vérifier Avahi
 sudo systemctl restart avahi-daemon
@@ -256,6 +292,7 @@ avahi-resolve-host-name airastro.local
 ```
 
 ### Conflits de hostname
+
 ```bash
 # Changer le hostname temporairement
 sudo hostnamectl set-hostname airastro-$(date +%s)
@@ -263,6 +300,7 @@ sudo systemctl restart avahi-daemon
 ```
 
 ### Problèmes de réseau
+
 ```bash
 # Vérifier les interfaces réseau
 ip addr show
@@ -274,11 +312,13 @@ journalctl -u avahi-daemon -f
 ## Compatibilité
 
 ### Systèmes supportés
+
 - ✅ Raspberry Pi OS
 - ✅ Ubuntu/Debian
 - ✅ Linux générique avec systemd
 
 ### Clients compatibles
+
 - ✅ macOS (Bonjour natif)
 - ✅ iOS (Bonjour natif)
 - ✅ Windows (Bonjour pour Windows)
@@ -288,16 +328,19 @@ journalctl -u avahi-daemon -f
 ## Logs et Monitoring
 
 ### Logs Avahi
+
 ```bash
 journalctl -u avahi-daemon -f
 ```
 
 ### Logs AirAstro
+
 ```bash
 journalctl -u airastro -f
 ```
 
 ### Monitoring des services
+
 ```bash
 # Services mDNS actifs
 avahi-browse -a
@@ -309,11 +352,13 @@ watch -n 1 avahi-resolve-host-name airastro.local
 ## Sécurité
 
 ### Bonnes pratiques
+
 - Changement du mot de passe SSH par défaut
 - Firewall configuré pour le réseau local uniquement
 - Mise à jour régulière des dépendances
 
 ### Ports ouverts
+
 - Port 80 : Interface web AirAstro
 - Port 22 : SSH (administration)
 - Port 5353 : mDNS (multicast)
