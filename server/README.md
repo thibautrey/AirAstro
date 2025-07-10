@@ -49,3 +49,14 @@ The behaviour is implemented by `scripts/start-hotspot.js` and a companion syste
    ```
 
 The script uses `nmcli` to create the hotspot on `wlan0`.
+
+## Quick Install on Raspberry Pi
+
+Run the following command on your Raspberry Pi to install AirAstro and configure all services:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/thibautrey/AirAstro/main/server/scripts/install-on-rpi.sh | bash
+```
+
+The script installs dependencies, clones this repository to `~/AirAstro`, builds the server and sets up systemd services for the server and Wi-Fi hotspot.
+
