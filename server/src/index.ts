@@ -1,4 +1,5 @@
 import express, { Request, Response } from "express";
+import path from "path";
 
 import { DriverManager } from "./indi";
 import imageRouter from "./routes/image.route";
@@ -17,6 +18,10 @@ app.get("/api/ping", (_req: Request, res: Response) => {
 
 app.use("/api/update", updateRouter);
 app.use("/api/images", imageRouter);
+
+// Serve the web UI built from apps/web
+const webDir = path.resolve(__dirname, "../..", "apps/web/dist");
+app.use(express.static(webDir));
 
 app.get("/api/drivers", async (_req: Request, res: Response) => {
   try {
@@ -96,6 +101,11 @@ app.post("/api/drivers/install", async (req: Request, res: Response) => {
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Fallback to index.html for SPA routes
+app.get("*", (_req: Request, res: Response) => {
+  res.sendFile(path.join(webDir, "index.html"));
 });
 
 app.listen(port, () => {

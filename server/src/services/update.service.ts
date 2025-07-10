@@ -77,15 +77,35 @@ export async function installUpdate(archivePath: string) {
   const dirs = await fs.readdir(extractDir);
   if (dirs.length === 0) throw new Error("Extraction failed");
   const newServerPath = path.join(extractDir, dirs[0], "server");
+  const newWebPath = path.join(extractDir, dirs[0], "apps", "web");
   const backupDir = `server_backup_${Date.now()}`;
+  const backupWebDir = `web_backup_${Date.now()}`;
   await fs.cp("server", backupDir, { recursive: true });
+  await fs.cp("apps/web", backupWebDir, { recursive: true }).catch(() => {});
   try {
     await fs.rm("server", { recursive: true, force: true });
     await fs.cp(newServerPath, "server", { recursive: true });
     await exec("cd server && npm install && npm run build");
+
+    try {
+      await fs.access(newWebPath);
+      await fs.rm("apps/web", { recursive: true, force: true }).catch(() => {});
+      await fs.cp(newWebPath, "apps/web", { recursive: true });
+      await exec("cd apps/web && npm install && npm run build");
+      await fs.rm(path.join("apps/web", "node_modules"), { recursive: true, force: true }).catch(() => {});
+    } catch {
+      /* ignore if web path does not exist */
+    }
+
+    await fs.rm(backupDir, { recursive: true, force: true });
+    await fs.rm(backupWebDir, { recursive: true, force: true }).catch(() => {});
   } catch (err) {
     await fs.rm("server", { recursive: true, force: true }).catch(() => {});
     await fs.cp(backupDir, "server", { recursive: true });
+    await fs.rm("apps/web", { recursive: true, force: true }).catch(() => {});
+    await fs.cp(backupWebDir, "apps/web", { recursive: true }).catch(() => {});
+    await fs.rm(backupDir, { recursive: true, force: true }).catch(() => {});
+    await fs.rm(backupWebDir, { recursive: true, force: true }).catch(() => {});
     throw err;
   }
 }
