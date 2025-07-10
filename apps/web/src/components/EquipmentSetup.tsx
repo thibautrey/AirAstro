@@ -1,17 +1,11 @@
-import { useState } from "react";
-import TopBar from "./ui/TopBar";
-import Select from "./ui/Select";
 import NumberInput from "./ui/NumberInput";
+import Select from "./ui/Select";
+import TopBar from "./ui/TopBar";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
-interface EquipmentSetupProps {
-  onBack?: () => void;
-  onComplete?: () => void;
-}
-
-export default function EquipmentSetup({
-  onBack,
-  onComplete,
-}: EquipmentSetupProps) {
+export default function EquipmentSetup() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     mount: "",
     mainCamera: "",
@@ -21,6 +15,16 @@ export default function EquipmentSetup({
   });
 
   const [status] = useState<"Connected" | "Connecting…" | "Lost">("Connected");
+
+  const handleBack = () => {
+    navigate("/");
+  };
+
+  const handleComplete = () => {
+    // Simuler un ID d'appareil pour la démo
+    const deviceId = "airastro-001";
+    navigate(`/device/${deviceId}/control`);
+  };
 
   const mountOptions = [
     { value: "eq6r", label: "Sky-Watcher EQ6-R Pro" },
@@ -53,14 +57,14 @@ export default function EquipmentSetup({
   const handleSubmit = () => {
     if (isFormValid) {
       console.log("Equipment setup completed:", formData);
-      onComplete?.();
+      handleComplete();
     }
   };
 
   return (
     <div className="min-h-screen bg-bg-surface">
       <TopBar
-        onBack={onBack}
+        onBack={handleBack}
         status={status}
         serialNumber="AS-2024-001"
         appVersion="v1.0.0"

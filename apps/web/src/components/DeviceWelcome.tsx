@@ -2,18 +2,21 @@ import { ChevronRight, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import AirAstroLogo from "./AirAstroLogo";
+import { useNavigate } from "react-router-dom";
 
-interface DeviceWelcomeProps {
-  onEnterDevice?: () => void;
-  onLocationClick?: () => void;
-}
-
-export default function DeviceWelcome({
-  onEnterDevice,
-  onLocationClick,
-}: DeviceWelcomeProps) {
+export default function DeviceWelcome() {
+  const navigate = useNavigate();
   const [hasReachableDevice, setHasReachableDevice] = useState(false);
   const [location, setLocation] = useState("Detecting location...");
+
+  const handleEnterDevice = () => {
+    navigate("/setup");
+  };
+
+  const handleLocationClick = () => {
+    // Ici vous pourriez ouvrir un modal de sélection de localisation
+    console.log("Opening location selector...");
+  };
 
   // Simuler la détection d'appareils et de localisation
   useEffect(() => {
@@ -112,7 +115,7 @@ export default function DeviceWelcome({
         {/* Location row */}
         <div
           className="rounded border border-zinc-700 flex items-center justify-between px-4 py-3 cursor-pointer hover:border-zinc-600 transition-colors active:bg-zinc-800/50"
-          onClick={onLocationClick}
+          onClick={handleLocationClick}
         >
           <div className="flex items-center space-x-3">
             <MapPin className="w-5 h-5 text-brand-red flex-shrink-0" />
@@ -130,7 +133,7 @@ export default function DeviceWelcome({
                 ? "active:scale-[0.98] hover:shadow-lg shadow-elevation"
                 : "opacity-40 cursor-not-allowed"
             }`}
-          onClick={hasReachableDevice ? onEnterDevice : undefined}
+          onClick={hasReachableDevice ? handleEnterDevice : undefined}
           disabled={!hasReachableDevice}
         >
           {hasReachableDevice ? "Enter Device" : "Searching for devices..."}

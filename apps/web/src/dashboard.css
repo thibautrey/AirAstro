@@ -1,0 +1,78 @@
+/* Custom styles for dashboard components */
+
+/* Slider styles */
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #00b331;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.slider::-webkit-slider-track {
+  height: 4px;
+  border-radius: 2px;
+  background: #374151;
+}
+
+.slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #00b331;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.slider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: #374151;
+}
+
+/* Focus styles for accessibility */
+.slider:focus {
+  outline: none;
+}
+
+.slider:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 2px rgba(214, 38, 86, 0.5);
+}
+
+.slider:focus::-moz-range-thumb {
+  box-shadow: 0 0 0 2px rgba(214, 38, 86, 0.5);
+}
+
+/* Animation for shutter button */
+@keyframes shutter-pulse {
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.shutter-exposing {
+  animation: shutter-pulse 1.5s ease-in-out infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .mode-rail-collapsed {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .camera-rail-collapsed {
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+  }
+}
