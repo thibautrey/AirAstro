@@ -30,3 +30,7 @@ This repository currently contains folder placeholders only. Contributions are w
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) for development prerequisites and
 guidelines.
+
+## License
+
+AirAstro is released under the [MIT License](LICENSE).
