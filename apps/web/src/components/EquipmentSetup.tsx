@@ -54,14 +54,12 @@ export default function EquipmentSetup() {
     { value: "qhy5iii", label: "QHYCCD QHY5III-290M" },
   ];
 
-  const isFormValid =
-    formData.mount && formData.mainCamera && formData.guideCamera;
+  // Tous les équipements sont désormais optionnels
+  const isFormValid = true;
 
   const handleSubmit = () => {
-    if (isFormValid) {
-      console.log("Equipment setup completed:", formData);
-      handleComplete();
-    }
+    console.log("Equipment setup completed:", formData);
+    handleComplete();
   };
 
   return (
@@ -73,7 +71,7 @@ export default function EquipmentSetup() {
         appVersion="v1.0.0"
       />
 
-      <div className="flex-1 overflow-y-auto px-4 py-8">
+      <div className="flex-1 overflow-y-auto px-4 py-8 pb-20">
         <div className="max-w-lg mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-semibold text-text-primary mb-2">
@@ -98,7 +96,7 @@ export default function EquipmentSetup() {
             {/* Row 0 – Mount */}
             <div className="sm:col-span-2">
               <Select
-                label="Monture"
+                label="Monture (optionnel)"
                 options={mountOptions}
                 value={formData.mount}
                 onChange={(value) =>
@@ -110,7 +108,7 @@ export default function EquipmentSetup() {
 
             {/* Rows 1-2 – Cameras */}
             <Select
-              label="Caméra principale"
+              label="Caméra principale (optionnel)"
               options={cameraOptions}
               value={formData.mainCamera}
               onChange={(value) =>
@@ -132,7 +130,7 @@ export default function EquipmentSetup() {
             />
 
             <Select
-              label="Caméra de guidage"
+              label="Caméra de guidage (optionnel)"
               options={guideCameraOptions}
               value={formData.guideCamera}
               onChange={(value) =>
@@ -153,24 +151,17 @@ export default function EquipmentSetup() {
               }
             />
           </div>
-
-          {/* Bottom CTA */}
-          <button
-            onClick={handleSubmit}
-            disabled={!isFormValid}
-            className={`
-              mx-auto mt-16 mb-6 h-11 px-10 rounded-md font-semibold shadow-elevation
-              active:scale-[.98] transition-all block
-              ${
-                isFormValid
-                  ? "bg-cta-green text-white hover:bg-cta-green/90"
-                  : "bg-zinc-600 text-zinc-400 cursor-not-allowed"
-              }
-            `}
-          >
-            ENTRER
-          </button>
         </div>
+      </div>
+
+      {/* Bottom CTA - Fixé en bas */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-bg-surface/95 backdrop-blur-sm border-t border-zinc-700">
+        <button
+          onClick={handleSubmit}
+          className="w-full h-11 rounded-md font-semibold shadow-elevation bg-cta-green text-white hover:bg-cta-green/90 active:scale-[.98] transition-all"
+        >
+          ENTRER
+        </button>
       </div>
     </div>
   );
