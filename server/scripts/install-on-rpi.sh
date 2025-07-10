@@ -35,6 +35,9 @@ fi
 
 cd "$INSTALL_DIR/server"
 
+log "Cleaning previous node_modules to ensure fresh install"
+rm -rf node_modules package-lock.json
+
 log "Installing all dependencies (including dev dependencies for build)"
 npm install
 
