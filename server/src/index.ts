@@ -50,6 +50,15 @@ app.get("/api/drivers/search", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/api/drivers/usb", async (_req: Request, res: Response) => {
+  try {
+    const devices = await driverManager.listUsbDevices();
+    res.json(devices);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post("/api/drivers/start", async (req: Request, res: Response) => {
   const { name } = req.body as { name?: string };
   if (!name) {

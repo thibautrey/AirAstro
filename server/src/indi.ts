@@ -118,4 +118,27 @@ export class DriverManager {
   listRunningDrivers(): string[] {
     return Array.from(this.running.keys());
   }
+
+  async listUsbDevices(): Promise<{ bus: string; device: string; id: string; description: string; matchingDrivers: string[] }[]> {
+    try {
+      const { stdout } = await exec('lsusb');
+      const lines = stdout.trim().split('\n');
+      const installed = await this.getInstalledDrivers();
+      const devices: { bus: string; device: string; id: string; description: string; matchingDrivers: string[] }[] = [];
+      for (const line of lines) {
+        const match = line.match(/^Bus\s+(\d+)\s+Device\s+(\d+):\s+ID\s+([0-9a-fA-F]{4}:[0-9a-fA-F]{4})\s*(.*)$/);
+        if (!match) continue;
+        const [, bus, device, id, desc] = match;
+        const tokens = desc.toLowerCase().split(/[^a-z0-9]+/).filter(t => t.length >= 3);
+        const matchingDrivers = installed.filter(d => {
+          const dl = d.toLowerCase();
+          return tokens.some(t => dl.includes(t));
+        });
+        devices.push({ bus, device, id, description: desc, matchingDrivers });
+      }
+      return devices;
+    } catch {
+      return [];
+    }
+  }
 }
