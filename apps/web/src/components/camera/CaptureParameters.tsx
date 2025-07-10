@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { CameraParameters } from '../../services/camera.service';
+import { useState, useEffect } from "react";
+import { CameraParameters } from "../../services/camera.service";
 
 interface CaptureParametersProps {
   parameters: CameraParameters;
@@ -7,10 +7,10 @@ interface CaptureParametersProps {
   disabled?: boolean;
 }
 
-export default function CaptureParameters({ 
-  parameters, 
-  onParametersChange, 
-  disabled = false 
+export default function CaptureParameters({
+  parameters,
+  onParametersChange,
+  disabled = false,
 }: CaptureParametersProps) {
   const [localParams, setLocalParams] = useState<CameraParameters>(parameters);
 
@@ -32,14 +32,18 @@ export default function CaptureParameters({
     } else {
       const minutes = Math.floor(seconds / 60);
       const remainingSeconds = seconds % 60;
-      return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+      return remainingSeconds > 0
+        ? `${minutes}m ${remainingSeconds}s`
+        : `${minutes}m`;
     }
   };
 
   return (
     <div className="space-y-4 p-4 bg-black/20 rounded-lg">
-      <h3 className="text-sm font-semibold text-cta-green">Paramètres de Capture</h3>
-      
+      <h3 className="text-sm font-semibold text-cta-green">
+        Paramètres de Capture
+      </h3>
+
       {/* Temps d'exposition */}
       <div className="space-y-2">
         <label className="block text-xs text-text-secondary">
@@ -51,7 +55,9 @@ export default function CaptureParameters({
           max="300"
           step="0.001"
           value={localParams.exposure}
-          onChange={(e) => handleParameterChange('exposure', parseFloat(e.target.value))}
+          onChange={(e) =>
+            handleParameterChange("exposure", parseFloat(e.target.value))
+          }
           disabled={disabled}
           className="w-full slider"
         />
@@ -72,7 +78,9 @@ export default function CaptureParameters({
           max="100"
           step="1"
           value={localParams.gain}
-          onChange={(e) => handleParameterChange('gain', parseInt(e.target.value))}
+          onChange={(e) =>
+            handleParameterChange("gain", parseInt(e.target.value))
+          }
           disabled={disabled}
           className="w-full slider"
         />
@@ -87,7 +95,7 @@ export default function CaptureParameters({
         <label className="block text-xs text-text-secondary">Binning</label>
         <select
           value={localParams.binning}
-          onChange={(e) => handleParameterChange('binning', e.target.value)}
+          onChange={(e) => handleParameterChange("binning", e.target.value)}
           disabled={disabled}
           className="w-full bg-black/60 text-text-primary text-xs px-2 py-1 rounded border border-zinc-700/60 focus:border-cta-green focus:outline-none"
         >
@@ -100,10 +108,12 @@ export default function CaptureParameters({
 
       {/* Type de frame */}
       <div className="space-y-2">
-        <label className="block text-xs text-text-secondary">Type de Frame</label>
+        <label className="block text-xs text-text-secondary">
+          Type de Frame
+        </label>
         <select
           value={localParams.frameType}
-          onChange={(e) => handleParameterChange('frameType', e.target.value)}
+          onChange={(e) => handleParameterChange("frameType", e.target.value)}
           disabled={disabled}
           className="w-full bg-black/60 text-text-primary text-xs px-2 py-1 rounded border border-zinc-700/60 focus:border-cta-green focus:outline-none"
         >
@@ -119,7 +129,7 @@ export default function CaptureParameters({
         <label className="block text-xs text-text-secondary">Format</label>
         <select
           value={localParams.format}
-          onChange={(e) => handleParameterChange('format', e.target.value)}
+          onChange={(e) => handleParameterChange("format", e.target.value)}
           disabled={disabled}
           className="w-full bg-black/60 text-text-primary text-xs px-2 py-1 rounded border border-zinc-700/60 focus:border-cta-green focus:outline-none"
         >
@@ -130,7 +140,7 @@ export default function CaptureParameters({
       </div>
 
       {/* Qualité (pour TIFF) */}
-      {localParams.format === 'TIFF' && (
+      {localParams.format === "TIFF" && (
         <div className="space-y-2">
           <label className="block text-xs text-text-secondary">
             Qualité: {localParams.quality}%
@@ -141,7 +151,9 @@ export default function CaptureParameters({
             max="100"
             step="1"
             value={localParams.quality}
-            onChange={(e) => handleParameterChange('quality', parseInt(e.target.value))}
+            onChange={(e) =>
+              handleParameterChange("quality", parseInt(e.target.value))
+            }
             disabled={disabled}
             className="w-full slider"
           />
@@ -164,7 +176,12 @@ export default function CaptureParameters({
             max="30"
             step="1"
             value={localParams.coolingTemperature}
-            onChange={(e) => handleParameterChange('coolingTemperature', parseInt(e.target.value))}
+            onChange={(e) =>
+              handleParameterChange(
+                "coolingTemperature",
+                parseInt(e.target.value)
+              )
+            }
             disabled={disabled}
             className="w-full slider"
           />

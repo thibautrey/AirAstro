@@ -17,9 +17,10 @@ export class SimpleWebSocketService {
   private isConnected = false;
 
   constructor() {
-    this.url = import.meta.env.MODE === 'production' 
-      ? `ws://${window.location.host}/ws`
-      : 'ws://localhost:3000/ws';
+    this.url =
+      import.meta.env.MODE === "production"
+        ? `ws://${window.location.host}/ws`
+        : "ws://localhost:3000/ws";
   }
 
   connect(): void {
@@ -29,12 +30,12 @@ export class SimpleWebSocketService {
 
     try {
       this.ws = new WebSocket(this.url);
-      
+
       this.ws.onopen = () => {
-        console.log('WebSocket connecté');
+        console.log("WebSocket connecté");
         this.isConnected = true;
         this.reconnectAttempts = 0;
-        this.emit('connected');
+        this.emit("connected");
       };
 
       this.ws.onmessage = (event) => {
@@ -42,23 +43,23 @@ export class SimpleWebSocketService {
           const data = JSON.parse(event.data);
           this.handleMessage(data);
         } catch (error) {
-          console.error('Erreur de parsing WebSocket:', error);
+          console.error("Erreur de parsing WebSocket:", error);
         }
       };
 
       this.ws.onclose = () => {
-        console.log('WebSocket fermé');
+        console.log("WebSocket fermé");
         this.isConnected = false;
-        this.emit('disconnected');
+        this.emit("disconnected");
         this.attemptReconnect();
       };
 
       this.ws.onerror = (error) => {
-        console.error('Erreur WebSocket:', error);
-        this.emit('error', error);
+        console.error("Erreur WebSocket:", error);
+        this.emit("error", error);
       };
     } catch (error) {
-      console.error('Erreur de connexion WebSocket:', error);
+      console.error("Erreur de connexion WebSocket:", error);
       this.attemptReconnect();
     }
   }
@@ -66,9 +67,9 @@ export class SimpleWebSocketService {
   private handleMessage(data: any): void {
     const { event, payload } = data;
     const listeners = this.listeners.get(event);
-    
+
     if (listeners) {
-      listeners.forEach(callback => callback(payload));
+      listeners.forEach((callback) => callback(payload));
     }
   }
 
@@ -76,7 +77,9 @@ export class SimpleWebSocketService {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       setTimeout(() => {
         this.reconnectAttempts++;
-        console.log(`Tentative de reconnexion ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+        console.log(
+          `Tentative de reconnexion ${this.reconnectAttempts}/${this.maxReconnectAttempts}`
+        );
         this.connect();
       }, this.reconnectDelay * this.reconnectAttempts);
     }

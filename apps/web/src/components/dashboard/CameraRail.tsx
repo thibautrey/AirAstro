@@ -16,7 +16,7 @@ export default function CameraRail() {
     updateParameters,
     startCapture,
     cancelCapture,
-    setCooling
+    setCooling,
   } = useCamera();
 
   const [showParameters, setShowParameters] = useState(false);
@@ -24,7 +24,7 @@ export default function CameraRail() {
 
   const handleShutterClick = async () => {
     if (!cameraStatus?.isConnected) {
-      alert('Aucune caméra connectée');
+      alert("Aucune caméra connectée");
       return;
     }
 
@@ -34,7 +34,7 @@ export default function CameraRail() {
       try {
         await startCapture();
       } catch (error) {
-        console.error('Erreur lors du démarrage de la capture:', error);
+        console.error("Erreur lors du démarrage de la capture:", error);
       }
     }
   };
@@ -43,7 +43,7 @@ export default function CameraRail() {
     try {
       await selectCamera(cameraName);
     } catch (error) {
-      console.error('Erreur lors de la sélection de la caméra:', error);
+      console.error("Erreur lors de la sélection de la caméra:", error);
     }
   };
 
@@ -51,7 +51,7 @@ export default function CameraRail() {
     try {
       await updateParameters(parameters);
     } catch (error) {
-      console.error('Erreur lors de la mise à jour des paramètres:', error);
+      console.error("Erreur lors de la mise à jour des paramètres:", error);
     }
   };
 
@@ -63,7 +63,9 @@ export default function CameraRail() {
     } else {
       const minutes = Math.floor(seconds / 60);
       const remainingSeconds = Math.round(seconds % 60);
-      return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+      return remainingSeconds > 0
+        ? `${minutes}m ${remainingSeconds}s`
+        : `${minutes}m`;
     }
   };
 
@@ -85,10 +87,12 @@ export default function CameraRail() {
 
       {/* Camera Status */}
       <div className="flex flex-col items-center gap-2">
-        <div className={clsx(
-          "w-2 h-2 rounded-full",
-          cameraStatus?.isConnected ? "bg-cta-green" : "bg-red-500"
-        )} />
+        <div
+          className={clsx(
+            "w-2 h-2 rounded-full",
+            cameraStatus?.isConnected ? "bg-cta-green" : "bg-red-500"
+          )}
+        />
         <span className="text-xs text-text-secondary">
           {cameraStatus?.isConnected ? "Connecté" : "Déconnecté"}
         </span>
@@ -140,7 +144,11 @@ export default function CameraRail() {
             : "border-zinc-400 hover:border-white hover:bg-white/10",
           !cameraStatus?.isConnected && "opacity-50 cursor-not-allowed"
         )}
-        aria-label={cameraStatus?.isCapturing ? "Exposition en cours" : "Démarrer exposition"}
+        aria-label={
+          cameraStatus?.isCapturing
+            ? "Exposition en cours"
+            : "Démarrer exposition"
+        }
       >
         {cameraStatus?.isCapturing ? (
           <CircularProgress

@@ -1,12 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
-import { cameraService, CameraStatus, CameraParameters, CameraInfo } from '../services/camera.service';
+import { useState, useEffect, useCallback } from "react";
+import {
+  cameraService,
+  CameraStatus,
+  CameraParameters,
+  CameraInfo,
+} from "../services/camera.service";
 
 interface UseCameraReturn {
   cameraStatus: CameraStatus | null;
   availableCameras: CameraInfo[];
   isLoading: boolean;
   error: string | null;
-  
+
   // Actions
   selectCamera: (cameraName: string) => Promise<void>;
   updateParameters: (parameters: Partial<CameraParameters>) => Promise<void>;
@@ -29,7 +34,7 @@ export function useCamera(): UseCameraReturn {
       setCameraStatus(status);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      setError(err instanceof Error ? err.message : "Erreur inconnue");
     }
   }, []);
 
@@ -40,43 +45,68 @@ export function useCamera(): UseCameraReturn {
       setAvailableCameras(cameras);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des caméras');
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Erreur lors du chargement des caméras"
+      );
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const selectCamera = useCallback(async (cameraName: string) => {
-    try {
-      await cameraService.selectCamera(cameraName);
-      await refreshStatus();
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la sélection de la caméra');
-    }
-  }, [refreshStatus]);
+  const selectCamera = useCallback(
+    async (cameraName: string) => {
+      try {
+        await cameraService.selectCamera(cameraName);
+        await refreshStatus();
+        setError(null);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Erreur lors de la sélection de la caméra"
+        );
+      }
+    },
+    [refreshStatus]
+  );
 
-  const updateParameters = useCallback(async (parameters: Partial<CameraParameters>) => {
-    try {
-      await cameraService.updateParameters(parameters);
-      await refreshStatus();
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour des paramètres');
-    }
-  }, [refreshStatus]);
+  const updateParameters = useCallback(
+    async (parameters: Partial<CameraParameters>) => {
+      try {
+        await cameraService.updateParameters(parameters);
+        await refreshStatus();
+        setError(null);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Erreur lors de la mise à jour des paramètres"
+        );
+      }
+    },
+    [refreshStatus]
+  );
 
-  const startCapture = useCallback(async (parameters?: Partial<CameraParameters>): Promise<string> => {
-    try {
-      const captureId = await cameraService.startCapture(parameters);
-      await refreshStatus();
-      setError(null);
-      return captureId;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du démarrage de la capture');
-      throw err;
-    }
-  }, [refreshStatus]);
+  const startCapture = useCallback(
+    async (parameters?: Partial<CameraParameters>): Promise<string> => {
+      try {
+        const captureId = await cameraService.startCapture(parameters);
+        await refreshStatus();
+        setError(null);
+        return captureId;
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Erreur lors du démarrage de la capture"
+        );
+        throw err;
+      }
+    },
+    [refreshStatus]
+  );
 
   const cancelCapture = useCallback(async () => {
     try {
@@ -84,19 +114,30 @@ export function useCamera(): UseCameraReturn {
       await refreshStatus();
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de l\'annulation de la capture');
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Erreur lors de l'annulation de la capture"
+      );
     }
   }, [refreshStatus]);
 
-  const setCooling = useCallback(async (enabled: boolean, targetTemperature?: number) => {
-    try {
-      await cameraService.setCooling(enabled, targetTemperature);
-      await refreshStatus();
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la configuration du refroidissement');
-    }
-  }, [refreshStatus]);
+  const setCooling = useCallback(
+    async (enabled: boolean, targetTemperature?: number) => {
+      try {
+        await cameraService.setCooling(enabled, targetTemperature);
+        await refreshStatus();
+        setError(null);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Erreur lors de la configuration du refroidissement"
+        );
+      }
+    },
+    [refreshStatus]
+  );
 
   // Charger les données initiales
   useEffect(() => {
@@ -123,6 +164,6 @@ export function useCamera(): UseCameraReturn {
     cancelCapture,
     setCooling,
     refreshStatus,
-    loadCameras
+    loadCameras,
   };
 }

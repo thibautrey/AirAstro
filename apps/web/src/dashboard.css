@@ -194,7 +194,7 @@
 }
 
 .temperature-display::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -2px;
   left: 50%;
@@ -272,11 +272,11 @@
   .slider::-webkit-slider-thumb {
     border: 2px solid white;
   }
-  
+
   .parameter-slider::-webkit-slider-thumb {
     border: 2px solid white;
   }
-  
+
   .camera-status-connected {
     border: 1px solid white;
   }
@@ -287,15 +287,15 @@
   .shutter-exposing {
     animation: none;
   }
-  
+
   .camera-status-connected {
     animation: none;
   }
-  
+
   .loading-spinner {
     animation: none;
   }
-  
+
   .progress-circle {
     transition: none;
   }

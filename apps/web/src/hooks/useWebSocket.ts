@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { webSocketService } from '../services/websocket.service';
+import { useEffect, useState } from "react";
+import { webSocketService } from "../services/websocket.service";
 
 export function useWebSocket() {
   const [isConnected, setIsConnected] = useState(false);
@@ -16,20 +16,20 @@ export function useWebSocket() {
     };
 
     const handleError = (err: any) => {
-      setError(err.message || 'Erreur WebSocket');
+      setError(err.message || "Erreur WebSocket");
     };
 
-    webSocketService.on('connected', handleConnected);
-    webSocketService.on('disconnected', handleDisconnected);
-    webSocketService.on('error', handleError);
+    webSocketService.on("connected", handleConnected);
+    webSocketService.on("disconnected", handleDisconnected);
+    webSocketService.on("error", handleError);
 
     // Tenter la connexion
     webSocketService.connect();
 
     return () => {
-      webSocketService.off('connected', handleConnected);
-      webSocketService.off('disconnected', handleDisconnected);
-      webSocketService.off('error', handleError);
+      webSocketService.off("connected", handleConnected);
+      webSocketService.off("disconnected", handleDisconnected);
+      webSocketService.off("error", handleError);
     };
   }, []);
 
@@ -38,6 +38,6 @@ export function useWebSocket() {
     error,
     emit: webSocketService.emit.bind(webSocketService),
     on: webSocketService.on.bind(webSocketService),
-    off: webSocketService.off.bind(webSocketService)
+    off: webSocketService.off.bind(webSocketService),
   };
 }
