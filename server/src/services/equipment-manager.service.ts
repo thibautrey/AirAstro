@@ -1,4 +1,5 @@
 import { DetectedDevice, EquipmentDetectorService } from './equipment-detector.service';
+import { EquipmentDatabaseService } from './equipment-database.service';
 import { DriverManager } from '../indi';
 import { EventEmitter } from 'events';
 
@@ -21,15 +22,17 @@ export interface AutoSetupResult {
 export class EquipmentManagerService extends EventEmitter {
   private driverManager: DriverManager;
   private detectorService: EquipmentDetectorService;
+  private equipmentDatabase: EquipmentDatabaseService;
   private equipmentStatus: Map<string, EquipmentStatus> = new Map();
   private isMonitoring: boolean = false;
   private monitoringInterval?: NodeJS.Timeout;
   private setupInProgress: boolean = false;
 
-  constructor(driverManager: DriverManager) {
+  constructor(driverManager: DriverManager, equipmentDatabase: EquipmentDatabaseService) {
     super();
     this.driverManager = driverManager;
-    this.detectorService = new EquipmentDetectorService(driverManager);
+    this.equipmentDatabase = equipmentDatabase;
+    this.detectorService = new EquipmentDetectorService(driverManager, equipmentDatabase);
   }
 
   async startMonitoring(): Promise<void> {

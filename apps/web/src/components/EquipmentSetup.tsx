@@ -1,28 +1,30 @@
+import { useEffect, useState } from "react";
+
+import EquipmentCard from "./EquipmentCard";
 import LocationDisplay from "./LocationDisplay";
 import NumberInput from "./ui/NumberInput";
 import Select from "./ui/Select";
 import TopBar from "./ui/TopBar";
-import EquipmentCard from "./EquipmentCard";
-import { useLocation } from "../hooks/useLocation";
 import { useEquipment } from "../hooks/useEquipment";
+import { useLocation } from "../hooks/useLocation";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
 
 export default function EquipmentSetup() {
   const navigate = useNavigate();
   const { location } = useLocation();
-  const { 
-    equipment, 
-    summary, 
-    loading, 
-    error, 
-    refreshEquipment, 
-    performAutoSetup, 
-    setupDevice, 
-    restartDevice, 
-    scanEquipment 
-  } = useEquipment();
-  
+  const {
+    equipment,
+    summary,
+    loading,
+    error,
+    refreshEquipment,
+    performAutoSetup,
+    setupDevice,
+    restartDevice,
+    scanEquipment,
+    forceUpdateDatabase,
+  } = useEquipment({ enablePolling: true, pollingInterval: 30000 }); // Polling activé sur cette page
+
   const [formData, setFormData] = useState({
     mount: "",
     mainCamera: "",
@@ -30,7 +32,7 @@ export default function EquipmentSetup() {
     guideCamera: "",
     guideFocalLength: 240,
   });
-  
+
   const [autoSetupStarted, setAutoSetupStarted] = useState(false);
   const [setupMessage, setSetupMessage] = useState("");
 
@@ -38,25 +40,30 @@ export default function EquipmentSetup() {
 
   const handleAutoSetup = async () => {
     if (loading || summary.isSetupInProgress) return;
-    
+
     setAutoSetupStarted(true);
-    setSetupMessage("Recherche et configuration automatique des équipements...");
-    
+    setSetupMessage(
+      "Recherche et configuration automatique des équipements..."
+    );
+
     try {
       const result = await performAutoSetup();
-      
+
       if (result.configured > 0) {
-        setSetupMessage(`✅ ${result.configured} équipement(s) configuré(s) avec succès !`);
-        
+        setSetupMessage(
+          `✅ ${result.configured} équipement(s) configuré(s) avec succès !`
+        );
+
         // Naviguer vers l'écran de contrôle après un délai
         setTimeout(() => {
           const deviceId = "airastro-001";
           navigate(`/device/${deviceId}/control`);
         }, 2000);
       } else {
-        setSetupMessage("❌ Aucun équipement n'a pu être configuré automatiquement.");
+        setSetupMessage(
+          "❌ Aucun équipement n'a pu être configuré automatiquement."
+        );
       }
-      
     } catch (error) {
       console.error("Erreur lors de la configuration automatique:", error);
       setSetupMessage("❌ Erreur lors de la configuration automatique.");
@@ -106,16 +113,18 @@ export default function EquipmentSetup() {
   // Générer les options dynamiquement à partir des équipements détectés
   const generateOptions = (equipmentType: string) => {
     return equipment
-      .filter(item => item.type === equipmentType && item.status === 'connected')
-      .map(item => ({
+      .filter(
+        (item) => item.type === equipmentType && item.status === "connected"
+      )
+      .map((item) => ({
         value: item.id,
         label: `${item.manufacturer} ${item.model}`,
       }));
   };
 
-  const mountOptions = generateOptions('mount');
-  const cameraOptions = generateOptions('camera');
-  const guideCameraOptions = generateOptions('guide-camera');
+  const mountOptions = generateOptions("mount");
+  const cameraOptions = generateOptions("camera");
+  const guideCameraOptions = generateOptions("guide-camera");
 
   // Tous les équipements sont désormais optionnels
   const isFormValid = true;
@@ -159,7 +168,7 @@ export default function EquipmentSetup() {
             <h2 className="text-lg font-semibold text-white mb-4">
               Configuration automatique
             </h2>
-            
+
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-sm text-gray-300">
@@ -179,20 +188,24 @@ export default function EquipmentSetup() {
                 </button>
                 <button
                   onClick={handleAutoSetup}
-                  disabled={loading || summary.isSetupInProgress || autoSetupStarted}
+                  disabled={
+                    loading || summary.isSetupInProgress || autoSetupStarted
+                  }
                   className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-sm"
                 >
-                  {summary.isSetupInProgress || autoSetupStarted ? "Configuration..." : "Auto Config"}
+                  {summary.isSetupInProgress || autoSetupStarted
+                    ? "Configuration..."
+                    : "Auto Config"}
                 </button>
               </div>
             </div>
-            
+
             {setupMessage && (
               <div className="mb-4 p-3 bg-zinc-900 rounded-md">
                 <p className="text-sm text-white">{setupMessage}</p>
               </div>
             )}
-            
+
             {error && (
               <div className="mb-4 p-3 bg-red-900 rounded-md">
                 <p className="text-sm text-red-300">{error}</p>
@@ -207,7 +220,7 @@ export default function EquipmentSetup() {
                 Équipements détectés
               </h2>
               <div className="space-y-4">
-                {equipment.map(item => (
+                {equipment.map((item) => (
                   <EquipmentCard
                     key={item.id}
                     equipment={item}
@@ -225,7 +238,7 @@ export default function EquipmentSetup() {
             <h2 className="text-lg font-semibold text-white mb-4">
               Configuration manuelle
             </h2>
-            
+
             <div className="grid gap-4 sm:grid-cols-2">
               {/* Row 0 – Mount */}
               <div className="sm:col-span-2">

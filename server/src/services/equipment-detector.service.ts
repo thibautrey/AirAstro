@@ -2,6 +2,7 @@ import { DriverManager } from "../indi";
 import { exec as execCallback } from "child_process";
 import { promises as fs } from "fs";
 import { promisify } from "util";
+import { EquipmentDatabaseService, EquipmentDatabase } from './equipment-database.service';
 
 const exec = promisify(execCallback);
 
@@ -14,6 +15,9 @@ export interface DetectedDevice {
     | "focuser"
     | "filter-wheel"
     | "guide-camera"
+    | "dome"
+    | "weather"
+    | "aux"
     | "unknown";
   manufacturer: string;
   model: string;
@@ -34,137 +38,15 @@ export interface DetectedDevice {
   confidence: number; // 0-100 score de confiance de la détection
 }
 
-export interface DeviceDatabase {
-  [key: string]: {
-    name: string;
-    type: DetectedDevice["type"];
-    manufacturer: string;
-    model: string;
-    driverName: string;
-    autoInstallable: boolean;
-    aliases: string[];
-  };
-}
-
 export class EquipmentDetectorService {
   private driverManager: DriverManager;
-  private deviceDatabase: DeviceDatabase;
+  private equipmentDatabase: EquipmentDatabaseService;
   private detectionCache: Map<string, DetectedDevice[]> = new Map();
   private readonly CACHE_DURATION = 5000; // 5 secondes
 
-  constructor(driverManager: DriverManager) {
+  constructor(driverManager: DriverManager, equipmentDatabase: EquipmentDatabaseService) {
     this.driverManager = driverManager;
-    this.deviceDatabase = this.loadDeviceDatabase();
-  }
-
-  private loadDeviceDatabase(): DeviceDatabase {
-    return {
-      // ZWO Cameras
-      "03c3:120a": {
-        name: "ASI120MC",
-        type: "camera",
-        manufacturer: "ZWO",
-        model: "ASI120MC",
-        driverName: "indi_asi_ccd",
-        autoInstallable: true,
-        aliases: ["asi120mc", "zwo asi120mc"],
-      },
-      "03c3:120b": {
-        name: "ASI120MM",
-        type: "guide-camera",
-        manufacturer: "ZWO",
-        model: "ASI120MM",
-        driverName: "indi_asi_ccd",
-        autoInstallable: true,
-        aliases: ["asi120mm", "zwo asi120mm"],
-      },
-      "03c3:178a": {
-        name: "ASI178MC",
-        type: "camera",
-        manufacturer: "ZWO",
-        model: "ASI178MC",
-        driverName: "indi_asi_ccd",
-        autoInstallable: true,
-        aliases: ["asi178mc", "zwo asi178mc"],
-      },
-      "03c3:178b": {
-        name: "ASI178MM",
-        type: "guide-camera",
-        manufacturer: "ZWO",
-        model: "ASI178MM",
-        driverName: "indi_asi_ccd",
-        autoInstallable: true,
-        aliases: ["asi178mm", "zwo asi178mm"],
-      },
-      "03c3:294a": {
-        name: "ASI294MC Pro",
-        type: "camera",
-        manufacturer: "ZWO",
-        model: "ASI294MC Pro",
-        driverName: "indi_asi_ccd",
-        autoInstallable: true,
-        aliases: ["asi294mc", "zwo asi294mc pro"],
-      },
-      "03c3:2600": {
-        name: "ASI2600MC Pro",
-        type: "camera",
-        manufacturer: "ZWO",
-        model: "ASI2600MC Pro",
-        driverName: "indi_asi_ccd",
-        autoInstallable: true,
-        aliases: ["asi2600mc", "zwo asi2600mc pro"],
-      },
-      // Celestron Mounts
-      "0403:6001": {
-        name: "Celestron Mount",
-        type: "mount",
-        manufacturer: "Celestron",
-        model: "CGX/CGX-L/CGEM II",
-        driverName: "indi_celestron_gps",
-        autoInstallable: true,
-        aliases: ["celestron", "cgx", "cgem"],
-      },
-      // Sky-Watcher Mounts
-      "067b:2303": {
-        name: "Sky-Watcher Mount",
-        type: "mount",
-        manufacturer: "Sky-Watcher",
-        model: "EQ6-R/HEQ5 Pro",
-        driverName: "indi_eqmod_telescope",
-        autoInstallable: true,
-        aliases: ["skywatcher", "eq6r", "heq5"],
-      },
-      // QHY Cameras
-      "1618:0901": {
-        name: "QHY5III-290M",
-        type: "guide-camera",
-        manufacturer: "QHYCCD",
-        model: "QHY5III-290M",
-        driverName: "indi_qhy_ccd",
-        autoInstallable: true,
-        aliases: ["qhy5iii", "qhy5iii-290m"],
-      },
-      // Canon DSLRs
-      "04a9:*": {
-        name: "Canon DSLR",
-        type: "camera",
-        manufacturer: "Canon",
-        model: "DSLR",
-        driverName: "indi_canon_ccd",
-        autoInstallable: true,
-        aliases: ["canon", "dslr"],
-      },
-      // Nikon DSLRs
-      "04b0:*": {
-        name: "Nikon DSLR",
-        type: "camera",
-        manufacturer: "Nikon",
-        model: "DSLR",
-        driverName: "indi_nikon_ccd",
-        autoInstallable: true,
-        aliases: ["nikon", "dslr"],
-      },
-    };
+    this.equipmentDatabase = equipmentDatabase;
   }
 
   async detectAllEquipment(): Promise<DetectedDevice[]> {
@@ -230,20 +112,17 @@ export class EquipmentDetectorService {
     usbDevice: any
   ): Promise<DetectedDevice | null> {
     const vendorProduct = usbDevice.id.toLowerCase();
+    const [vendorId, productId] = vendorProduct.split(":");
 
-    // Recherche exacte dans la base de données
-    let deviceInfo = this.deviceDatabase[vendorProduct];
+    // Recherche dans la base de données dynamique
+    let deviceInfo = this.equipmentDatabase.findEquipmentByUsbId(vendorId, productId);
 
-    // Recherche avec wildcard pour les fabricants
+    // Recherche par nom/description si pas trouvé
     if (!deviceInfo) {
-      const [vendor] = vendorProduct.split(":");
-      const wildcardKey = `${vendor}:*`;
-      deviceInfo = this.deviceDatabase[wildcardKey];
-    }
-
-    // Recherche par nom/description
-    if (!deviceInfo) {
-      deviceInfo = this.findDeviceByDescription(usbDevice.description);
+      const searchResults = this.equipmentDatabase.findEquipmentByName(usbDevice.description);
+      if (searchResults.length > 0) {
+        deviceInfo = searchResults[0];
+      }
     }
 
     if (!deviceInfo) {
@@ -276,18 +155,11 @@ export class EquipmentDetectorService {
     return device;
   }
 
-  private findDeviceByDescription(description: string): any {
+  private findDeviceByDescription(description: string): EquipmentDatabase[string] | null {
     const lowerDesc = description.toLowerCase();
-
-    for (const [key, device] of Object.entries(this.deviceDatabase)) {
-      if (
-        device.aliases.some((alias) => lowerDesc.includes(alias.toLowerCase()))
-      ) {
-        return device;
-      }
-    }
-
-    return null;
+    
+    const results = this.equipmentDatabase.findEquipmentByName(lowerDesc);
+    return results.length > 0 ? results[0] : null;
   }
 
   private createUnknownDevice(usbDevice: any): DetectedDevice {

@@ -3,6 +3,7 @@ import "dotenv/config";
 import express, { Request, Response } from "express";
 
 import { DriverManager } from "./indi";
+import { EquipmentDatabaseService } from "./services/equipment-database.service";
 import bonjour from "bonjour";
 import cors from "cors";
 import imageRouter from "./routes/image.route";
@@ -43,6 +44,24 @@ if (port !== requestedPort) {
 }
 
 const driverManager = new DriverManager();
+
+// Initialisation de la base de données d'équipements
+const equipmentDatabase = new EquipmentDatabaseService();
+
+// Initialisation asynchrone de la base de données
+async function initializeServices() {
+  try {
+    console.log("🔄 Initialisation des services...");
+    await equipmentDatabase.initializeDatabase();
+    console.log("✅ Services initialisés avec succès");
+  } catch (error) {
+    console.error("❌ Erreur lors de l'initialisation des services:", error);
+    console.log("⚠️  Poursuite avec la base de données par défaut");
+  }
+}
+
+// Lancer l'initialisation
+initializeServices();
 
 app.get("/api/ping", (_req: Request, res: Response) => {
   res.json({ status: "ok" });

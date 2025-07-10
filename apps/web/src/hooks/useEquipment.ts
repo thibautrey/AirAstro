@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 export interface DetectedEquipment {
   id: string;
   name: string;
-  type: 'mount' | 'camera' | 'focuser' | 'filter-wheel' | 'guide-camera' | 'unknown';
+  type: 'mount' | 'camera' | 'focuser' | 'filter-wheel' | 'guide-camera' | 'dome' | 'weather' | 'aux' | 'unknown';
   manufacturer: string;
   model: string;
   connection: 'usb' | 'serial' | 'network';
@@ -40,9 +40,12 @@ export interface UseEquipmentResult {
   setupDevice: (deviceId: string) => Promise<boolean>;
   restartDevice: (deviceId: string) => Promise<boolean>;
   scanEquipment: () => Promise<void>;
+  forceUpdateDatabase: () => Promise<void>;
 }
 
-export function useEquipment(): UseEquipmentResult {
+export function useEquipment(options?: { enablePolling?: boolean; pollingInterval?: number }): UseEquipmentResult {
+  const { enablePolling = false, pollingInterval = 30000 } = options || {};
+  
   const [equipment, setEquipment] = useState<DetectedEquipment[]>([]);
   const [summary, setSummary] = useState<EquipmentSummary>({
     totalCount: 0,
@@ -233,19 +236,53 @@ export function useEquipment(): UseEquipmentResult {
     }
   }, []);
 
+  const forceUpdateDatabase = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/equipment/database/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Erreur HTTP: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Base de données mise à jour:', data);
+      
+      // Rafraîchir la liste des équipements
+      await refreshEquipment();
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
+      setError(errorMessage);
+      console.error('Erreur lors de la mise à jour de la base de données:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshEquipment]);
+
   // Chargement initial des équipements
   useEffect(() => {
     refreshEquipment();
   }, [refreshEquipment]);
 
-  // Actualisation périodique (toutes les 30 secondes)
+  // Actualisation périodique (seulement si enablePolling est true)
   useEffect(() => {
+    if (!enablePolling) return;
+    
     const interval = setInterval(() => {
       refreshEquipment();
-    }, 30000); // 30 secondes
+    }, pollingInterval);
 
     return () => clearInterval(interval);
-  }, [refreshEquipment]);
+  }, [refreshEquipment, enablePolling, pollingInterval]);
 
   return {
     equipment,
@@ -256,6 +293,7 @@ export function useEquipment(): UseEquipmentResult {
     performAutoSetup,
     setupDevice,
     restartDevice,
-    scanEquipment
+    scanEquipment,
+    forceUpdateDatabase
   };
 }

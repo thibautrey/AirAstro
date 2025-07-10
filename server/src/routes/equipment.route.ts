@@ -1,12 +1,21 @@
 import { Router, Request, Response } from 'express';
 import { EquipmentManagerService } from '../services/equipment-manager.service';
+import { EquipmentDatabaseService } from '../services/equipment-database.service';
 import { AutoConfigurationService } from '../services/auto-configuration.service';
 import { DriverManager } from '../indi';
 
 const router = Router();
 const driverManager = new DriverManager();
-const equipmentManager = new EquipmentManagerService(driverManager);
+const equipmentDatabase = new EquipmentDatabaseService();
+const equipmentManager = new EquipmentManagerService(driverManager, equipmentDatabase);
 const autoConfigService = new AutoConfigurationService();
+
+// Initialiser la base de données au démarrage
+equipmentDatabase.initializeDatabase().then(() => {
+  console.log('✅ Base de données d\'équipements initialisée dans les routes');
+}).catch(error => {
+  console.error('❌ Erreur lors de l\'initialisation de la base de données dans les routes:', error);
+});
 
 // Démarrer le monitoring automatiquement
 equipmentManager.startMonitoring();
@@ -408,6 +417,53 @@ router.post('/install-drivers', async (req: Request, res: Response) => {
     console.error('Erreur lors de l\'installation des drivers:', error);
     res.status(500).json({ 
       error: 'Erreur lors de l\'installation des drivers',
+      details: error instanceof Error ? error.message : 'Erreur inconnue'
+    });
+  }
+});
+
+// POST /api/equipment/database/update - Forcer la mise à jour de la base de données d'équipements
+router.post('/database/update', async (req: Request, res: Response) => {
+  try {
+    console.log('📡 Mise à jour forcée de la base de données d\'équipements via API');
+    
+    const startTime = Date.now();
+    await equipmentDatabase.forceUpdate();
+    const endTime = Date.now();
+    
+    const stats = equipmentDatabase.getStatistics();
+    
+    res.json({
+      message: 'Base de données mise à jour avec succès',
+      updateTime: endTime - startTime,
+      statistics: stats,
+      success: true
+    });
+    
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la base de données:', error);
+    res.status(500).json({ 
+      error: 'Erreur lors de la mise à jour de la base de données',
+      details: error instanceof Error ? error.message : 'Erreur inconnue'
+    });
+  }
+});
+
+// GET /api/equipment/database/stats - Récupérer les statistiques de la base de données
+router.get('/database/stats', async (req: Request, res: Response) => {
+  try {
+    const stats = equipmentDatabase.getStatistics();
+    
+    res.json({
+      ...stats,
+      databasePath: 'server/src/data/equipment-database.json',
+      isOnline: true // TODO: Vérifier la connexion Internet
+    });
+    
+  } catch (error) {
+    console.error('Erreur lors de la récupération des statistiques:', error);
+    res.status(500).json({ 
+      error: 'Erreur lors de la récupération des statistiques',
       details: error instanceof Error ? error.message : 'Erreur inconnue'
     });
   }
