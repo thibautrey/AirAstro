@@ -838,6 +838,98 @@ export class EquipmentDatabaseService {
     return this.lastUpdate;
   }
 
+  // Méthodes de recherche
+  findEquipmentByUsbId(
+    vendorId: string,
+    productId: string
+  ): EquipmentDatabase[string] | null {
+    const usbKey = `${vendorId}:${productId}`.toLowerCase();
+    return this.database[usbKey] || null;
+  }
+
+  findEquipmentByName(searchTerm: string): EquipmentDatabase[string][] {
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    const results: EquipmentDatabase[string][] = [];
+
+    for (const equipment of Object.values(this.database)) {
+      // Recherche dans le nom
+      if (equipment.name.toLowerCase().includes(lowerSearchTerm)) {
+        results.push(equipment);
+        continue;
+      }
+
+      // Recherche dans les alias
+      if (
+        equipment.aliases &&
+        equipment.aliases.some((alias) =>
+          alias.toLowerCase().includes(lowerSearchTerm)
+        )
+      ) {
+        results.push(equipment);
+        continue;
+      }
+
+      // Recherche dans le modèle
+      if (equipment.model.toLowerCase().includes(lowerSearchTerm)) {
+        results.push(equipment);
+        continue;
+      }
+
+      // Recherche dans la description
+      if (
+        equipment.description &&
+        equipment.description.toLowerCase().includes(lowerSearchTerm)
+      ) {
+        results.push(equipment);
+        continue;
+      }
+
+      // Recherche dans le fabricant
+      if (equipment.manufacturer.toLowerCase().includes(lowerSearchTerm)) {
+        results.push(equipment);
+        continue;
+      }
+    }
+
+    // Trier par pertinence (nom exact en premier, puis nom partiel, etc.)
+    return results.sort((a, b) => {
+      const aNameMatch = a.name.toLowerCase() === lowerSearchTerm;
+      const bNameMatch = b.name.toLowerCase() === lowerSearchTerm;
+
+      if (aNameMatch && !bNameMatch) return -1;
+      if (!aNameMatch && bNameMatch) return 1;
+
+      const aNameIncludes = a.name.toLowerCase().includes(lowerSearchTerm);
+      const bNameIncludes = b.name.toLowerCase().includes(lowerSearchTerm);
+
+      if (aNameIncludes && !bNameIncludes) return -1;
+      if (!aNameIncludes && bNameIncludes) return 1;
+
+      return 0;
+    });
+  }
+
+  findEquipmentByType(type: string): EquipmentDatabase[string][] {
+    return Object.values(this.database).filter(
+      (equipment) => equipment.type === type
+    );
+  }
+
+  findEquipmentByManufacturer(
+    manufacturer: string
+  ): EquipmentDatabase[string][] {
+    const lowerManufacturer = manufacturer.toLowerCase();
+    return Object.values(this.database).filter((equipment) =>
+      equipment.manufacturer.toLowerCase().includes(lowerManufacturer)
+    );
+  }
+
+  findEquipmentByDriver(driverName: string): EquipmentDatabase[string][] {
+    return Object.values(this.database).filter(
+      (equipment) => equipment.driverName === driverName
+    );
+  }
+
   // Méthode pour obtenir les statistiques de la base de données
   getDatabaseStats() {
     const stats = {
