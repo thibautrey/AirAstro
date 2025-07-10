@@ -1,12 +1,22 @@
+import { DriverManager } from "../indi";
 import { DriversController } from "../controllers/drivers.controller";
 import { EquipmentDatabaseService } from "../services/equipment-database.service";
+import { EquipmentDetectorService } from "../services/equipment-detector.service";
 import express from "express";
 
 const router = express.Router();
 
-// Initialiser le service et le contrôleur
+// Initialiser les services et le contrôleur
+const driverManager = new DriverManager();
 const equipmentService = new EquipmentDatabaseService();
-const driversController = new DriversController(equipmentService);
+const detectorService = new EquipmentDetectorService(
+  driverManager,
+  equipmentService
+);
+const driversController = new DriversController(
+  equipmentService,
+  detectorService
+);
 
 // Routes pour la gestion des drivers
 router.get("/status", (req, res) =>
