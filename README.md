@@ -24,7 +24,7 @@ AirAstro relies on the INDI and ASCOM projects to provide hardware support. This
 
 ## Status
 
-This repository currently contains folder placeholders only. Contributions are welcome to flesh out the server and mobile applications.
+The repository now includes an initial SwiftUI project for iOS with a simple network manager. The Android folder and server remain placeholders for future development. Contributions are welcome to flesh out the server and mobile applications.
 
 ## Contributing
 
