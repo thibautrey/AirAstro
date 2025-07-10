@@ -1,0 +1,20 @@
+# Global .gitignore for AirAstro
+# Based on GitHub's standard templates for Python, Xcode, and Android
+# https://github.com/github/gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+# Virtual environments
+env/
+venv/
+.venv/
+ENV/
+
+# iOS / Xcode
+*.xcuserdata
+DerivedData/
+
+# Android
+*.iml
+**/build/
