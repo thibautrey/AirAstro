@@ -64,6 +64,192 @@
   animation: shutter-pulse 1.5s ease-in-out infinite;
 }
 
+/* Circular progress animation */
+@keyframes progress-rotate {
+  0% {
+    transform: rotate(-90deg);
+  }
+  100% {
+    transform: rotate(270deg);
+  }
+}
+
+.progress-circle {
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+/* Camera status indicators */
+.camera-status-connected {
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Modal animations */
+.modal-enter {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.modal-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.modal-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.modal-exit-active {
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Camera selector dropdown */
+.camera-selector-dropdown {
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.camera-selector-dropdown::-webkit-scrollbar {
+  width: 4px;
+}
+
+.camera-selector-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.camera-selector-dropdown::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.camera-selector-dropdown::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Parameter sliders */
+.parameter-slider {
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+  transition: background 0.3s ease;
+}
+
+.parameter-slider:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.parameter-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #d62656;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.parameter-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.parameter-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #d62656;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.parameter-slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Temperature display */
+.temperature-display {
+  position: relative;
+}
+
+.temperature-display::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    #3b82f6 0%,
+    #10b981 50%,
+    #f59e0b 75%,
+    #ef4444 100%
+  );
+  border-radius: 1px;
+}
+
+/* Error message styling */
+.error-message {
+  animation: error-slide-in 0.3s ease-out;
+}
+
+@keyframes error-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading spinner */
+.loading-spinner {
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top: 2px solid #d62656;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Exposure time countdown */
+.exposure-countdown {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .mode-rail-collapsed {
@@ -74,5 +260,43 @@
   .camera-rail-collapsed {
     transform: translateX(100%);
     transition: transform 0.3s ease-in-out;
+  }
+
+  .camera-selector-dropdown {
+    max-height: 200px;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .slider::-webkit-slider-thumb {
+    border: 2px solid white;
+  }
+  
+  .parameter-slider::-webkit-slider-thumb {
+    border: 2px solid white;
+  }
+  
+  .camera-status-connected {
+    border: 1px solid white;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .shutter-exposing {
+    animation: none;
+  }
+  
+  .camera-status-connected {
+    animation: none;
+  }
+  
+  .loading-spinner {
+    animation: none;
+  }
+  
+  .progress-circle {
+    transition: none;
   }
 }

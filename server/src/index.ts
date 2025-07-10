@@ -1,18 +1,25 @@
 import "dotenv/config";
 
 import express, { Request, Response } from "express";
+import { createServer } from "http";
 
 import { DriverManager } from "./indi";
 import { EquipmentDatabaseService } from "./services/equipment-database.service";
+// import { WebSocketService } from "./services/websocket.service";
 import bonjour from "bonjour";
 import cors from "cors";
 import equipmentRouter from "./routes/equipment.route";
 import imageRouter from "./routes/image.route";
+import cameraRouter from "./routes/camera.route";
 import path from "path";
 import updateRouter from "./routes/update.route";
 
 const app = express();
+const httpServer = createServer(app);
 const bonjourInstance = bonjour();
+
+// Configuration WebSocket (commenté pour l'instant)
+// const webSocketService = new WebSocketService(httpServer);
 
 // Enable CORS for all routes
 app.use(
@@ -70,6 +77,7 @@ app.get("/api/ping", (_req: Request, res: Response) => {
 app.use("/api/update", updateRouter);
 app.use("/api/images", imageRouter);
 app.use("/api/equipment", equipmentRouter);
+app.use("/api/camera", cameraRouter);
 
 // Serve the web UI built from apps/web
 const webDir = path.resolve(__dirname, "../..", "apps/web/dist");
@@ -161,7 +169,7 @@ app.get("*", (_req: Request, res: Response) => {
 });
 
 // Gestion des erreurs de serveur
-const server = app.listen(port, () => {
+const server = httpServer.listen(port, () => {
   console.log(`🚀 AirAstro server running on port ${port}`);
   console.log(`🌐 Local access: http://localhost:${port}`);
 
