@@ -3,6 +3,10 @@ module.exports = {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      screens: {
+        landscape: { raw: "(orientation: landscape)" },
+        portrait: { raw: "(orientation: portrait)" },
+      },
       fontFamily: {
         sans: [
           "SFCompactDisplay",

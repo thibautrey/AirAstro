@@ -100,9 +100,13 @@ export default function DeviceWelcome() {
 
       {/* Hero shot */}
       <div className="flex-1 flex items-center justify-center px-8 min-h-0 py-4">
-        <div className="w-full max-w-sm md:max-w-md max-h-full">
+        <div className="w-full max-w-sm md:max-w-md max-h-full mx-auto">
           {/* Image placeholder - remplacez par votre PNG transparent */}
-          <div className="bg-gradient-to-br from-zinc-700 to-zinc-800 rounded-lg aspect-square max-h-64 sm:max-h-80 flex items-center justify-center shadow-elevation relative overflow-hidden">
+          <div
+            className="bg-gradient-to-br from-zinc-700 to-zinc-800 rounded-lg
+                         landscape-card-adaptive
+                         flex items-center justify-center shadow-elevation relative overflow-hidden"
+          >
             {/* Simulated device mockup */}
             <div className="text-center relative z-10">
               <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-4 bg-brand-blue/20 rounded-full flex items-center justify-center">
