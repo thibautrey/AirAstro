@@ -2,6 +2,42 @@
 
 Ce répertoire contient les scripts pour gérer automatiquement tous les drivers INDI dans le système AirAstro.
 
+## 🚨 NOUVEAU : Outils de résolution des problèmes
+
+Suite à la résolution du problème apt-key, de nouveaux outils ont été ajoutés :
+
+### 🎛️ **Scripts de résolution immédiate**
+
+| Script                         | Description                                    | Utilisation                      |
+| ------------------------------ | ---------------------------------------------- | -------------------------------- |
+| `quick-fix-apt-key.sh`         | **Correction immédiate du problème apt-key**   | `./quick-fix-apt-key.sh`         |
+| `indi-manager.sh`              | **Menu interactif pour toute la gestion INDI** | `./indi-manager.sh`              |
+| `monitor-indi-installation.sh` | **Surveillance temps réel des installations**  | `./monitor-indi-installation.sh` |
+| `quick-status.sh`              | **État rapide du système**                     | `./quick-status.sh`              |
+
+### 📊 **Nouveaux outils de diagnostic**
+
+| Script                    | Description                              | Utilisation                 |
+| ------------------------- | ---------------------------------------- | --------------------------- |
+| `diagnose-indi-system.sh` | **Diagnostic complet du système INDI**   | `./diagnose-indi-system.sh` |
+| `fix-indi-repository.sh`  | **Réparation automatique du dépôt INDI** | `./fix-indi-repository.sh`  |
+| `clean-indi-system.sh`    | **Nettoyage complet du système**         | `./clean-indi-system.sh`    |
+
+### 🚀 **Utilisation recommandée après le problème apt-key**
+
+```bash
+# 1. Correction rapide du problème
+./quick-fix-apt-key.sh
+
+# 2. Utilisation du manager interactif
+./indi-manager.sh
+
+# 3. Surveillance de l'installation
+./monitor-indi-installation.sh
+```
+
+---
+
 ## 🎯 Objectif
 
 Le système AirAstro télécharge et installe automatiquement **TOUS** les drivers INDI disponibles pour s'assurer qu'aucun équipement ne soit rejeté à cause d'un driver manquant.

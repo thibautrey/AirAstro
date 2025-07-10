@@ -45,7 +45,8 @@ show_menu() {
     echo -e "${CYAN}║  4. 📦 Installation des drivers INDI                       ║${NC}"
     echo -e "${CYAN}║  5. 🔄 Mise à jour des drivers existants                    ║${NC}"
     echo -e "${CYAN}║  6. 📋 Afficher l'état actuel                               ║${NC}"
-    echo -e "${CYAN}║  7. 🆘 Aide et documentation                                ║${NC}"
+    echo -e "${CYAN}║  7. 📺 Suivre l'installation en temps réel                  ║${NC}"
+    echo -e "${CYAN}║  8. 🆘 Aide et documentation                                ║${NC}"
     echo -e "${CYAN}║  0. 🚪 Quitter                                              ║${NC}"
     echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
@@ -257,9 +258,104 @@ show_current_status() {
     echo ""
 }
 
+# Suivre l'installation en temps réel
+monitor_installation() {
+    log_step "7. Suivi de l'installation en temps réel"
+    local script_dir=$(get_script_dir)
+    
+    echo ""
+    echo -e "${CYAN}📺 SUIVI DE L'INSTALLATION INDI${NC}"
+    echo "$(printf '═%.0s' {1..50})"
+    echo ""
+    
+    # Vérifier si une installation est en cours
+    if pgrep -f "install-indi-drivers.sh" > /dev/null; then
+        log_info "Installation en cours détectée"
+        
+        # Afficher les processus actifs
+        echo -e "${YELLOW}Processus actifs:${NC}"
+        pgrep -f "install-indi-drivers.sh" | while read pid; do
+            echo "  PID: $pid - $(ps -p $pid -o cmd --no-headers)"
+        done
+        
+        echo ""
+        log_info "Surveillance des logs du système..."
+        echo -e "${YELLOW}Utilisez Ctrl+C pour arrêter le suivi${NC}"
+        echo ""
+        
+        # Suivre les logs en temps réel
+        timeout 300 tail -f /var/log/dpkg.log 2>/dev/null | grep -E "(install|configure)" --line-buffered | while read line; do
+            if echo "$line" | grep -q "indi-"; then
+                echo -e "${GREEN}[INSTALL]${NC} $line"
+            fi
+        done
+        
+    else
+        log_info "Aucune installation en cours"
+        echo ""
+        
+        # Proposer de démarrer une installation
+        echo -e "${YELLOW}Voulez-vous démarrer l'installation des drivers INDI? [y/N]:${NC} "
+        read -r response
+        
+        if [[ "$response" =~ ^[yY]$ ]]; then
+            log_info "Démarrage de l'installation..."
+            
+            # Lancer l'installation en arrière-plan
+            if [[ -f "$script_dir/install-indi-drivers.sh" ]]; then
+                "$script_dir/install-indi-drivers.sh" &
+                local install_pid=$!
+                
+                log_info "Installation démarrée (PID: $install_pid)"
+                echo ""
+                
+                # Surveiller l'installation
+                while kill -0 $install_pid 2>/dev/null; do
+                    echo -e "${BLUE}[INFO]${NC} Installation en cours... (PID: $install_pid)"
+                    
+                    # Afficher les packages en cours d'installation
+                    if pgrep -f "apt-get install" > /dev/null; then
+                        local current_package=$(ps aux | grep "apt-get install" | grep -v grep | head -1 | sed 's/.*apt-get install[^a-zA-Z]*//g' | cut -d' ' -f1)
+                        if [[ -n "$current_package" ]]; then
+                            echo -e "${YELLOW}  → Installation de: $current_package${NC}"
+                        fi
+                    fi
+                    
+                    sleep 3
+                done
+                
+                wait $install_pid
+                local exit_code=$?
+                
+                if [[ $exit_code -eq 0 ]]; then
+                    log_success "✅ Installation terminée avec succès"
+                else
+                    log_error "❌ Installation échouée (code: $exit_code)"
+                fi
+                
+            else
+                log_error "Script d'installation non trouvé"
+            fi
+        fi
+    fi
+    
+    echo ""
+    echo -e "${CYAN}📊 ÉTAT POST-INSTALLATION${NC}"
+    echo "$(printf '─%.0s' {1..30})"
+    
+    # Afficher un résumé rapide
+    local installed_count=$(dpkg -l | grep "^ii.*indi-" | wc -l)
+    echo -e "Packages INDI installés: ${GREEN}$installed_count${NC}"
+    
+    if [[ $installed_count -gt 0 ]]; then
+        echo "Derniers packages installés:"
+        dpkg -l | grep "^ii.*indi-" | tail -5 | awk '{print "  " $2}' 
+    fi
+}
+
 # Afficher l'aide
 show_help() {
-    log_step "7. Aide et documentation"
+    log_step "8. Aide et documentation"
 
     echo ""
     echo -e "${CYAN}🆘 AIDE ET DOCUMENTATION${NC}"
@@ -284,7 +380,8 @@ show_help() {
     echo "  1. Diagnostic complet (option 1)"
     echo "  2. Réparation automatique (option 2)"
     echo "  3. Installation des drivers (option 4)"
-    echo "  4. Vérification finale (option 6)"
+    echo "  4. Suivi en temps réel (option 7) - pendant l'installation"
+    echo "  5. Vérification finale (option 6)"
     echo ""
     echo -e "${YELLOW}SCRIPTS DISPONIBLES:${NC}"
     echo "  - diagnose-indi-system.sh  : Diagnostic complet"
@@ -314,7 +411,7 @@ main() {
         recommend_action
 
         echo ""
-        echo -e "${CYAN}Choisissez une option (0-7):${NC} "
+        echo -e "${CYAN}Choisissez une option (0-8):${NC} "
         read -r choice
 
         case $choice in
@@ -343,6 +440,10 @@ main() {
                 show_current_status
                 ;;
             7)
+                echo ""
+                monitor_installation
+                ;;
+            8)
                 echo ""
                 show_help
                 ;;
