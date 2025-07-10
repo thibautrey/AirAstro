@@ -54,19 +54,24 @@ export interface DriverInfo {
 export class EquipmentDatabaseService {
   private databasePath: string;
   private cachePath: string;
+  private driversPath: string;
   private database: EquipmentDatabase = {};
   private lastUpdate: Date | null = null;
   private readonly UPDATE_INTERVAL = 24 * 60 * 60 * 1000; // 24 heures
+  private availableDrivers: Set<string> = new Set();
+  private installedDrivers: Set<string> = new Set();
 
   constructor() {
     this.databasePath = path.join(__dirname, "../data/equipment-database.json");
     this.cachePath = path.join(__dirname, "../data");
+    this.driversPath = path.join(__dirname, "../data/drivers");
     this.ensureDirectoryExists();
   }
 
   private async ensureDirectoryExists(): Promise<void> {
     try {
       await fs.mkdir(this.cachePath, { recursive: true });
+      await fs.mkdir(this.driversPath, { recursive: true });
     } catch (error) {
       console.error(
         "Erreur lors de la création du répertoire de cache:",
@@ -82,12 +87,18 @@ export class EquipmentDatabaseService {
       // Charger la base de données existante
       await this.loadLocalDatabase();
 
+      // Vérifier les drivers installés
+      await this.checkInstalledDrivers();
+
       // Vérifier si une mise à jour est nécessaire
       if (this.shouldUpdate()) {
         console.log(
           "📡 Mise à jour de la base de données depuis les dépôts INDI..."
         );
         await this.updateFromRemote();
+
+        // Installer les drivers essentiels automatiquement
+        await this.installEssentialDrivers();
       } else {
         console.log("✅ Base de données à jour");
       }
@@ -218,6 +229,111 @@ export class EquipmentDatabaseService {
   private async fetchThirdPartyDrivers(): Promise<DriverInfo[]> {
     const drivers: DriverInfo[] = [];
 
+    // Liste complète des drivers tiers basée sur le dépôt GitHub
+    const knownThirdPartyDrivers = [
+      // Cameras
+      "indi-asi",
+      "indi-qhy",
+      "indi-gphoto",
+      "indi-playerone",
+      "indi-svbony",
+      "indi-toupbase",
+      "indi-atik",
+      "indi-apogee",
+      "indi-fli",
+      "indi-sbig",
+      "indi-sx",
+      "indi-mi",
+      "indi-dsi",
+      "indi-ffmv",
+      "indi-fishcamp",
+      "indi-gige",
+      "indi-nightscape",
+      "indi-qsi",
+      "indi-webcam",
+      "indi-pentax",
+      "indi-libcamera",
+      "indi-mgen",
+
+      // Montures
+      "indi-eqmod",
+      "indi-celestronaux",
+      "indi-avalon",
+      "indi-avalonud",
+      "indi-bresserexos2",
+      "indi-ioptron",
+      "indi-orion-ssg3",
+      "indi-starbook",
+      "indi-starbook-ten",
+      "indi-talon6",
+
+      // Focusers
+      "indi-asi-power",
+      "indi-moonlite",
+      "indi-beefocus",
+      "indi-aok",
+
+      // Domes
+      "indi-maxdomeii",
+      "indi-nexdome",
+      "indi-rolloffino",
+
+      // Weather/Environment
+      "indi-aagcloudwatcher-ng",
+      "indi-gpsd",
+      "indi-gpsnmea",
+      "indi-nut",
+      "indi-weewx-json",
+
+      // Auxiliary
+      "indi-duino",
+      "indi-gpio",
+      "indi-rpi-gpio",
+      "indi-ahp-xc",
+      "indi-astarbox",
+      "indi-astroasis",
+      "indi-armadillo-platypus",
+      "indi-ocs",
+      "indi-inovaplx",
+      "indi-limesdr",
+      "indi-rtklib",
+      "indi-shelyak",
+
+      // Librairies
+      "libasi",
+      "libqhy",
+      "libplayerone",
+      "libsvbony",
+      "libtoupcam",
+      "libapogee",
+      "libatik",
+      "libfli",
+      "libsbig",
+      "libfishcamp",
+      "libqsi",
+      "libmicam",
+      "libnncam",
+      "libogmacam",
+      "libomegonprocam",
+      "libstarshootg",
+      "libsvbonycam",
+      "libtscam",
+      "libaltaircam",
+      "libastroasis",
+      "libbressercam",
+      "libmallincam",
+      "libmeadecam",
+      "libinovasdk",
+      "libpigpiod",
+      "libpktriggercord",
+      "libricohcamerasdk",
+    ];
+
+    // Ajouter tous les drivers connus à la liste des drivers disponibles
+    knownThirdPartyDrivers.forEach((driver) =>
+      this.availableDrivers.add(driver)
+    );
+
     try {
       const url =
         "https://api.github.com/repos/indilib/indi-3rdparty/git/trees/master?recursive=1";
@@ -226,49 +342,148 @@ export class EquipmentDatabaseService {
       });
 
       if (!response.ok) {
-        throw new Error(`GitHub API responded with ${response.status}`);
+        console.warn(
+          `GitHub API responded with ${response.status}, using known drivers list`
+        );
+        return this.createDriversFromKnownList(knownThirdPartyDrivers);
       }
 
       const data = (await response.json()) as {
         tree: { path: string; type: string }[];
       };
 
-      // Extraire les noms de drivers
+      // Extraire les noms de drivers du dépôt
       const driverPaths = new Set<string>();
 
       for (const item of data.tree) {
         if (
           item.type === "blob" &&
-          item.path.startsWith("indi-") &&
+          (item.path.startsWith("indi-") || item.path.startsWith("lib")) &&
           item.path.includes("/")
         ) {
           const pathParts = item.path.split("/");
           if (pathParts.length >= 2) {
-            driverPaths.add(pathParts[0]);
+            const driverName = pathParts[0];
+            driverPaths.add(driverName);
+            this.availableDrivers.add(driverName);
           }
         }
       }
 
-      // Récupérer les infos de chaque driver
+      console.log(`📡 Trouvé ${driverPaths.size} drivers tiers sur GitHub`);
+
+      // Créer les informations de driver pour chaque driver trouvé
       for (const driverPath of driverPaths) {
         try {
           const driverInfo = await this.fetchDriverInfo(
             "indilib/indi-3rdparty",
             driverPath,
-            "aux"
+            this.categorizeDriver(driverPath)
           );
           if (driverInfo) {
             drivers.push(driverInfo);
           }
         } catch (error) {
-          // Continuer même si un driver échoue
+          // En cas d'erreur, créer un driver par défaut
+          const defaultDriver = this.createDefaultDriverInfo(
+            driverPath,
+            this.categorizeDriver(driverPath)
+          );
+          drivers.push(defaultDriver);
         }
       }
+
+      // Ajouter les drivers connus qui n'ont pas été trouvés
+      const missingDrivers = knownThirdPartyDrivers.filter(
+        (driver) => !driverPaths.has(driver)
+      );
+      missingDrivers.forEach((driver) => {
+        const defaultDriver = this.createDefaultDriverInfo(
+          driver,
+          this.categorizeDriver(driver)
+        );
+        drivers.push(defaultDriver);
+      });
     } catch (error) {
       console.warn("Erreur lors du téléchargement des drivers tiers:", error);
+      return this.createDriversFromKnownList(knownThirdPartyDrivers);
     }
 
+    console.log(`✅ Collecté ${drivers.length} drivers tiers au total`);
     return drivers;
+  }
+
+  private createDriversFromKnownList(knownDrivers: string[]): DriverInfo[] {
+    return knownDrivers.map((driver) =>
+      this.createDefaultDriverInfo(driver, this.categorizeDriver(driver))
+    );
+  }
+
+  private categorizeDriver(driverName: string): DriverInfo["category"] {
+    const name = driverName.toLowerCase();
+
+    if (
+      name.includes("asi") ||
+      name.includes("qhy") ||
+      name.includes("gphoto") ||
+      name.includes("playerone") ||
+      name.includes("svbony") ||
+      name.includes("toupbase") ||
+      name.includes("atik") ||
+      name.includes("apogee") ||
+      name.includes("fli") ||
+      name.includes("sbig") ||
+      name.includes("sx") ||
+      name.includes("mi") ||
+      name.includes("dsi") ||
+      name.includes("ffmv") ||
+      name.includes("fishcamp") ||
+      name.includes("gige") ||
+      name.includes("nightscape") ||
+      name.includes("qsi") ||
+      name.includes("webcam") ||
+      name.includes("pentax") ||
+      name.includes("libcamera") ||
+      name.includes("mgen") ||
+      name.includes("cam")
+    ) {
+      return "ccd";
+    } else if (
+      name.includes("eqmod") ||
+      name.includes("celestron") ||
+      name.includes("avalon") ||
+      name.includes("bresser") ||
+      name.includes("ioptron") ||
+      name.includes("orion") ||
+      name.includes("starbook") ||
+      name.includes("talon") ||
+      name.includes("mount")
+    ) {
+      return "telescope";
+    } else if (
+      name.includes("focus") ||
+      name.includes("moonlite") ||
+      name.includes("beefocus") ||
+      name.includes("aok")
+    ) {
+      return "focuser";
+    } else if (
+      name.includes("dome") ||
+      name.includes("maxdome") ||
+      name.includes("nexdome") ||
+      name.includes("rolloff")
+    ) {
+      return "dome";
+    } else if (
+      name.includes("weather") ||
+      name.includes("cloudwatcher") ||
+      name.includes("weewx") ||
+      name.includes("nut")
+    ) {
+      return "weather";
+    } else {
+      return "aux";
+    }
   }
 
   private async fetchDriverInfo(
@@ -990,5 +1205,457 @@ export class EquipmentDatabaseService {
       byManufacturer,
       lastUpdate: this.lastUpdate?.toISOString() || null,
     };
+  }
+
+  // Méthodes pour la gestion des drivers
+
+  private async checkInstalledDrivers(): Promise<void> {
+    console.log("🔍 Vérification des drivers installés...");
+
+    try {
+      // Vérifier les drivers INDI installés
+      const { stdout } = await exec("dpkg -l | grep indi- | awk '{print $2}'");
+      const installedPackages = stdout
+        .trim()
+        .split("\n")
+        .filter((pkg) => pkg.length > 0);
+
+      this.installedDrivers.clear();
+      installedPackages.forEach((pkg) => this.installedDrivers.add(pkg));
+
+      console.log(`📦 ${this.installedDrivers.size} drivers INDI installés`);
+    } catch (error) {
+      console.warn("⚠️ Impossible de vérifier les drivers installés:", error);
+    }
+  }
+
+  private async installEssentialDrivers(): Promise<void> {
+    console.log("🚀 Installation des drivers essentiels...");
+
+    const essentialDrivers = this.getEssentialDriversList();
+    const driversToInstall = essentialDrivers.filter(
+      (driver) => !this.installedDrivers.has(driver)
+    );
+
+    if (driversToInstall.length === 0) {
+      console.log("✅ Tous les drivers essentiels sont déjà installés");
+      return;
+    }
+
+    console.log(
+      `📦 Installation de ${driversToInstall.length} drivers essentiels...`
+    );
+
+    // Installer les drivers par groupes pour éviter les conflits
+    const driverGroups = this.groupDriversByDependency(driversToInstall);
+
+    for (const group of driverGroups) {
+      await this.installDriverGroup(group);
+    }
+  }
+
+  private getEssentialDriversList(): string[] {
+    // Liste des drivers les plus couramment utilisés
+    return [
+      // Cameras populaires
+      "indi-asi", // ZWO ASI Cameras
+      "indi-qhy", // QHY Cameras
+      "indi-gphoto", // DSLR Support
+      "indi-playerone", // Player One Cameras
+      "indi-svbony", // SVBONY Cameras
+      "indi-toupbase", // ToupTek family
+
+      // Montures populaires
+      "indi-eqmod", // EQMod (Sky-Watcher, etc.)
+      "indi-celestronaux", // Celestron Mounts
+      "indi-ioptron", // iOptron Mounts
+
+      // Focusers
+      "indi-asi-power", // ASI Power/Focus
+      "indi-moonlite", // Moonlite Focuser
+
+      // Accessoires
+      "indi-gpsd", // GPS Support
+      "indi-aagcloudwatcher-ng", // Cloud Watcher
+
+      // Librairies essentielles
+      "libasi", // ASI Library
+      "libqhy", // QHY Library
+      "libplayerone", // Player One Library
+      "libsvbony", // SVBONY Library
+      "libtoupcam", // ToupTek Library
+    ];
+  }
+
+  private groupDriversByDependency(drivers: string[]): string[][] {
+    const groups: string[][] = [];
+    const libs: string[] = [];
+    const driverPackages: string[] = [];
+
+    // Séparer les librairies des drivers
+    drivers.forEach((driver) => {
+      if (driver.startsWith("lib")) {
+        libs.push(driver);
+      } else {
+        driverPackages.push(driver);
+      }
+    });
+
+    // Installer les librairies en premier
+    if (libs.length > 0) {
+      groups.push(libs);
+    }
+
+    // Puis les drivers par groupes logiques
+    const cameraDrivers = driverPackages.filter(
+      (d) =>
+        d.includes("asi") ||
+        d.includes("qhy") ||
+        d.includes("gphoto") ||
+        d.includes("playerone") ||
+        d.includes("svbony") ||
+        d.includes("toupbase")
+    );
+
+    const mountDrivers = driverPackages.filter(
+      (d) =>
+        d.includes("eqmod") || d.includes("celestron") || d.includes("ioptron")
+    );
+
+    const otherDrivers = driverPackages.filter(
+      (d) => !cameraDrivers.includes(d) && !mountDrivers.includes(d)
+    );
+
+    if (cameraDrivers.length > 0) groups.push(cameraDrivers);
+    if (mountDrivers.length > 0) groups.push(mountDrivers);
+    if (otherDrivers.length > 0) groups.push(otherDrivers);
+
+    return groups;
+  }
+
+  private async installDriverGroup(drivers: string[]): Promise<void> {
+    if (drivers.length === 0) return;
+
+    const driverList = drivers.join(" ");
+    console.log(`📦 Installation du groupe: ${driverList}`);
+
+    try {
+      // Mettre à jour la liste des paquets
+      await exec("sudo apt-get update");
+
+      // Installer les drivers
+      const installCommand = `sudo apt-get install -y ${driverList}`;
+      console.log(`🔧 Commande: ${installCommand}`);
+
+      const { stdout, stderr } = await exec(installCommand);
+
+      if (stderr && !stderr.includes("Reading package lists")) {
+        console.warn(`⚠️ Warnings lors de l'installation:`, stderr);
+      }
+
+      // Marquer les drivers comme installés
+      drivers.forEach((driver) => this.installedDrivers.add(driver));
+
+      console.log(`✅ Groupe installé avec succès: ${driverList}`);
+    } catch (error: any) {
+      console.error(
+        `❌ Erreur lors de l'installation du groupe ${driverList}:`,
+        error.message
+      );
+
+      // Essayer d'installer individuellement en cas d'échec
+      for (const driver of drivers) {
+        try {
+          await exec(`sudo apt-get install -y ${driver}`);
+          this.installedDrivers.add(driver);
+          console.log(`✅ Driver installé individuellement: ${driver}`);
+        } catch (individualError) {
+          console.warn(`⚠️ Impossible d'installer ${driver}:`, individualError);
+        }
+      }
+    }
+  }
+
+  // Méthode publique pour installer un driver spécifique
+  async installDriver(driverName: string): Promise<boolean> {
+    console.log(`📦 Installation du driver: ${driverName}`);
+
+    if (this.installedDrivers.has(driverName)) {
+      console.log(`✅ Driver ${driverName} déjà installé`);
+      return true;
+    }
+
+    try {
+      await exec("sudo apt-get update");
+      await exec(`sudo apt-get install -y ${driverName}`);
+
+      this.installedDrivers.add(driverName);
+      console.log(`✅ Driver ${driverName} installé avec succès`);
+      return true;
+    } catch (error) {
+      console.error(
+        `❌ Erreur lors de l'installation de ${driverName}:`,
+        error
+      );
+      return false;
+    }
+  }
+
+  // Méthode publique pour installer les drivers requis pour un équipement
+  async installDriversForEquipment(equipmentName: string): Promise<boolean> {
+    const equipment = this.findEquipmentByName(equipmentName);
+
+    if (equipment.length === 0) {
+      console.warn(`⚠️ Équipement non trouvé: ${equipmentName}`);
+      return false;
+    }
+
+    const driversToInstall = new Set<string>();
+
+    // Collecter tous les drivers nécessaires
+    equipment.forEach((eq) => {
+      if (eq.packageName) {
+        driversToInstall.add(eq.packageName);
+      }
+      if (eq.driverName && eq.driverName !== eq.packageName) {
+        driversToInstall.add(eq.driverName);
+      }
+    });
+
+    console.log(
+      `📦 Installation des drivers pour ${equipmentName}:`,
+      Array.from(driversToInstall)
+    );
+
+    let allInstalled = true;
+
+    for (const driver of driversToInstall) {
+      const installed = await this.installDriver(driver);
+      if (!installed) {
+        allInstalled = false;
+      }
+    }
+
+    return allInstalled;
+  }
+
+  // Méthode pour obtenir la liste des drivers disponibles
+  getAvailableDrivers(): string[] {
+    return Array.from(this.availableDrivers);
+  }
+
+  // Méthode pour obtenir la liste des drivers installés
+  getInstalledDrivers(): string[] {
+    return Array.from(this.installedDrivers);
+  }
+
+  // Méthode pour vérifier si un driver est installé
+  isDriverInstalled(driverName: string): boolean {
+    return this.installedDrivers.has(driverName);
+  }
+
+  // Méthode pour obtenir le statut complet des drivers
+  getDriverStatus(): {
+    available: number;
+    installed: number;
+    essential: string[];
+    recommendations: string[];
+    categories: Record<string, string[]>;
+  } {
+    const essentialDrivers = this.getEssentialDriversList();
+    const availableDrivers = Array.from(this.availableDrivers);
+    const installedDrivers = Array.from(this.installedDrivers);
+
+    // Recommandations basées sur l'équipement détecté
+    const recommendations = this.getDriverRecommendations();
+
+    // Catégoriser les drivers disponibles
+    const categories: Record<string, string[]> = {
+      cameras: [],
+      mounts: [],
+      focusers: [],
+      domes: [],
+      weather: [],
+      auxiliary: [],
+      libraries: [],
+    };
+
+    availableDrivers.forEach((driver) => {
+      if (driver.startsWith("lib")) {
+        categories.libraries.push(driver);
+      } else {
+        const category = this.categorizeDriver(driver);
+        switch (category) {
+          case "ccd":
+            categories.cameras.push(driver);
+            break;
+          case "telescope":
+            categories.mounts.push(driver);
+            break;
+          case "focuser":
+            categories.focusers.push(driver);
+            break;
+          case "dome":
+            categories.domes.push(driver);
+            break;
+          case "weather":
+            categories.weather.push(driver);
+            break;
+          default:
+            categories.auxiliary.push(driver);
+        }
+      }
+    });
+
+    return {
+      available: availableDrivers.length,
+      installed: installedDrivers.length,
+      essential: essentialDrivers,
+      recommendations,
+      categories,
+    };
+  }
+
+  private getDriverRecommendations(): string[] {
+    const recommendations: string[] = [];
+
+    // Analyser l'équipement dans la base de données pour recommander des drivers
+    const equipmentTypes = new Set<string>();
+    Object.values(this.database).forEach((eq) => {
+      equipmentTypes.add(eq.type);
+    });
+
+    // Recommandations basées sur les types d'équipement
+    if (equipmentTypes.has("camera")) {
+      recommendations.push("indi-asi", "indi-qhy", "indi-gphoto");
+    }
+    if (equipmentTypes.has("mount")) {
+      recommendations.push("indi-eqmod", "indi-celestronaux");
+    }
+    if (equipmentTypes.has("focuser")) {
+      recommendations.push("indi-asi-power", "indi-moonlite");
+    }
+
+    return recommendations.filter(
+      (driver) => !this.installedDrivers.has(driver)
+    );
+  }
+
+  // Méthode pour installer tous les drivers recommandés
+  async installRecommendedDrivers(): Promise<{
+    success: string[];
+    failed: string[];
+  }> {
+    const recommendations = this.getDriverRecommendations();
+    const success: string[] = [];
+    const failed: string[] = [];
+
+    console.log(
+      `📦 Installation des drivers recommandés: ${recommendations.join(", ")}`
+    );
+
+    for (const driver of recommendations) {
+      const installed = await this.installDriver(driver);
+      if (installed) {
+        success.push(driver);
+      } else {
+        failed.push(driver);
+      }
+    }
+
+    return { success, failed };
+  }
+
+  // Méthode pour nettoyer les drivers inutilisés
+  async cleanupUnusedDrivers(): Promise<string[]> {
+    const installedDrivers = Array.from(this.installedDrivers);
+    const usedDrivers = new Set<string>();
+
+    // Identifier les drivers utilisés dans la base de données
+    Object.values(this.database).forEach((eq) => {
+      if (eq.packageName) usedDrivers.add(eq.packageName);
+      if (eq.driverName) usedDrivers.add(eq.driverName);
+    });
+
+    // Toujours conserver les drivers essentiels
+    const essentialDrivers = this.getEssentialDriversList();
+    essentialDrivers.forEach((driver) => usedDrivers.add(driver));
+
+    const unusedDrivers = installedDrivers.filter(
+      (driver) => !usedDrivers.has(driver)
+    );
+
+    console.log(`🧹 Drivers inutilisés trouvés: ${unusedDrivers.join(", ")}`);
+
+    // Pour l'instant, on ne fait que retourner la liste sans désinstaller automatiquement
+    // La désinstallation automatique pourrait être dangereuse
+    return unusedDrivers;
+  }
+
+  // Méthode pour vérifier les mises à jour des drivers
+  async checkDriverUpdates(): Promise<{
+    hasUpdates: boolean;
+    updatable: string[];
+  }> {
+    console.log("🔄 Vérification des mises à jour des drivers...");
+
+    try {
+      // Vérifier les mises à jour disponibles
+      const { stdout } = await exec("apt list --upgradable | grep indi-");
+      const updatableDrivers = stdout
+        .split("\n")
+        .filter((line) => line.includes("indi-"))
+        .map((line) => line.split("/")[0])
+        .filter((driver) => driver.length > 0);
+
+      return {
+        hasUpdates: updatableDrivers.length > 0,
+        updatable: updatableDrivers,
+      };
+    } catch (error) {
+      console.warn("⚠️ Impossible de vérifier les mises à jour:", error);
+      return { hasUpdates: false, updatable: [] };
+    }
+  }
+
+  // Méthode pour mettre à jour tous les drivers
+  async updateAllDrivers(): Promise<{
+    success: boolean;
+    updated: string[];
+    errors: string[];
+  }> {
+    console.log("🔄 Mise à jour de tous les drivers INDI...");
+
+    try {
+      // Mettre à jour la liste des paquets
+      await exec("sudo apt-get update");
+
+      // Mettre à jour tous les paquets INDI
+      const { stdout, stderr } = await exec("sudo apt-get upgrade -y indi-*");
+
+      // Analyser le résultat
+      const updated = stdout
+        .split("\n")
+        .filter((line) => line.includes("indi-") && line.includes("upgraded"))
+        .map((line) => line.match(/indi-[^\s]+/)?.[0])
+        .filter(Boolean) as string[];
+
+      console.log(
+        `✅ Mise à jour terminée: ${updated.length} drivers mis à jour`
+      );
+
+      return {
+        success: true,
+        updated,
+        errors: stderr ? [stderr] : [],
+      };
+    } catch (error: any) {
+      console.error("❌ Erreur lors de la mise à jour:", error.message);
+      return {
+        success: false,
+        updated: [],
+        errors: [error.message],
+      };
+    }
   }
 }

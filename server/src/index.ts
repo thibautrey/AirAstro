@@ -1,16 +1,17 @@
 import "dotenv/config";
 
 import express, { Request, Response } from "express";
-import { createServer } from "http";
 
 import { DriverManager } from "./indi";
 import { EquipmentDatabaseService } from "./services/equipment-database.service";
 // import { WebSocketService } from "./services/websocket.service";
 import bonjour from "bonjour";
+import cameraRouter from "./routes/camera.route";
 import cors from "cors";
+import { createServer } from "http";
+import driversRouter from "./routes/drivers";
 import equipmentRouter from "./routes/equipment.route";
 import imageRouter from "./routes/image.route";
-import cameraRouter from "./routes/camera.route";
 import path from "path";
 import updateRouter from "./routes/update.route";
 
@@ -78,6 +79,7 @@ app.use("/api/update", updateRouter);
 app.use("/api/images", imageRouter);
 app.use("/api/equipment", equipmentRouter);
 app.use("/api/camera", cameraRouter);
+app.use("/api/drivers-management", driversRouter);
 
 // Serve the web UI built from apps/web
 const webDir = path.resolve(__dirname, "../..", "apps/web/dist");
