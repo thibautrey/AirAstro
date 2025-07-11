@@ -379,7 +379,11 @@ export class DriverManager {
     if (!driverPath) {
       throw new Error(`Driver ${name} not found`);
     }
-    const child = spawn(driverPath, [], { stdio: ["ignore", "pipe", "pipe"] });
+
+    // Always run drivers through indiserver
+    const child = spawn("indiserver", ["-v", driverPath], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     child.on("exit", () => {
       this.running.delete(name);
     });

@@ -1,4 +1,4 @@
-import { ChildProcess, spawn } from "child_process";
+import { IndiClient } from "./indi-client";
 
 import { EventEmitter } from "events";
 import { cameraStateService } from "./camera-state.service";
@@ -66,7 +66,6 @@ export class CameraService extends EventEmitter {
     format: "FITS",
     quality: 90,
   };
-  private currentProcess?: ChildProcess;
   private captureStartTime?: number;
   private imagesDirectory: string;
 
@@ -389,68 +388,50 @@ export class CameraService extends EventEmitter {
       parameters: this.lastParameters,
     });
 
-    // Simuler le processus de capture
-    await this.simulateCapture(captureId, filepath);
+    // Capture via INDI server
+    await this.indiCapture(captureId, filepath);
 
     return captureId;
   }
 
-  private async simulateCapture(
+  private async indiCapture(
     captureId: string,
     filepath: string
   ): Promise<void> {
-    const exposureMs = this.lastParameters.exposure * 1000;
-    const updateInterval = 100; // mise à jour toutes les 100ms
+    const client = new IndiClient();
+    const device = this.selectedCamera as string;
 
-    return new Promise((resolve, reject) => {
-      const interval = setInterval(() => {
-        if (!this.captureStartTime) {
-          clearInterval(interval);
-          reject(new Error("Capture annulée"));
-          return;
-        }
+    try {
+      await client.setProp(`${device}.CCD_EXPOSURE.EXPOSURE_VALUE`, `${this.lastParameters.exposure}`);
 
-        const elapsed = Date.now() - this.captureStartTime;
-        const progress = Math.min(elapsed / exposureMs, 1);
+      const checkInterval = 1000;
+      const start = Date.now();
 
-        this.cameraStatus.exposureProgress = progress * 100;
+      while (Date.now() - start < this.lastParameters.exposure * 1000) {
+        await new Promise((r) => setTimeout(r, checkInterval));
+        this.cameraStatus.exposureProgress =
+          ((Date.now() - start) / (this.lastParameters.exposure * 1000)) * 100;
         this.cameraStatus.exposureTimeRemaining = Math.max(
           0,
-          (exposureMs - elapsed) / 1000
+          this.lastParameters.exposure - (Date.now() - start) / 1000
         );
-
         this.emit("captureProgress", {
           id: captureId,
           progress: this.cameraStatus.exposureProgress,
           timeRemaining: this.cameraStatus.exposureTimeRemaining,
         });
+      }
 
-        if (progress >= 1) {
-          clearInterval(interval);
-          this.completeCapture(captureId, filepath);
-          resolve();
-        }
-      }, updateInterval);
-
-      // Simuler un processus externe (dans un vrai système, ce serait un appel INDI)
-      this.currentProcess = spawn("sleep", [
-        this.lastParameters.exposure.toString(),
-      ]);
-
-      this.currentProcess.on("exit", (code) => {
-        if (code !== 0 && this.cameraStatus.isCapturing) {
-          clearInterval(interval);
-          this.cameraStatus.isCapturing = false;
-          this.cameraStatus.error = `Erreur lors de la capture (code: ${code})`;
-          this.emit("captureError", {
-            id: captureId,
-            error: this.cameraStatus.error,
-          });
-          reject(new Error(this.cameraStatus.error));
-        }
-      });
-    });
+      this.cameraStatus.isCapturing = false;
+      await this.completeCapture(captureId, filepath);
+    } catch (error) {
+      this.cameraStatus.isCapturing = false;
+      this.cameraStatus.error =
+        error instanceof Error ? error.message : "Erreur INDI";
+      this.emit("captureError", { id: captureId, error: this.cameraStatus.error });
+    }
   }
+
 
   private async completeCapture(
     captureId: string,
@@ -483,10 +464,6 @@ export class CameraService extends EventEmitter {
   async cancelCapture(): Promise<void> {
     if (!this.cameraStatus.isCapturing) {
       return;
-    }
-
-    if (this.currentProcess) {
-      this.currentProcess.kill("SIGTERM");
     }
 
     this.cameraStatus.isCapturing = false;
