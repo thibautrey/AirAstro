@@ -4,6 +4,8 @@ import express, { Request, Response } from "express";
 
 import { DriverManager } from "./indi";
 import { EquipmentDatabaseService } from "./services/equipment-database.service";
+import { IndiWebSocketService } from "./services/indi-websocket.service";
+import { Server } from "socket.io";
 import { WebSocketService } from "./services/websocket.service";
 import bonjour from "bonjour";
 import cameraRouter from "./routes/camera.route";
@@ -12,6 +14,7 @@ import { createServer } from "http";
 import driversRouter from "./routes/drivers";
 import equipmentRouter from "./routes/equipment.route";
 import imageRouter from "./routes/image.route";
+import { indiIntegrationService } from "./services/indi-integration.service";
 import path from "path";
 import updateRouter from "./routes/update.route";
 
@@ -21,6 +24,23 @@ const bonjourInstance = bonjour();
 
 // WebSocket configuration
 const webSocketService = new WebSocketService(httpServer);
+
+// Configuration Socket.IO pour INDI
+const io = new Server(httpServer, {
+  cors: {
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "http://airastro.local",
+      "http://10.42.0.1",
+    ],
+    methods: ["GET", "POST"],
+  },
+  path: "/ws/indi",
+});
+
+// Service WebSocket INDI
+const indiWebSocketService = new IndiWebSocketService(io);
 
 // Enable CORS for all routes
 app.use(
@@ -61,10 +81,21 @@ async function initializeServices() {
   try {
     console.log("🔄 Initializing services...");
     await equipmentDatabase.initializeDatabase();
+
+    // Initialiser le service d'intégration INDI
+    console.log("🔄 Initializing INDI integration service...");
+    await indiIntegrationService.initialize();
+
     console.log("✅ Services initialized successfully");
   } catch (error) {
     console.error("❌ Error during services initialization:", error);
-    console.log("⚠️  Continuing with default database");
+    if (error instanceof Error && error.message.includes("INDI")) {
+      console.log(
+        "⚠️  INDI service failed to initialize, continuing without INDI support"
+      );
+    } else {
+      console.log("⚠️  Continuing with default database");
+    }
   }
 }
 
