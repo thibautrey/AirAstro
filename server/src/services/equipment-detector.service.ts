@@ -5,7 +5,6 @@ import {
 
 import { DriverManager } from "../indi";
 import { exec as execCallback } from "child_process";
-import { promises as fs } from "fs";
 import path from "path";
 import { promisify } from "util";
 
@@ -70,6 +69,14 @@ export class EquipmentDetectorService {
     const devices: DetectedDevice[] = [];
 
     try {
+      // ÉTAPE 1: Utiliser INDI comme source primaire
+      console.log("📡 Récupération des équipements via INDI...");
+      const indiDevices = await this.detectIndiDevices();
+      devices.push(...indiDevices);
+
+      // ÉTAPE 2: Compléter avec la détection manuelle pour les équipements non détectés par INDI
+      console.log("🔍 Détection manuelle des équipements supplémentaires...");
+
       // Détecter les appareils USB
       const usbDevices = await this.detectUsbDevices();
       devices.push(...usbDevices);
@@ -82,16 +89,177 @@ export class EquipmentDetectorService {
       const networkDevices = await this.detectNetworkDevices();
       devices.push(...networkDevices);
 
-      console.log(`✅ Détection terminée: ${devices.length} appareils trouvés`);
+      // Éliminer les doublons basés sur l'ID
+      const uniqueDevices = this.removeDuplicateDevices(devices);
+
+      console.log(
+        `✅ Détection terminée: ${uniqueDevices.length} appareils trouvés (${
+          indiDevices.length
+        } via INDI, ${
+          uniqueDevices.length - indiDevices.length
+        } via détection manuelle)`
+      );
 
       // Mettre à jour le cache
-      this.detectionCache.set(cacheKey, devices);
+      this.detectionCache.set(cacheKey, uniqueDevices);
 
-      return devices;
+      return uniqueDevices;
     } catch (error) {
       console.error("❌ Erreur lors de la détection d'équipements:", error);
       return [];
     }
+  }
+
+  /**
+   * Détecter les équipements via INDI (source primaire)
+   */
+  private async detectIndiDevices(): Promise<DetectedDevice[]> {
+    const devices: DetectedDevice[] = [];
+
+    try {
+      // Récupérer les équipements connectés via INDI
+      const indiDevices = await this.driverManager.listConnectedEquipment();
+
+      for (const indiDevice of indiDevices) {
+        // Déterminer le type d'équipement
+        const deviceType = this.mapIndiTypeToDetectedType(indiDevice.type);
+
+        // Convertir l'IndiDevice en DetectedDevice
+        const detectedDevice: DetectedDevice = {
+          id: `indi-${indiDevice.name}`,
+          name: indiDevice.label || indiDevice.name,
+          type: this.determineEquipmentType(indiDevice, deviceType),
+          manufacturer: indiDevice.brand || "Unknown",
+          model: indiDevice.model || indiDevice.name,
+          connection: "usb", // La plupart des équipements INDI sont USB
+          driverName: indiDevice.driver,
+          driverStatus: indiDevice.connected ? "running" : "installed",
+          autoInstallable: false, // Déjà géré par INDI
+          confidence: 95, // Confiance élevée pour les équipements INDI
+        };
+
+        devices.push(detectedDevice);
+        console.log(
+          `📡 Équipement INDI détecté: ${detectedDevice.name} (${detectedDevice.type})`
+        );
+      }
+
+      return devices;
+    } catch (error) {
+      console.error("❌ Erreur lors de la détection via INDI:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Mapper les types INDI vers les types DetectedDevice
+   */
+  private mapIndiTypeToDetectedType(indiType: string): DetectedDevice["type"] {
+    switch (indiType.toLowerCase()) {
+      case "camera":
+      case "ccd":
+        return "camera";
+      case "telescope":
+      case "mount":
+        return "mount";
+      case "focuser":
+        return "focuser";
+      case "filterwheel":
+      case "filter":
+        return "filter-wheel";
+      case "dome":
+        return "dome";
+      case "weather":
+        return "weather";
+      case "aux":
+        return "aux";
+      default:
+        return "unknown";
+    }
+  }
+
+  /**
+   * Déterminer le type d'équipement en tenant compte des spécificités (caméra de guidage)
+   */
+  private determineEquipmentType(
+    indiDevice: any,
+    baseType: DetectedDevice["type"]
+  ): DetectedDevice["type"] {
+    // Si c'est une caméra, vérifier si c'est une caméra de guidage
+    if (baseType === "camera") {
+      const deviceName = (indiDevice.name || "").toLowerCase();
+      const deviceModel = (indiDevice.model || "").toLowerCase();
+
+      // Indices qui suggèrent une caméra de guidage
+      const guideIndicators = [
+        "guide",
+        "guider",
+        "guidage",
+        "120",
+        "130",
+        "174",
+        "178",
+        "290",
+        "385",
+        "462",
+        "533",
+        "183",
+        "224",
+        "385",
+        "462",
+        "533",
+        "585",
+        "678",
+        "715",
+        "120mm",
+        "130mm",
+        "174mm",
+        "178mm",
+        "290mm",
+        "385mm",
+        "462mm",
+        "533mm",
+        "585mm",
+        "678mm",
+        "715mm",
+      ];
+
+      // Vérifier si le nom ou le modèle contient des indices de guidage
+      if (
+        guideIndicators.some(
+          (indicator) =>
+            deviceName.includes(indicator) || deviceModel.includes(indicator)
+        )
+      ) {
+        return "guide-camera";
+      }
+    }
+
+    return baseType;
+  }
+
+  /**
+   * Éliminer les doublons basés sur l'ID et prioriser les équipements INDI
+   */
+  private removeDuplicateDevices(devices: DetectedDevice[]): DetectedDevice[] {
+    const uniqueDevices = new Map<string, DetectedDevice>();
+
+    for (const device of devices) {
+      const key = device.id;
+
+      // Si on a déjà un équipement avec ce nom/modèle, prioriser celui d'INDI
+      if (!uniqueDevices.has(key)) {
+        uniqueDevices.set(key, device);
+      } else {
+        const existing = uniqueDevices.get(key)!;
+        // Prioriser les équipements INDI (ceux avec un ID qui commence par "indi-")
+        if (device.id.startsWith("indi-") && !existing.id.startsWith("indi-")) {
+          uniqueDevices.set(key, device);
+        }
+      }
+    }
+
+    return Array.from(uniqueDevices.values());
   }
 
   private async detectUsbDevices(): Promise<DetectedDevice[]> {
