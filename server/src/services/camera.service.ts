@@ -315,11 +315,11 @@ export class CameraService extends EventEmitter {
       // Solution temporaire : utiliser indi_getprop directement
       // car l'IndiClient a des problèmes de parsing XML
       const cameras = await this.getAvailableCamerasViaIndiGetProp();
-      
+
       if (cameras.length > 0) {
         return cameras;
       }
-      
+
       // Fallback : utiliser l'IndiClient si indi_getprop échoue
       return this.getAvailableCamerasViaIndiClient();
     } catch (error) {
@@ -329,38 +329,41 @@ export class CameraService extends EventEmitter {
   }
 
   private async getAvailableCamerasViaIndiGetProp(): Promise<CameraInfo[]> {
-    const { exec } = require('child_process');
-    const { promisify } = require('util');
+    const { exec } = require("child_process");
+    const { promisify } = require("util");
     const execAsync = promisify(exec);
-    
+
     try {
       // Récupérer tous les devices INDI et leurs propriétés
-      const { stdout } = await execAsync('indi_getprop 2>/dev/null');
-      const lines = stdout.split('\n');
-      
+      const { stdout } = await execAsync("indi_getprop 2>/dev/null");
+      const lines = stdout.split("\n");
+
       const cameras: CameraInfo[] = [];
       const devices: Set<string> = new Set();
-      
+
       // Analyser les lignes pour trouver les devices de caméra
       for (const line of lines) {
-        if (line.includes('CONNECTION.CONNECT') || 
-            line.includes('CCD_EXPOSURE') || 
-            line.includes('CCD_INFO') || 
-            line.includes('CCD1')) {
-          const deviceName = line.split('.')[0];
+        if (
+          line.includes("CONNECTION.CONNECT") ||
+          line.includes("CCD_EXPOSURE") ||
+          line.includes("CCD_INFO") ||
+          line.includes("CCD1")
+        ) {
+          const deviceName = line.split(".")[0];
           if (deviceName && !devices.has(deviceName)) {
             devices.add(deviceName);
-            
+
             // Vérifier si c'est vraiment une caméra
-            const isCameraDevice = lines.some((l: string) => 
-              l.startsWith(`${deviceName}.CCD_EXPOSURE`) || 
-              l.startsWith(`${deviceName}.CCD_INFO`) || 
-              l.startsWith(`${deviceName}.CCD1`)
+            const isCameraDevice = lines.some(
+              (l: string) =>
+                l.startsWith(`${deviceName}.CCD_EXPOSURE`) ||
+                l.startsWith(`${deviceName}.CCD_INFO`) ||
+                l.startsWith(`${deviceName}.CCD1`)
             );
-            
+
             if (isCameraDevice) {
               console.log(`📸 Caméra détectée via indi_getprop: ${deviceName}`);
-              
+
               const cameraInfo: CameraInfo = {
                 name: deviceName,
                 driver: deviceName,
@@ -369,17 +372,21 @@ export class CameraService extends EventEmitter {
                 pixelSize: 3.8,
                 sensorWidth: 4096,
                 sensorHeight: 4096,
-                hasCooling: lines.some((l: string) => l.startsWith(`${deviceName}.CCD_TEMPERATURE`)),
-                hasFilterWheel: lines.some((l: string) => l.startsWith(`${deviceName}.FILTER_SLOT`)),
+                hasCooling: lines.some((l: string) =>
+                  l.startsWith(`${deviceName}.CCD_TEMPERATURE`)
+                ),
+                hasFilterWheel: lines.some((l: string) =>
+                  l.startsWith(`${deviceName}.FILTER_SLOT`)
+                ),
                 supportedFormats: ["FITS", "TIFF"],
               };
-              
+
               cameras.push(cameraInfo);
             }
           }
         }
       }
-      
+
       console.log(`✅ ${cameras.length} caméras détectées via indi_getprop`);
       return cameras;
     } catch (error) {
@@ -401,7 +408,10 @@ export class CameraService extends EventEmitter {
       if (device) {
         // Vérifier si c'est une caméra en cherchant les propriétés caractéristiques
         const properties = Array.from(device.properties.keys());
-        console.log(`🔧 Propriétés du device ${deviceName}:`, properties.slice(0, 10));
+        console.log(
+          `🔧 Propriétés du device ${deviceName}:`,
+          properties.slice(0, 10)
+        );
 
         if (
           properties.includes("CCD_EXPOSURE") ||
