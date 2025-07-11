@@ -1,27 +1,218 @@
-# Scripts de Gestion des Drivers INDI - AirAstro
+# Scripts AirAstro - Structure organisée
 
-Ce répertoire contient les scripts pour gérer automatiquement tous les drivers INDI dans le système AirAstro.
+Ce répertoire contient tous les scripts de gestion, d'installation et de diagnostic pour AirAstro, organisés par thématiques.
 
-## 🚨 NOUVEAU : Outils de résolution des problèmes
+## Structure
 
-Suite à la résolution du problème apt-key, de nouveaux outils ont été ajoutés :
+```
+scripts/
+├── core/                   # Scripts principaux d'AirAstro
+│   ├── airastro-common.sh         # Fonctions communes
+│   ├── start-airastro.sh          # Démarrage du serveur
+│   ├── start-server.sh            # Démarrage alternatif
+│   ├── build-server.sh            # Construction du serveur
+│   ├── airastro-version-manager.sh # Gestion des versions
+│   └── setup-current-version.sh   # Configuration version
+├── indi/                   # Scripts INDI
+│   ├── indi-manager.sh            # Gestionnaire principal INDI
+│   ├── diagnose-indi-system.sh    # Diagnostic INDI
+│   ├── install-indi-drivers.sh    # Installation drivers INDI
+│   ├── maintain-indi-drivers.sh   # Maintenance drivers
+│   ├── clean-indi-system.sh       # Nettoyage système INDI
+│   └── startup-drivers.sh         # Démarrage des drivers
+├── installation/           # Scripts d'installation
+│   ├── install-drivers.sh         # Installation des drivers
+│   ├── install-on-rpi.sh          # Installation Raspberry Pi
+│   ├── install-all-drivers.sh     # Installation complète
+│   ├── setup-environment.sh       # Configuration environnement
+│   ├── setup-equipment-database.sh # Configuration base équipements
+│   ├── init-airastro-environment.sh # Initialisation environnement
+│   └── auto-*.sh                  # Scripts auto-installation
+├── diagnostics/            # Scripts de diagnostic
+│   ├── debug-airastro.sh          # Debug principal
+│   ├── fix-airastro.sh            # Réparation AirAstro
+│   ├── fix-driver-detection.sh    # Réparation détection drivers
+│   ├── fix-indi-repository.sh     # Réparation repo INDI
+│   ├── quick-fix.sh               # Réparation rapide
+│   ├── quick-fix-apt-key.sh       # Réparation clés APT
+│   ├── quick-status.sh            # Statut rapide
+│   └── status.sh                  # Statut complet
+├── testing/                # Scripts de test
+│   ├── test-equipment-detection.sh    # Test détection équipements
+│   ├── test-equipment-filtering.sh    # Test filtrage équipements
+│   ├── test-complete-equipment-system.sh # Test système complet
+│   ├── test-environment-setup.sh      # Test environnement
+│   └── test-remote-connectivity.sh    # Test connectivité
+├── networking/             # Scripts réseau
+│   ├── configure-mdns.sh          # Configuration mDNS
+│   ├── cleanup-mdns.sh            # Nettoyage mDNS
+│   ├── check-mdns.sh              # Vérification mDNS
+│   └── update-mdns.sh             # Mise à jour mDNS
+├── maintenance/            # Scripts de maintenance
+│   ├── update-airastro-system.sh  # Mise à jour système
+│   └── monitor-indi-installation.sh # Monitoring INDI
+├── brands/                 # Scripts par marque d'équipement
+│   ├── asi/                       # ZWO ASI
+│   ├── template/                  # Template nouvelles marques
+│   └── README.md                  # Documentation marques
+├── equipment-manager.sh    # Gestionnaire d'équipements principal
+└── README.md              # Ce fichier
+```
 
-### 🎛️ **Scripts de résolution immédiate**
+## Scripts principaux
 
-| Script                         | Description                                    | Utilisation                      |
-| ------------------------------ | ---------------------------------------------- | -------------------------------- |
-| `quick-fix-apt-key.sh`         | **Correction immédiate du problème apt-key**   | `./quick-fix-apt-key.sh`         |
-| `indi-manager.sh`              | **Menu interactif pour toute la gestion INDI** | `./indi-manager.sh`              |
-| `monitor-indi-installation.sh` | **Surveillance temps réel des installations**  | `./monitor-indi-installation.sh` |
-| `quick-status.sh`              | **État rapide du système**                     | `./quick-status.sh`              |
+### 🚀 Démarrage rapide
 
-### 📊 **Nouveaux outils de diagnostic**
+```bash
+# Démarrer AirAstro
+./core/start-airastro.sh
 
-| Script                    | Description                              | Utilisation                 |
-| ------------------------- | ---------------------------------------- | --------------------------- |
-| `diagnose-indi-system.sh` | **Diagnostic complet du système INDI**   | `./diagnose-indi-system.sh` |
-| `fix-indi-repository.sh`  | **Réparation automatique du dépôt INDI** | `./fix-indi-repository.sh`  |
-| `clean-indi-system.sh`    | **Nettoyage complet du système**         | `./clean-indi-system.sh`    |
+# Gérer les équipements
+./equipment-manager.sh detect
+
+# Diagnostiquer les problèmes
+./diagnostics/debug-airastro.sh
+```
+
+### 📦 Installation
+
+````bash
+# Installation complète sur Raspberry Pi
+./installation/install-on-rpi.sh
+
+# Installation des drivers
+./installation/install-all-drivers.sh
+
+### 🔧 Diagnostic et réparation
+```bash
+# Diagnostic complet
+./diagnostics/status.sh
+
+# Réparation automatique
+./diagnostics/fix-airastro.sh
+
+# Statut rapide
+./diagnostics/quick-status.sh
+````
+
+### 📡 Gestion INDI
+
+```bash
+# Gestionnaire INDI principal
+./indi/indi-manager.sh
+
+# Diagnostic INDI
+./indi/diagnose-indi-system.sh
+
+# Installation drivers INDI
+./indi/install-indi-drivers.sh
+```
+
+### 🌐 Réseau et connectivité
+
+```bash
+# Configuration mDNS
+./networking/configure-mdns.sh
+
+# Test de connectivité
+./testing/test-remote-connectivity.sh
+```
+
+### 🧪 Tests
+
+```bash
+# Test de détection des équipements
+./testing/test-equipment-detection.sh
+
+# Test du système complet
+./testing/test-complete-equipment-system.sh
+```
+
+## Migration des chemins
+
+Si vous utilisez d'anciens scripts, voici les nouveaux chemins :
+
+### Scripts core
+
+- `airastro-common.sh` → `core/airastro-common.sh`
+- `start-airastro.sh` → `core/start-airastro.sh`
+- `build-server.sh` → `core/build-server.sh`
+
+### Scripts INDI
+
+- `indi-manager.sh` → `indi/indi-manager.sh`
+- `diagnose-indi-system.sh` → `indi/diagnose-indi-system.sh`
+- `install-indi-drivers.sh` → `indi/install-indi-drivers.sh`
+
+### Scripts d'installation
+
+- `install-on-rpi.sh` → `installation/install-on-rpi.sh`
+- `setup-environment.sh` → `installation/setup-environment.sh`
+- `auto-install-asi.sh` → `installation/auto-install-asi.sh`
+
+### Scripts de diagnostic
+
+- `debug-airastro.sh` → `diagnostics/debug-airastro.sh`
+- `fix-airastro.sh` → `diagnostics/fix-airastro.sh`
+- `status.sh` → `diagnostics/status.sh`
+
+### Scripts de test
+
+- `test-equipment-detection.sh` → `testing/test-equipment-detection.sh`
+- `test-complete-equipment-system.sh` → `testing/test-complete-equipment-system.sh`
+
+### Scripts réseau
+
+- `configure-mdns.sh` → `networking/configure-mdns.sh`
+- `check-mdns.sh` → `networking/check-mdns.sh`
+
+## Utilisation avec les nouveaux chemins
+
+### Mise à jour des scripts
+
+Tous les scripts ont été mis à jour pour utiliser les nouveaux chemins. Les fonctions communes sont maintenant dans `core/airastro-common.sh`.
+
+### Rétrocompatibilité
+
+Pour maintenir la compatibilité, vous pouvez créer des liens symboliques :
+
+```bash
+ln -s core/start-airastro.sh start-airastro.sh
+ln -s diagnostics/status.sh status.sh
+ln -s indi/indi-manager.sh indi-manager.sh
+```
+
+### Scripts de service
+
+Les scripts de service systemd ont été mis à jour pour utiliser les nouveaux chemins.
+
+## Contribution
+
+Lors de l'ajout de nouveaux scripts :
+
+1. Placez-les dans le dossier thématique approprié
+2. Utilisez `core/airastro-common.sh` pour les fonctions communes
+3. Mettez à jour cette documentation
+
+## Avantages de cette structure
+
+- **Organisation claire** : Chaque script a sa place logique
+- **Maintenance facilitée** : Scripts groupés par fonction
+- **Évolutivité** : Facile d'ajouter de nouvelles catégories
+- **Réutilisabilité** : Fonctions communes centralisées
+- **Documentation** : README spécifique par thématique
+
+## Support
+
+Pour obtenir de l'aide :
+
+1. Consultez le README du dossier concerné
+2. Utilisez les scripts de diagnostic appropriés
+3. Vérifiez les logs avec `journalctl -u airastro`
+   | ------------------------- | ---------------------------------------- | --------------------------- |
+   | `diagnose-indi-system.sh` | **Diagnostic complet du système INDI** | `./diagnose-indi-system.sh` |
+   | `fix-indi-repository.sh` | **Réparation automatique du dépôt INDI** | `./fix-indi-repository.sh` |
+   | `clean-indi-system.sh` | **Nettoyage complet du système** | `./clean-indi-system.sh` |
 
 ### 🚀 **Utilisation recommandée après le problème apt-key**
 
@@ -94,7 +285,7 @@ Le système AirAstro télécharge et installe automatiquement **TOUS** les drive
 ./update-airastro-system.sh --drivers-only
 ```
 
-### 4. `install-indi-drivers.sh` *(legacy)*
+### 4. `install-indi-drivers.sh` _(legacy)_
 
 **Ancien script d'installation complet (toujours disponible au besoin)**
 
