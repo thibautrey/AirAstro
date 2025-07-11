@@ -58,45 +58,45 @@ show_help() {
 detect_equipment() {
     log_info "🔍 Détection automatique des équipements"
     echo
-    
+
     # Détecter via lsusb
     log_info "Analyse des périphériques USB..."
-    
+
     # Caméras ASI/ZWO
     if lsusb | grep -q "03c3"; then
         log_success "Caméra(s) ZWO ASI détectée(s):"
         lsusb | grep "03c3" | sed 's/^/  /'
         echo "  💡 Utilisez: $0 install asi"
     fi
-    
+
     # Caméras QHY
     if lsusb | grep -q "1618"; then
         log_success "Caméra(s) QHY détectée(s):"
         lsusb | grep "1618" | sed 's/^/  /'
         echo "  💡 Utilisez: $0 install qhy"
     fi
-    
+
     # Caméras Canon
     if lsusb | grep -q "04a9"; then
         log_success "Caméra(s) Canon détectée(s):"
         lsusb | grep "04a9" | sed 's/^/  /'
         echo "  💡 Utilisez: $0 install canon"
     fi
-    
+
     # Caméras Nikon
     if lsusb | grep -q "04b0"; then
         log_success "Caméra(s) Nikon détectée(s):"
         lsusb | grep "04b0" | sed 's/^/  /'
         echo "  💡 Utilisez: $0 install nikon"
     fi
-    
+
     # Montures (détection générique)
     if lsusb | grep -q -E "(067b|0403)"; then
         log_success "Monture/Équipement série détecté:"
         lsusb | grep -E "(067b|0403)" | sed 's/^/  /'
         echo "  💡 Vérifiez la marque de votre monture"
     fi
-    
+
     echo
     log_info "Détection terminée"
 }
@@ -105,7 +105,7 @@ detect_equipment() {
 show_status() {
     log_info "📊 Statut des équipements AirAstro"
     echo
-    
+
     # Vérifier les services
     log_info "Services:"
     for service in indiserver airastro; do
@@ -115,7 +115,7 @@ show_status() {
             echo "  ❌ $service: inactif"
         fi
     done
-    
+
     echo
     log_info "Drivers INDI installés:"
     INDI_DRIVERS=$(find /usr -name "indi_*" -type f -executable 2>/dev/null | head -10)
@@ -127,7 +127,7 @@ show_status() {
     else
         echo "  ❌ Aucun driver INDI trouvé"
     fi
-    
+
     echo
     log_info "Modules Python installés:"
     PYTHON_MODULES=("zwoasi" "pyindi_client" "astropy" "numpy")
@@ -138,7 +138,7 @@ show_status() {
             echo "  ❌ $module"
         fi
     done
-    
+
     echo
     log_info "Équipements détectés:"
     detect_equipment
@@ -148,15 +148,15 @@ show_status() {
 install_brand() {
     local brand="$1"
     local brand_dir="$SCRIPT_DIR/brands/$brand"
-    
+
     if [ ! -d "$brand_dir" ]; then
         log_error "Marque '$brand' non supportée"
         echo "Marques disponibles: ${!SUPPORTED_BRANDS[*]}"
         return 1
     fi
-    
+
     log_info "Installation du support pour ${SUPPORTED_BRANDS[$brand]}"
-    
+
     # Chercher le script d'installation
     local install_script=""
     for script_name in "install-${brand}-complete.sh" "install-${brand}.sh" "install.sh"; do
@@ -165,12 +165,12 @@ install_brand() {
             break
         fi
     done
-    
+
     if [ -z "$install_script" ]; then
         log_error "Script d'installation non trouvé pour $brand"
         return 1
     fi
-    
+
     log_info "Exécution de $install_script"
     chmod +x "$install_script"
     "$install_script"
@@ -180,14 +180,14 @@ install_brand() {
 diagnose_brand() {
     local brand="$1"
     local brand_dir="$SCRIPT_DIR/brands/$brand"
-    
+
     if [ ! -d "$brand_dir" ]; then
         log_error "Marque '$brand' non supportée"
         return 1
     fi
-    
+
     log_info "Diagnostic pour ${SUPPORTED_BRANDS[$brand]}"
-    
+
     # Chercher le script de diagnostic
     local diagnose_script=""
     for script_name in "diagnose-${brand}.sh" "diagnose.sh"; do
@@ -196,12 +196,12 @@ diagnose_brand() {
             break
         fi
     done
-    
+
     if [ -z "$diagnose_script" ]; then
         log_error "Script de diagnostic non trouvé pour $brand"
         return 1
     fi
-    
+
     log_info "Exécution de $diagnose_script"
     chmod +x "$diagnose_script"
     "$diagnose_script"
@@ -211,14 +211,14 @@ diagnose_brand() {
 test_brand() {
     local brand="$1"
     local brand_dir="$SCRIPT_DIR/brands/$brand"
-    
+
     if [ ! -d "$brand_dir" ]; then
         log_error "Marque '$brand' non supportée"
         return 1
     fi
-    
+
     log_info "Test pour ${SUPPORTED_BRANDS[$brand]}"
-    
+
     # Chercher le script de test
     local test_script=""
     for script_name in "test-${brand}.sh" "test.sh"; do
@@ -227,7 +227,7 @@ test_brand() {
             break
         fi
     done
-    
+
     if [ -n "$test_script" ]; then
         log_info "Exécution de $test_script"
         chmod +x "$test_script"
@@ -247,7 +247,7 @@ list_brands() {
         local brand_dir="$SCRIPT_DIR/brands/$brand"
         if [ -d "$brand_dir" ]; then
             echo "  ✅ $brand - ${SUPPORTED_BRANDS[$brand]}"
-            
+
             # Lister les scripts disponibles
             local scripts=($(find "$brand_dir" -name "*.sh" -type f | sort))
             if [ ${#scripts[@]} -gt 0 ]; then
@@ -267,7 +267,7 @@ list_brands() {
 main() {
     local command="$1"
     local brand="$2"
-    
+
     case "$command" in
         "install")
             if [ -z "$brand" ]; then
