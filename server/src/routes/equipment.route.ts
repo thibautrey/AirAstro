@@ -144,7 +144,7 @@ router.get("/", async (req: Request, res: Response) => {
         }));
 
       console.log("📱 Converted equipment:", equipment.length);
-      
+
       isMonitoring = autoIndiStatus.usbDetector.running;
     } catch (autoIndiError) {
       console.warn(
@@ -341,41 +341,46 @@ router.post("/scan", async (req: Request, res: Response) => {
     try {
       // Utiliser l'auto-indi pour le scan
       const manager = initAutoIndiManager();
-      
+
       // Forcer un scan USB immédiat (redémarrer le détecteur)
       await manager.stop();
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       await manager.start();
-      
+
       // Attendre un peu pour que la détection se fasse
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       const autoIndiDevices = manager.getDetectedDevices();
       const includeUnknown = req.query.includeUnknown === "true";
 
       equipment = autoIndiDevices
         .filter((device) => {
           if (includeUnknown) return true;
-          if (!device.brand || device.matchingDrivers.length === 0) return false;
+          if (!device.brand || device.matchingDrivers.length === 0)
+            return false;
           return true;
         })
         .map((device) => ({
           id: device.id,
-          name: device.description || `${device.manufacturer} ${device.product}`,
+          name:
+            device.description || `${device.manufacturer} ${device.product}`,
           type: device.brand === "ZWO" ? "camera" : "unknown",
           manufacturer: device.manufacturer || device.brand || "Inconnu",
           model: device.product || device.model || "Inconnu",
           connection: "usb" as const,
-          driverStatus: device.matchingDrivers.length > 0 ? "found" : "not-found",
+          driverStatus:
+            device.matchingDrivers.length > 0 ? "found" : "not-found",
           autoInstallable: device.matchingDrivers.length > 0,
           confidence: device.matchingDrivers.length > 0 ? 90 : 30,
           status: "connected" as const,
           lastSeen: new Date(),
         }));
-
     } catch (autoIndiError) {
-      console.warn("Auto-indi non disponible pour le scan, utilisation de l'ancien système:", autoIndiError);
-      
+      console.warn(
+        "Auto-indi non disponible pour le scan, utilisation de l'ancien système:",
+        autoIndiError
+      );
+
       // Fallback sur l'ancien système
       equipmentManager.clearCache();
       const oldEquipment = await equipmentManager.getEquipmentList();
