@@ -146,7 +146,6 @@ body {
 .pb-histogram-bar {
   /* Padding bottom pour laisser de l'espace pour la barre du bas */
   padding-bottom: var(--histogram-bar-height);
-  overflow-y: auto;
 }
 
 .h-histogram-bar {
