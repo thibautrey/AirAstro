@@ -159,7 +159,7 @@ if $PYTHON_CMD -c "import zwoasi" 2>/dev/null; then
     log_success "Module zwoasi déjà installé"
 else
     log_info "Installation du module zwoasi via pip"
-    
+
     # Essayer d'abord avec pip utilisateur
     if $PYTHON_CMD -m pip install --user zwoasi; then
         log_success "Module zwoasi installé avec succès (utilisateur)"
@@ -170,11 +170,11 @@ else
         else
             log_error "Échec de l'installation du module zwoasi"
             log_info "Tentative d'installation manuelle..."
-            
+
             # Installation manuelle si pip échoue
             TEMP_DIR=$(mktemp -d)
             cd "$TEMP_DIR"
-            
+
             if git clone https://github.com/python-zwoasi/python-zwoasi.git; then
                 cd python-zwoasi
                 if $PYTHON_CMD setup.py install --user; then
@@ -189,7 +189,7 @@ else
                 log_error "Impossible de cloner le repository zwoasi"
                 exit 1
             fi
-            
+
             cd /
             rm -rf "$TEMP_DIR"
         fi

@@ -254,6 +254,7 @@ echo
 # Vérifier les problèmes courants
 NEED_REBOOT=false
 NEED_LOGOUT=false
+NEED_QUICK_FIX=false
 
 # Problème: pas de caméra détectée
 if ! lsusb | grep -q "03c3"; then
@@ -271,6 +272,7 @@ if [ "$INDI_DRIVER_FOUND" = false ]; then
     echo "   sudo apt update"
     echo "   sudo apt install indi-asi libasi"
     echo
+    NEED_QUICK_FIX=true
 fi
 
 # Problème: pas de SDK
@@ -278,6 +280,7 @@ if [ "$ASI_LIB_FOUND" = false ]; then
     echo "📌 SDK ASI manquant:"
     echo "   $SCRIPT_DIR/install-asi-python.sh"
     echo
+    NEED_QUICK_FIX=true
 fi
 
 # Problème: module Python manquant
@@ -286,6 +289,22 @@ if ! python3 -c "import zwoasi" 2>/dev/null; then
     echo "   pip3 install zwoasi"
     echo "   OU: $SCRIPT_DIR/install-asi-python.sh"
     echo
+    NEED_QUICK_FIX=true
+fi
+
+# Problème: autres modules Python manquants
+MISSING_MODULES=()
+for module in "numpy" "astropy" "pyindi_client"; do
+    if ! python3 -c "import $module" 2>/dev/null; then
+        MISSING_MODULES+=("$module")
+    fi
+done
+
+if [ ${#MISSING_MODULES[@]} -gt 0 ]; then
+    echo "📌 Modules Python manquants:"
+    echo "   pip3 install ${MISSING_MODULES[*]}"
+    echo
+    NEED_QUICK_FIX=true
 fi
 
 # Problème: permissions
@@ -315,6 +334,18 @@ if [ "$UDEV_FOUND" = false ]; then
     echo "   sudo udevadm trigger"
     echo
     NEED_REBOOT=true
+fi
+
+# Correction automatique proposée
+if [ "$NEED_QUICK_FIX" = true ]; then
+    echo "🚀 CORRECTION AUTOMATIQUE DISPONIBLE:"
+    echo "   $PROJECT_ROOT/scripts/installation/quick-fix.sh"
+    echo
+    echo "   Ce script corrigera automatiquement:"
+    echo "   - Installation des modules Python manquants"
+    echo "   - Installation des drivers INDI"
+    echo "   - Configuration des services"
+    echo
 fi
 
 # Messages finaux
