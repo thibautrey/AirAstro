@@ -76,9 +76,52 @@ if [ -f "$INSTALL_DIR/server/scripts/maintain-indi-drivers.sh" ]; then
   "$INSTALL_DIR/server/scripts/maintain-indi-drivers.sh" update-all
   "$INSTALL_DIR/server/scripts/maintain-indi-drivers.sh" setup-auto-update
 else
-  log "Script de maintenance des drivers non trouvé, installation minimale via apt-get"
-  sudo apt-get update
-  sudo apt-get install -y indi-bin indi-full
+  log "Script de maintenance des drivers non trouvé, installation alternative"
+
+  # Corriger les clés GPG manquantes
+  log "Correction des clés GPG pour les dépôts INDI"
+  run "apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 33E72D44A5F2E962 || true"
+  run "apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 487CEC2B3F33A288 || true"
+
+  # Installer les dépendances de base depuis les dépôts Debian
+  log "Installation des dépendances de base"
+  run "apt-get update"
+  run "apt-get install -y libcfitsio-dev libgsl-dev libjpeg-dev libraw-dev libdc1394-dev libgps-dev"
+
+  # Essayer d'installer INDI avec gestion des erreurs
+  log "Installation d'INDI (avec gestion des erreurs)"
+  if ! run "apt-get install -y indi-bin"; then
+    log "Installation complète d'INDI échouée, installation des composants essentiels"
+    run "apt-get install -y --no-install-recommends indiserver libindi1 || true"
+
+    # Si même cela échoue, compiler depuis les sources
+    if ! command -v indiserver >/dev/null; then
+      log "Compilation d'INDI depuis les sources..."
+      run "apt-get install -y cmake libcfitsio-dev libgsl-dev libjpeg-dev libfftw3-dev libftdi1-dev"
+
+      # Créer un répertoire temporaire pour la compilation
+      TEMP_DIR=$(mktemp -d)
+      cd "$TEMP_DIR"
+
+      # Télécharger et compiler INDI
+      git clone https://github.com/indilib/indi.git || { log "Échec du clonage d'INDI, continuons sans"; cd "$INSTALL_DIR/server"; }
+
+      if [ -d "indi" ]; then
+        cd indi
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
+        make -j$(nproc)
+        run "make install"
+        run "ldconfig"
+        cd "$INSTALL_DIR/server"
+        rm -rf "$TEMP_DIR"
+        log "INDI compilé et installé avec succès"
+      fi
+    fi
+  else
+    log "Installation d'INDI réussie"
+  fi
 fi
 
 AIRASTRO_SERVICE=/etc/systemd/system/airastro.service
