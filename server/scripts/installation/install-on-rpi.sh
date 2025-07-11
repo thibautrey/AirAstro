@@ -1,4 +1,7 @@
-#!/bin/log() { echo -e "\033[1;32m[AirAstro]\033[0m $*"; }
+#!/bin/bash
+
+# Fonctions utilitaires
+log() { echo -e "\033[1;32m[AirAstro]\033[0m $*"; }
 error() { echo -e "\033[1;31m[Error]\033[0m $*" >&2; }
 warn() { echo -e "\033[1;33m[Warning]\033[0m $*"; }
 
@@ -46,21 +49,11 @@ fix_package_conflicts() {
   fi
 
   log "✅ Conflits de packages résolus"
-}-e
+}
 
 INSTALL_DIR=${AIRASTRO_DIR:-$HOME/AirAstro}
 REPO_URL="https://github.com/thibautrey/AirAstro.git"
 BRANCH="main"
-
-log() { echo -e "\033[1;32m[AirAstro]\033[0m $*"; }
-error() { echo -e "\033[1;31m[Error]\033[0m $*" >&2; }
-
-if [ "$(id -u)" -ne 0 ] && ! command -v sudo >/dev/null; then
-  echo "This script requires root privileges or sudo" >&2
-  exit 1
-fi
-
-run() { if [ "$(id -u)" -eq 0 ]; then bash -c "$*"; else sudo bash -c "$*"; fi }
 
 log "Updating package lists"
 run "apt-get update -y"
