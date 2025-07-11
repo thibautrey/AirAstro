@@ -1,4 +1,5 @@
 import { CameraInfo } from "../../services/camera.service";
+import { useEquipmentContext } from "../../contexts/EquipmentContext";
 import { useState } from "react";
 
 interface CameraSelectorProps {
@@ -15,6 +16,7 @@ export default function CameraSelector({
   disabled = false,
 }: CameraSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const { selectedEquipment } = useEquipmentContext();
 
   const handleCameraSelect = (cameraName: string) => {
     onCameraSelect(cameraName);
@@ -22,6 +24,10 @@ export default function CameraSelector({
   };
 
   const selectedCameraInfo = cameras.find((c) => c.name === selectedCamera);
+
+  // Obtenir des informations sur la caméra sélectionnée depuis le contexte global
+  const globalMainCamera = selectedEquipment.mainCamera;
+  const globalGuideCamera = selectedEquipment.guideCamera;
 
   return (
     <div className="relative">

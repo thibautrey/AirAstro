@@ -5,6 +5,7 @@ import CaptureParameters from "../camera/CaptureParameters";
 import CircularProgress from "../ui/CircularProgress";
 import { clsx } from "clsx";
 import { useCamera } from "../../hooks/useCamera";
+import { useEquipmentContext } from "../../contexts/EquipmentContext";
 import { useState } from "react";
 
 interface CameraRailProps {
@@ -14,6 +15,7 @@ interface CameraRailProps {
 export default function CameraRail({
   showHistogramBar = false,
 }: CameraRailProps) {
+  const { selectedEquipment } = useEquipmentContext();
   const {
     cameraStatus,
     availableCameras,
@@ -28,6 +30,10 @@ export default function CameraRail({
 
   const [showParameters, setShowParameters] = useState(false);
   const [showCameraSelector, setShowCameraSelector] = useState(false);
+
+  // Utiliser la caméra sélectionnée du contexte global
+  const activeCamera =
+    selectedEquipment.mainCamera || selectedEquipment.guideCamera;
 
   const handleShutterClick = async () => {
     if (!cameraStatus?.isConnected) {

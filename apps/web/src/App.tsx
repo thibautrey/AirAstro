@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import DashboardScreen from "./components/DashboardScreen";
 import DeviceWelcome from "./components/DeviceWelcome";
+import { EquipmentProvider } from "./contexts/EquipmentContext";
 import EquipmentSetup from "./components/EquipmentSetup";
 import PWAInstallModal from "./components/PWAInstallModal";
 import { usePWAInstall } from "./hooks/usePWAInstall";
@@ -27,7 +28,7 @@ export default function App() {
   }, [canShowInstallPrompt]);
 
   return (
-    <>
+    <EquipmentProvider>
       <Router>
         <Routes>
           <Route path="/" element={<DeviceWelcome />} />
@@ -39,6 +40,6 @@ export default function App() {
       {showInstallModal && (
         <PWAInstallModal onClose={() => setShowInstallModal(false)} />
       )}
-    </>
+    </EquipmentProvider>
   );
 }

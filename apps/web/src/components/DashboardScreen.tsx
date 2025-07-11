@@ -1,4 +1,8 @@
 import { useEffect, useState } from "react";
+import {
+  useEquipmentReadiness,
+  useEquipmentSync,
+} from "../hooks/useEquipmentSync";
 
 import CameraRail from "./dashboard/CameraRail";
 import GuidingOverlay from "./dashboard/GuidingOverlay";
@@ -29,8 +33,14 @@ export default function DashboardScreen() {
   const { equipment } = useEquipment({
     enablePolling: true,
     pollingInterval: 30000,
-    includeUnknown: false,
   });
+
+  // Hook pour synchroniser les équipements avec l'API
+  useEquipmentSync();
+
+  // Hook pour vérifier l'état de préparation des équipements
+  const { hasEssentialEquipment, hasFullSetup, readinessScore } =
+    useEquipmentReadiness();
 
   // Vérifier automatiquement les mises à jour au chargement (une seule fois)
   useEffect(() => {

@@ -5,6 +5,7 @@ import { AutoIndiManager } from "../services/auto-indi-manager";
 import { DriverManager } from "../indi";
 import { EquipmentDatabaseService } from "../services/equipment-database.service";
 import { EquipmentManagerService } from "../services/equipment-manager.service";
+import { equipmentContextService } from "../services/equipment-context.service";
 import { mountStateService } from "../services/mount-state.service";
 
 const router = Router();
@@ -547,15 +548,21 @@ router.post("/system-setup", async (req: Request, res: Response) => {
 // GET /api/equipment/system-status - Statut de la configuration système
 router.get("/system-status", async (req: Request, res: Response) => {
   try {
-    const lastReport = autoConfigService.getLastReport();
-    const isRunning = autoConfigService.isConfigurationRunning();
-    const requirements = await autoConfigService.checkSystemRequirements();
+    const systemStatus = {
+      equipmentManager: {
+        isMonitoring: true,
+        isSetupInProgress: equipmentManager.isSetupInProgress(),
+      },
+      autoIndi: {
+        available: !!autoIndiManager,
+        running: autoIndiManager ? await autoIndiManager.getStatus() : null,
+      },
+      context: equipmentContextService.getContext(),
+    };
 
     res.json({
-      isConfigurationRunning: isRunning,
-      lastReport,
-      systemRequirements: requirements,
-      timestamp: new Date().toISOString(),
+      system: systemStatus,
+      timestamp: new Date(),
     });
   } catch (error) {
     console.error("Erreur lors de la récupération du statut système:", error);
@@ -725,3 +732,83 @@ router.post("/state", async (req: Request, res: Response) => {
 });
 
 export default router;
+router.get("/context", (req: Request, res: Response) => {
+  try {
+    const context = equipmentContextService.getContext();
+    const summary = equipmentContextService.getContextSummary();
+
+    console.log("📋 Récupération du contexte d'équipement:", context);
+
+    res.json({
+      context,
+      summary,
+      hasContext: equipmentContextService.hasContext(),
+      timestamp: new Date(),
+    });
+  } catch (error) {
+    console.error("Erreur lors de la récupération du contexte:", error);
+    res.status(500).json({
+      error: "Erreur lors de la récupération du contexte",
+      details: error instanceof Error ? error.message : "Erreur inconnue",
+    });
+  }
+});
+
+// POST /api/equipment/context - Sauvegarder le contexte d'équipement
+router.post("/context", async (req: Request, res: Response) => {
+  try {
+    const {
+      selectedMount,
+      selectedMainCamera,
+      selectedGuideCamera,
+      selectedFocuser,
+      selectedFilterWheel,
+      mainFocalLength,
+      guideFocalLength,
+    } = req.body;
+
+    await equipmentContextService.updateContext({
+      selectedMount,
+      selectedMainCamera,
+      selectedGuideCamera,
+      selectedFocuser,
+      selectedFilterWheel,
+      mainFocalLength,
+      guideFocalLength,
+    });
+
+    const context = equipmentContextService.getContext();
+    const summary = equipmentContextService.getContextSummary();
+
+    res.json({
+      message: "Contexte d'équipement sauvegardé avec succès",
+      context,
+      summary,
+      timestamp: new Date(),
+    });
+  } catch (error) {
+    console.error("Erreur lors de la sauvegarde du contexte:", error);
+    res.status(500).json({
+      error: "Erreur lors de la sauvegarde du contexte",
+      details: error instanceof Error ? error.message : "Erreur inconnue",
+    });
+  }
+});
+
+// DELETE /api/equipment/context - Effacer le contexte d'équipement
+router.delete("/context", async (req: Request, res: Response) => {
+  try {
+    await equipmentContextService.clearContext();
+
+    res.json({
+      message: "Contexte d'équipement effacé avec succès",
+      timestamp: new Date(),
+    });
+  } catch (error) {
+    console.error("Erreur lors de la suppression du contexte:", error);
+    res.status(500).json({
+      error: "Erreur lors de la suppression du contexte",
+      details: error instanceof Error ? error.message : "Erreur inconnue",
+    });
+  }
+});
