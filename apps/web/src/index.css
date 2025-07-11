@@ -10,6 +10,9 @@
   --viewport-height: 100vh;
   --adjusted-viewport-height: 100vh;
   --visual-viewport-height: 100vh;
+  /* Variables CSS pour les largeurs dynamiques */
+  --viewport-width: 100vw;
+  --visual-viewport-width: 100vw;
   /* Hauteur de la barre du bas (HistogramBar) */
   --histogram-bar-height: 5rem; /* 80px */
 }
@@ -123,6 +126,11 @@ body {
       var(--viewport-height) - env(safe-area-inset-top) -
         env(safe-area-inset-bottom)
     );
+    /* Ajuster la largeur pour les safe areas latérales (iPhone en mode paysage) */
+    width: calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right));
+    /* Compenser le padding du body pour centrer correctement */
+    margin-left: calc(-1 * env(safe-area-inset-left));
+    margin-right: calc(-1 * env(safe-area-inset-right));
   }
 }
 
@@ -130,7 +138,7 @@ body {
 .viewport-height {
   /* Utiliser la propriété CSS personnalisée */
   height: var(--viewport-height);
-  width: 100vw;
+  width: var(--viewport-width);
 }
 
 .dashboard-content-height {
@@ -245,6 +253,19 @@ textarea {
     min-height: var(--adjusted-viewport-height);
   }
 
+  /* Utilitaires pour les largeurs de viewport dynamiques */
+  .w-viewport {
+    width: var(--viewport-width);
+  }
+
+  .w-visual-viewport {
+    width: var(--visual-viewport-width);
+  }
+
+  .max-w-viewport {
+    max-width: var(--viewport-width);
+  }
+
   /* Safe area utilities */
   .safe-area-top {
     padding-top: env(safe-area-inset-top);
@@ -267,6 +288,20 @@ textarea {
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
+  }
+
+  /* Marges négatives pour compenser les safe areas */
+  .safe-area-inset-left {
+    margin-left: calc(-1 * env(safe-area-inset-left));
+  }
+
+  .safe-area-inset-right {
+    margin-right: calc(-1 * env(safe-area-inset-right));
+  }
+
+  .safe-area-inset-horizontal {
+    margin-left: calc(-1 * env(safe-area-inset-left));
+    margin-right: calc(-1 * env(safe-area-inset-right));
   }
 
   /* Z-index utilities for modals and overlays */

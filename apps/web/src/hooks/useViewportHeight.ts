@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 
 /**
- * Hook pour gérer correctement la hauteur de viewport sur Mobile Safari
+ * Hook pour gérer correctement la hauteur et largeur de viewport sur Mobile Safari
  * Basé sur les recommandations pour gérer la différence entre Safari mobile
  * et le mode standalone (PWA)
  */
 export function useViewportHeight() {
   const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+  const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
@@ -18,15 +19,21 @@ export function useViewportHeight() {
 
     setIsStandalone(standalone);
 
-    const updateHeight = () => {
+    const updateDimensions = () => {
       // Utiliser window.innerHeight comme recommandé dans le forum
       const height = window.innerHeight;
+      const width = window.innerWidth;
       setViewportHeight(height);
+      setViewportWidth(width);
 
       // Mettre à jour une propriété CSS personnalisée pour un accès global
       document.documentElement.style.setProperty(
         "--viewport-height",
         `${height}px`
+      );
+      document.documentElement.style.setProperty(
+        "--viewport-width",
+        `${width}px`
       );
 
       // Calculer la hauteur ajustée selon le mode
@@ -38,19 +45,24 @@ export function useViewportHeight() {
     };
 
     // Mise à jour initiale
-    updateHeight();
+    updateDimensions();
 
     // Écouter les changements de taille de viewport
-    window.addEventListener("resize", updateHeight);
-    window.addEventListener("orientationchange", updateHeight);
+    window.addEventListener("resize", updateDimensions);
+    window.addEventListener("orientationchange", updateDimensions);
 
     // Écouter les changements spécifiques à iOS (clavier virtuel, etc.)
     const handleVisualViewportChange = () => {
       if (window.visualViewport) {
         const height = window.visualViewport.height;
+        const width = window.visualViewport.width;
         document.documentElement.style.setProperty(
           "--visual-viewport-height",
           `${height}px`
+        );
+        document.documentElement.style.setProperty(
+          "--visual-viewport-width",
+          `${width}px`
         );
       }
     };
@@ -64,8 +76,8 @@ export function useViewportHeight() {
     }
 
     return () => {
-      window.removeEventListener("resize", updateHeight);
-      window.removeEventListener("orientationchange", updateHeight);
+      window.removeEventListener("resize", updateDimensions);
+      window.removeEventListener("orientationchange", updateDimensions);
       if (window.visualViewport) {
         window.visualViewport.removeEventListener(
           "resize",
@@ -77,14 +89,24 @@ export function useViewportHeight() {
 
   return {
     viewportHeight,
+    viewportWidth,
     isStandalone,
     // Fonction utilitaire pour obtenir la hauteur CSS
     getHeightStyle: () => ({
       height: `${viewportHeight}px`,
     }),
+    // Fonction utilitaire pour obtenir la largeur CSS
+    getWidthStyle: () => ({
+      width: `${viewportWidth}px`,
+    }),
     // Fonction utilitaire pour obtenir la hauteur ajustée (pour le contenu)
     getAdjustedHeightStyle: () => ({
       height: `${isStandalone ? viewportHeight : viewportHeight - 32}px`,
+    }),
+    // Fonction utilitaire pour obtenir les dimensions complètes
+    getDimensionsStyle: () => ({
+      height: `${viewportHeight}px`,
+      width: `${viewportWidth}px`,
     }),
   };
 }

@@ -1,8 +1,11 @@
-# Gestion de la Hauteur de Viewport sur Mobile Safari
+# Gestion des Dimensions de Viewport sur Mobile Safari
 
 ## Problème Résolu
 
-Notre application rencontrait des problèmes de hauteur de viewport sur Mobile Safari, particulièrement lors du passage entre le mode Safari classique et le mode standalone (PWA). Cette différence créait des problèmes d'affichage et de layout.
+Notre application rencontrait des problèmes de dimensions de viewport sur Mobile Safari, particulièrement :
+
+1. Hauteur de viewport lors du passage entre le mode Safari classique et le mode standalone (PWA)
+2. **Largeur de viewport en mode paysage sur iPhone** où 5-10% de l'UI n'était pas visible à droite
 
 ## Solution Implémentée
 
@@ -31,20 +34,27 @@ Notre application rencontrait des problèmes de hauteur de viewport sur Mobile S
 - Ajout de `height=device-height`
 - Réorganisation de l'ordre des propriétés pour placer `user-scalable=no` en premier
 
-### 2. Hook personnalisé `useViewportHeight`
+### 2. Hook personnalisé `useViewportHeight` (maintenant `useViewportDimensions`)
 
 Le hook détecte automatiquement :
 
 - Si l'application fonctionne en mode standalone (PWA) ou dans Safari
-- La hauteur réelle du viewport via `window.innerHeight`
+- La hauteur ET largeur réelle du viewport via `window.innerHeight/innerWidth`
 - Les changements d'orientation et de taille de fenêtre
 - Les changements du Visual Viewport API (clavier virtuel, etc.)
 
 **Fonctionnalités :**
 
 ```typescript
-const { viewportHeight, isStandalone, getHeightStyle, getAdjustedHeightStyle } =
-  useViewportHeight();
+const {
+  viewportHeight,
+  viewportWidth,
+  isStandalone,
+  getHeightStyle,
+  getWidthStyle,
+  getAdjustedHeightStyle,
+  getDimensionsStyle,
+} = useViewportHeight();
 ```
 
 ### 3. Variables CSS Dynamiques
@@ -52,20 +62,44 @@ const { viewportHeight, isStandalone, getHeightStyle, getAdjustedHeightStyle } =
 Le hook met à jour automatiquement ces variables CSS :
 
 - `--viewport-height` : Hauteur réelle du viewport
+- `--viewport-width` : **Largeur réelle du viewport**
 - `--adjusted-viewport-height` : Hauteur ajustée (−32px pour Safari mobile)
 - `--visual-viewport-height` : Hauteur du Visual Viewport
+- `--visual-viewport-width` : **Largeur du Visual Viewport**
 
-### 4. Classes Utilitaires Tailwind
+### 4. Gestion des Safe Areas pour iPhone en mode paysage
 
-Nouvelles classes disponibles :
+**Nouveaux styles appliqués :**
 
 ```css
+/* Pour #root en mode safe area */
+width: calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right));
+margin-left: calc(-1 * env(safe-area-inset-left));
+margin-right: calc(-1 * env(safe-area-inset-right));
+```
+
+### 5. Classes Utilitaires Tailwind
+
+**Nouvelles classes disponibles :**
+
+```css
+/* Hauteurs */
 .h-viewport                /* height: var(--viewport-height) */
 /* height: var(--viewport-height) */
 .h-viewport-adjusted       /* height: var(--adjusted-viewport-height) */
 .h-visual-viewport         /* height: var(--visual-viewport-height) */
 .min-h-viewport           /* min-height: var(--viewport-height) */
-.min-h-viewport-adjusted; /* min-height: var(--adjusted-viewport-height) */
+.min-h-viewport-adjusted   /* min-height: var(--adjusted-viewport-height) */
+
+/* Largeurs - NOUVELLES */
+.w-viewport               /* width: var(--viewport-width) */
+.w-visual-viewport        /* width: var(--visual-viewport-width) */
+.max-w-viewport          /* max-width: var(--viewport-width) */
+
+/* Safe Areas - NOUVELLES */
+.safe-area-inset-left     /* margin-left: calc(-1 * env(safe-area-inset-left)) */
+.safe-area-inset-right    /* margin-right: calc(-1 * env(safe-area-inset-right)) */
+.safe-area-inset-horizontal; /* marges négatives gauche + droite */
 ```
 
 ## Utilisation
@@ -85,19 +119,38 @@ export default function App() {
 
 ### Dans les composants
 
-Remplacer les anciennes classes :
+**Remplacer les anciennes classes :**
 
 ```typescript
 // Avant
 <div className="min-h-screen">
 
-// Après
+// Après - Hauteur
 <div className="h-viewport">
+
+// Après - Largeur (pour le problème iPhone paysage)
+<div className="w-viewport">
+
+// Après - Dimensions complètes
+<div className="h-viewport w-viewport">
+```
+
+### Cas d'usage spécifiques iPhone paysage
+
+```typescript
+// Pour un conteneur principal qui doit occuper tout l'écran
+<div className="h-viewport w-viewport">
+
+// Pour un élément qui doit s'adapter aux safe areas
+<div className="safe-area-inset-horizontal">
+
+// Pour un contenu centré qui respecte les safe areas
+<div className="w-viewport max-w-viewport mx-auto">
 ```
 
 ### Classes existantes mises à jour
 
-- `.viewport-height` : Utilise maintenant `var(--viewport-height)`
+- `.viewport-height` : Utilise maintenant `var(--viewport-height)` ET `var(--viewport-width)`
 - `.dashboard-content-height` : Utilise `var(--adjusted-viewport-height) - 44px`
 
 ## Avantages de cette Solution
