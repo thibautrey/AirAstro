@@ -1,10 +1,11 @@
-import { Clock, Download, Settings, Camera, Thermometer } from "lucide-react";
-import { clsx } from "clsx";
-import { useState } from "react";
-import { useCamera } from "../../hooks/useCamera";
-import CaptureParameters from "../camera/CaptureParameters";
+import { Camera, Clock, Download, Settings, Thermometer } from "lucide-react";
+
 import CameraSelector from "../camera/CameraSelector";
+import CaptureParameters from "../camera/CaptureParameters";
 import CircularProgress from "../ui/CircularProgress";
+import { clsx } from "clsx";
+import { useCamera } from "../../hooks/useCamera";
+import { useState } from "react";
 
 export default function CameraRail() {
   const {
@@ -79,7 +80,7 @@ export default function CameraRail() {
   }
 
   return (
-    <div className="w-18 bg-black/45 backdrop-blur-sm rounded-l flex flex-col items-center gap-6 py-10 relative">
+    <div className="w-18 bg-black/45 backdrop-blur-sm rounded-l flex flex-col items-center gap-6 py-10 pb-24 relative">
       {/* Title */}
       <h3 className="font-semibold text-sm text-cta-green tracking-wider">
         PREVIEW

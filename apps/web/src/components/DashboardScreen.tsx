@@ -76,8 +76,8 @@ export default function DashboardScreen() {
         />
       )}
 
-      {/* Main content area with overlays */}
-      <div className="relative flex dashboard-content-height">
+      {/* Main content area with overlays - takes full height minus header */}
+      <div className="relative flex dashboard-content-height-full">
         {/* Left vertical mode rail */}
         <ModeRail
           showGuidingOverlay={showGuidingOverlay}

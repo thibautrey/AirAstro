@@ -136,6 +136,11 @@ body {
   height: calc(var(--adjusted-viewport-height) - 44px);
 }
 
+.dashboard-content-height-full {
+  /* Dashboard content height minus header only - takes full height available */
+  height: calc(var(--adjusted-viewport-height) - 44px);
+}
+
 .pwa-install-modal {
   position: fixed;
   top: 0;
