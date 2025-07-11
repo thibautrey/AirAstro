@@ -8,7 +8,7 @@ This repository is a monorepo consisting of mobile applications and a Raspberry 
 
 ## Design System
 
-AirAstro follows a strict design system optimized for astronomy applications. **All UI components must comply with the astronomy-friendly color palette** defined in `DESIGN_SYSTEM.md`:
+AirAstro follows a strict design system optimized for astronomy applications. **All UI components must comply with the astronomy-friendly color palette** defined in `docs/DESIGN_SYSTEM.md`:
 
 ### Mandatory Color Scheme
 

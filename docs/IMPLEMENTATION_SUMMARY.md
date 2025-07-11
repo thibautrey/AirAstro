@@ -4,7 +4,7 @@
 
 ### 1. Complete Design System Documentation
 
-- **DESIGN_SYSTEM.md**: Comprehensive guide with astronomy-optimized color palette
+- **docs/DESIGN_SYSTEM.md**: Comprehensive guide with astronomy-optimized color palette
 - **Color Scheme**: Black backgrounds, white/red text, green/blue buttons
 - **Typography**: Defined font hierarchy and sizes
 - **Component Guidelines**: Buttons, cards, inputs, and spacing system
@@ -187,7 +187,7 @@ npm run ios
 
 The design system is now fully implemented and ready for use. Developers can:
 
-1. **Follow the design guidelines** in DESIGN_SYSTEM.md
+1. **Follow the design guidelines** in docs/DESIGN_SYSTEM.md
 2. **Use the iOS implementation** in AstronomyDesignSystem.swift
 3. **Set up Android development** using the React Native guide
 4. **Reference examples** in ExampleDesignSystemUsage.swift
