@@ -1,8 +1,7 @@
 import { Battery, ChevronLeft, Download, Settings } from "lucide-react";
 
 import { DetectedEquipment } from "../../hooks/useEquipment";
-import EquipmentModal from "../EquipmentModal";
-import EquipmentSidebar from "../EquipmentSidebar";
+import EquipmentDrawer from "../EquipmentDrawer";
 import UpdateModal from "../UpdateModal";
 import { UpdateStatus } from "../../types/update";
 import { clsx } from "clsx";
@@ -32,10 +31,7 @@ export default function TopBarDashboard({
 }: TopBarDashboardProps) {
   const navigate = useNavigate();
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [showEquipmentModal, setShowEquipmentModal] = useState(false);
-  const [showEquipmentSidebar, setShowEquipmentSidebar] = useState(false);
-  const [selectedEquipment, setSelectedEquipment] =
-    useState<DetectedEquipment | null>(null);
+  const [showEquipmentDrawer, setShowEquipmentDrawer] = useState(false);
 
   const currentTime = new Date().toLocaleTimeString("fr-FR", {
     hour: "2-digit",
@@ -47,17 +43,11 @@ export default function TopBarDashboard({
   };
 
   const handleEquipmentClick = () => {
-    setShowEquipmentModal(true);
+    setShowEquipmentDrawer(true);
   };
 
-  const handleEquipmentSelect = (equipment: DetectedEquipment) => {
-    setSelectedEquipment(equipment);
-    setShowEquipmentSidebar(true);
-  };
-
-  const handleCloseSidebar = () => {
-    setShowEquipmentSidebar(false);
-    setSelectedEquipment(null);
+  const handleCloseDrawer = () => {
+    setShowEquipmentDrawer(false);
   };
 
   const handleCloseModal = () => {
@@ -126,32 +116,13 @@ export default function TopBarDashboard({
             <div className="absolute w-2 h-2 bg-yellow-400 rounded-full -top-1 -right-1" />
           )}
         </button>
-
-        {/* Equipment settings button */}
-        <button
-          onClick={handleEquipmentClick}
-          className="p-1.5 rounded transition-colors text-text-secondary hover:text-text-primary hover:bg-white/10"
-          aria-label="Paramètres des équipements"
-        >
-          <Settings size={20} />
-        </button>
       </div>
 
-      {/* Equipment Modal */}
-      <EquipmentModal
-        isOpen={showEquipmentModal}
-        onClose={() => setShowEquipmentModal(false)}
-        equipment={equipment}
-        onEquipmentSelect={handleEquipmentSelect}
-      />
-
-      {/* Equipment Sidebar */}
-      <EquipmentSidebar
-        isOpen={showEquipmentSidebar}
-        onClose={handleCloseSidebar}
-        equipment={equipment}
-        selectedEquipment={selectedEquipment}
-        onEquipmentSelect={setSelectedEquipment}
+      {/* Equipment Drawer */}
+      <EquipmentDrawer
+        isOpen={showEquipmentDrawer}
+        onClose={handleCloseDrawer}
+        deviceId={deviceId}
       />
 
       {/* Update Modal */}

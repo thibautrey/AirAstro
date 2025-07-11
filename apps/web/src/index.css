@@ -38,6 +38,33 @@
   z-index: 1;
 }
 
+/* Styles pour le slider dans l'EquipmentDrawer */
+.slider {
+  background: #3f3f46;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #ffffff;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #ffffff;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
 .feature-status-badge {
   position: absolute;
   top: -8px;
