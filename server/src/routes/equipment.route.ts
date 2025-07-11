@@ -97,6 +97,9 @@ router.get("/", async (req: Request, res: Response) => {
   try {
     const includeUnknown = req.query.includeUnknown === "true";
 
+    // S'assurer que l'auto-indi est démarré
+    await ensureAutoIndiStarted();
+
     // Utiliser les données de l'auto-indi si disponible
     let equipment: any[] = [];
     let isMonitoring = false;
@@ -105,6 +108,9 @@ router.get("/", async (req: Request, res: Response) => {
       const manager = initAutoIndiManager();
       const autoIndiDevices = manager.getDetectedDevices();
       const autoIndiStatus = await manager.getStatus();
+
+      console.log("📱 Auto-indi devices:", autoIndiDevices.length);
+      console.log("📱 Auto-indi status:", autoIndiStatus.usbDetector.running);
 
       // Convertir les données auto-indi au format attendu par l'API equipment
       equipment = autoIndiDevices
@@ -137,6 +143,8 @@ router.get("/", async (req: Request, res: Response) => {
           lastSeen: new Date(),
         }));
 
+      console.log("📱 Converted equipment:", equipment.length);
+      
       isMonitoring = autoIndiStatus.usbDetector.running;
     } catch (autoIndiError) {
       console.warn(
@@ -325,28 +333,70 @@ router.post("/scan", async (req: Request, res: Response) => {
   try {
     console.log("🔍 Scan forcé des équipements via API");
 
-    // Vider le cache pour forcer une nouvelle détection
-    equipmentManager.clearCache();
+    // S'assurer que l'auto-indi est démarré
+    await ensureAutoIndiStarted();
 
-    const equipment = await equipmentManager.getEquipmentList();
-    const status = equipmentManager.getEquipmentStatus();
+    let equipment: any[] = [];
 
-    const enrichedEquipment = equipment.map((device) => {
-      const deviceStatus = status.find((s) => s.id === device.id);
-      return {
-        ...device,
-        status: deviceStatus?.status || "disconnected",
-        lastSeen: deviceStatus?.lastSeen,
-        errorMessage: deviceStatus?.errorMessage,
-      };
-    });
+    try {
+      // Utiliser l'auto-indi pour le scan
+      const manager = initAutoIndiManager();
+      
+      // Forcer un scan USB immédiat (redémarrer le détecteur)
+      await manager.stop();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await manager.start();
+      
+      // Attendre un peu pour que la détection se fasse
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const autoIndiDevices = manager.getDetectedDevices();
+      const includeUnknown = req.query.includeUnknown === "true";
+
+      equipment = autoIndiDevices
+        .filter((device) => {
+          if (includeUnknown) return true;
+          if (!device.brand || device.matchingDrivers.length === 0) return false;
+          return true;
+        })
+        .map((device) => ({
+          id: device.id,
+          name: device.description || `${device.manufacturer} ${device.product}`,
+          type: device.brand === "ZWO" ? "camera" : "unknown",
+          manufacturer: device.manufacturer || device.brand || "Inconnu",
+          model: device.product || device.model || "Inconnu",
+          connection: "usb" as const,
+          driverStatus: device.matchingDrivers.length > 0 ? "found" : "not-found",
+          autoInstallable: device.matchingDrivers.length > 0,
+          confidence: device.matchingDrivers.length > 0 ? 90 : 30,
+          status: "connected" as const,
+          lastSeen: new Date(),
+        }));
+
+    } catch (autoIndiError) {
+      console.warn("Auto-indi non disponible pour le scan, utilisation de l'ancien système:", autoIndiError);
+      
+      // Fallback sur l'ancien système
+      equipmentManager.clearCache();
+      const oldEquipment = await equipmentManager.getEquipmentList();
+      const status = equipmentManager.getEquipmentStatus();
+
+      equipment = oldEquipment.map((device) => {
+        const deviceStatus = status.find((s) => s.id === device.id);
+        return {
+          ...device,
+          status: deviceStatus?.status || "disconnected",
+          lastSeen: deviceStatus?.lastSeen,
+          errorMessage: deviceStatus?.errorMessage,
+        };
+      });
+    }
 
     res.json({
       message: "Scan des équipements terminé",
-      equipment: enrichedEquipment,
-      totalCount: enrichedEquipment.length,
-      connectedCount: enrichedEquipment.filter((e) => e.status === "connected")
-        .length,
+      equipment,
+      totalCount: equipment.length,
+      connectedCount: equipment.filter((e) => e.status === "connected").length,
       scannedAt: new Date(),
     });
   } catch (error) {
