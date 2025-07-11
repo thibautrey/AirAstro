@@ -78,40 +78,51 @@ if [ -f "$INSTALL_DIR/server/scripts/maintain-indi-drivers.sh" ]; then
 else
   log "Script de maintenance des drivers non trouvé, installation alternative"
 
-  # Supprimer les dépôts problématiques d'Ubuntu/PPA
-  log "Nettoyage des dépôts incompatibles"
-  run "rm -f /etc/apt/sources.list.d/*mutlaqja* || true"
-  run "rm -f /etc/apt/sources.list.d/*ubuntu* || true"
-
-  # Installer les dépendances de base disponibles dans Debian
-  log "Installation des dépendances de base Debian"
-  run "apt-get update"
-  run "apt-get install -y libcfitsio-dev libgsl-dev libjpeg-dev libdc1394-dev libgps-dev cmake build-essential"
-
-  # Essayer d'installer les versions disponibles dans Debian
-  log "Tentative d'installation des paquets INDI de base"
-  if run "apt-get install -y --no-install-recommends libindi-dev || true"; then
-    log "Bibliothèques INDI de base installées"
+  # Étape 1: Supprimer complètement le PPA incompatible
+  log "Étape 1: Suppression du PPA Ubuntu focal incompatible"
+  if command -v add-apt-repository >/dev/null; then
+    run "add-apt-repository --remove ppa:mutlaqja/ppa || true"
   fi
+  run "rm -f /etc/apt/sources.list.d/mutlaqja-ubuntu-ppa-focal*.list || true"
+  run "rm -f /etc/apt/sources.list.d/*mutlaqja* || true"
+  run "rm -f /etc/apt/trusted.gpg.d/mutlaqja_ppa*.gpg || true"
+  run "rm -f /etc/apt/trusted.gpg.d/*mutlaqja* || true"
 
-  # Vérifier si indiserver est disponible
-  if ! command -v indiserver >/dev/null; then
-    log "indiserver non disponible, compilation depuis les sources..."
+  # Étape 2: Nettoyer les installations INDI partielles
+  log "Étape 2: Nettoyage des installations INDI partielles"
+  run "apt-get purge -y 'indi-*' 'libindi*' || true"
+  run "apt-get autoremove -y || true"
 
-    # Installer les dépendances de compilation
+  # Étape 3: Rafraîchir les listes de paquets et réparer
+  log "Étape 3: Rafraîchissement des dépôts et réparation"
+  run "apt-get update"
+  run "apt-get --fix-broken install -y || true"
+
+  # Étape 4: Installer INDI depuis les dépôts Debian officiels
+  log "Étape 4: Installation d'INDI depuis les dépôts Debian Bookworm"
+  if run "apt-get install -y indi-bin libindi1"; then
+    log "Installation d'INDI de base réussie"
+
+    # Essayer d'installer des drivers supplémentaires si disponibles
+    log "Installation de drivers supplémentaires (optionnel)"
+    run "apt-get install -y indi-full || true"
+
+    log "Installation d'INDI terminée avec succès"
+  else
+    log "Échec de l'installation d'INDI depuis les dépôts Debian"
+    log "Tentative de compilation depuis les sources..."
+
+    # Fallback: compilation depuis les sources si les paquets Debian échouent aussi
     run "apt-get install -y cmake libcfitsio-dev libgsl-dev libjpeg-dev libfftw3-dev libftdi1-dev libusb-1.0-0-dev libnova-dev"
 
-    # Créer un répertoire temporaire pour la compilation
     TEMP_DIR=$(mktemp -d)
     cd "$TEMP_DIR"
 
-    # Télécharger et compiler INDI
     if git clone https://github.com/indilib/indi.git; then
       cd indi
       mkdir -p build
       cd build
 
-      # Configuration CMake adaptée pour Raspberry Pi
       cmake -DCMAKE_INSTALL_PREFIX=/usr/local \
             -DCMAKE_BUILD_TYPE=Release \
             -DINDI_BUILD_DRIVERS=OFF \
@@ -119,17 +130,15 @@ else
             -DINDI_BUILD_XISF=OFF \
             ..
 
-      # Compilation avec gestion des erreurs
       if make -j$(nproc); then
         run "make install"
         run "ldconfig"
         log "INDI compilé et installé avec succès"
       else
-        log "Échec de la compilation d'INDI, installation d'un serveur minimal"
-        # Créer un script simulant indiserver pour le développement
+        log "Échec de la compilation, installation d'un serveur minimal"
         run "cat > /usr/local/bin/indiserver << 'EOF'
 #!/bin/bash
-echo 'AirAstro: Serveur INDI simulé pour développement'
+echo 'AirAstro: Serveur INDI minimal pour développement'
 echo 'Port: 7624'
 while true; do sleep 60; done
 EOF"
@@ -139,26 +148,24 @@ EOF"
       cd "$INSTALL_DIR/server"
       rm -rf "$TEMP_DIR"
     else
-      log "Échec du clonage d'INDI, installation d'un serveur minimal"
-      # Créer un script simulant indiserver pour le développement
+      log "Échec du clonage, installation d'un serveur minimal"
       run "cat > /usr/local/bin/indiserver << 'EOF'
 #!/bin/bash
-echo 'AirAstro: Serveur INDI simulé pour développement'
+echo 'AirAstro: Serveur INDI minimal pour développement'
 echo 'Port: 7624'
 while true; do sleep 60; done
 EOF"
       run "chmod +x /usr/local/bin/indiserver"
       cd "$INSTALL_DIR/server"
     fi
-  else
-    log "indiserver déjà disponible"
   fi
 
-  # Vérifier l'installation finale
+  # Vérification finale
   if command -v indiserver >/dev/null; then
-    log "Installation d'INDI réussie - indiserver disponible"
+    log "✅ Installation d'INDI réussie - indiserver disponible"
+    indiserver --version 2>/dev/null || echo "indiserver installé"
   else
-    log "ATTENTION: indiserver non disponible, fonctionnalités limitées"
+    log "⚠️  ATTENTION: indiserver non disponible, fonctionnalités limitées"
   fi
 fi
 
