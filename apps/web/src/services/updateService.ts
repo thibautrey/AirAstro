@@ -2,6 +2,8 @@ import {
   UpdateDownloadResponse,
   UpdateInfo,
   UpdateInstallResponse,
+  UpdateRollbackResponse,
+  UpdateBackupsResponse,
 } from "../types/update";
 
 class UpdateService {
@@ -89,7 +91,9 @@ class UpdateService {
       if (!response.ok) {
         if (response.status === 404) {
           return {
-            installed: "Service d'installation non disponible",
+            message: "Service d'installation non disponible",
+            version: "unknown",
+            status: "error",
           };
         }
 
@@ -105,6 +109,92 @@ class UpdateService {
         throw error;
       }
       throw new Error("Erreur lors de l'installation");
+    }
+  }
+
+  async rollbackUpdate(): Promise<UpdateRollbackResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/rollback`, {
+        method: "POST",
+      });
+      if (!response.ok) {
+        if (response.status === 404) {
+          return {
+            message: "Service de rollback non disponible",
+            backup: "unknown",
+            status: "error",
+          };
+        }
+
+        if (response.status === 500) {
+          throw new Error("Impossible d'effectuer le rollback");
+        }
+
+        throw new Error("Rollback temporairement indisponible");
+      }
+      return response.json();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error("Erreur lors du rollback");
+    }
+  }
+
+  async listBackups(): Promise<UpdateBackupsResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/backups`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          return {
+            backups: [],
+          };
+        }
+
+        if (response.status === 500) {
+          throw new Error("Impossible de récupérer la liste des backups");
+        }
+
+        throw new Error("Service de backup temporairement indisponible");
+      }
+      return response.json();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error("Erreur lors de la récupération des backups");
+    }
+  }
+
+  async rebootSystem(): Promise<{ message: string; status: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/reboot`, {
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error("Impossible de redémarrer le système");
+      }
+      return response.json();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error("Erreur lors du redémarrage");
+    }
+  }
+
+  async getUpdateLogs(): Promise<{ logs: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/logs`);
+      if (!response.ok) {
+        throw new Error("Impossible de récupérer les logs");
+      }
+      return response.json();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error("Erreur lors de la récupération des logs");
     }
   }
 }

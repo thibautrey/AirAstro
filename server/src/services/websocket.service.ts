@@ -1,6 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { Server as HttpServer } from "http";
 import { getCameraService } from "../controllers/camera.controller";
+import { updateEmitter } from "./update.service";
 
 export class WebSocketService {
   private io: Server;
@@ -21,6 +22,7 @@ export class WebSocketService {
 
     this.cameraService = getCameraService();
     this.setupEventHandlers();
+    this.setupUpdateEventHandlers();
   }
 
   private setupEventHandlers(): void {
@@ -71,6 +73,13 @@ export class WebSocketService {
 
     this.cameraService.on("coolingChanged", (data: any) => {
       this.io.emit("coolingChanged", data);
+    });
+  }
+
+  private setupUpdateEventHandlers(): void {
+    // Écouter les événements de progress de mise à jour
+    updateEmitter.on("progress", (data) => {
+      this.io.emit("updateProgress", data);
     });
   }
 

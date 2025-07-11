@@ -1,0 +1,22 @@
+{
+  "currentTag": "main",
+  "installationPath": "/opt/airastro",
+  "lastUpdate": null,
+  "backupPath": "/opt/airastro/backups",
+  "scripts": {
+    "versionManager": "/opt/airastro/scripts/airastro-version-manager.sh",
+    "setupCurrentVersion": "/opt/airastro/scripts/setup-current-version.sh"
+  },
+  "paths": {
+    "versions": "/opt/airastro/versions",
+    "current": "/opt/airastro/current",
+    "backups": "/opt/airastro/backups",
+    "logs": "/opt/airastro/logs"
+  },
+  "settings": {
+    "maxBackups": 10,
+    "maxVersions": 5,
+    "autoRestart": true,
+    "enableLogs": true
+  }
+}

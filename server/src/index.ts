@@ -4,7 +4,7 @@ import express, { Request, Response } from "express";
 
 import { DriverManager } from "./indi";
 import { EquipmentDatabaseService } from "./services/equipment-database.service";
-// import { WebSocketService } from "./services/websocket.service";
+import { WebSocketService } from "./services/websocket.service";
 import bonjour from "bonjour";
 import cameraRouter from "./routes/camera.route";
 import cors from "cors";
@@ -19,8 +19,8 @@ const app = express();
 const httpServer = createServer(app);
 const bonjourInstance = bonjour();
 
-// WebSocket configuration (currently disabled)
-// const webSocketService = new WebSocketService(httpServer);
+// WebSocket configuration
+const webSocketService = new WebSocketService(httpServer);
 
 // Enable CORS for all routes
 app.use(
