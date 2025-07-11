@@ -99,8 +99,8 @@ export default function EquipmentDrawer({
             <X size={20} />
           </button>
 
-          {/* Equipment icons */}
-          <div className="flex flex-col flex-1">
+          {/* Equipment icons - scrollable */}
+          <div className="flex flex-col flex-1 overflow-y-auto hide-scrollbar">
             {equipmentTypes.slice(0, -1).map((equipment) => {
               const Icon = equipment.icon;
               const isActive = activeEquipment === equipment.key;
