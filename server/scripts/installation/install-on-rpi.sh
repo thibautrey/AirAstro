@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Configuration pour éviter les confirmations interactives
+export AUTO_ACCEPT="yes"
+export DEBIAN_FRONTEND="noninteractive"
+export AIRASTRO_AUTO_INSTALL="true"
+
 # Fonctions utilitaires
 log() { echo -e "\033[1;32m[AirAstro]\033[0m $*"; }
 error() { echo -e "\033[1;31m[Error]\033[0m $*" >&2; }
@@ -599,7 +604,7 @@ if [ -f "$INSTALL_DIR/server/scripts/equipment-manager.sh" ]; then
 
   # Détection automatique des équipements connectés
   log "Détection automatique des équipements connectés"
-  "$INSTALL_DIR/server/scripts/equipment-manager.sh" detect
+  AUTO_ACCEPT=yes "$INSTALL_DIR/server/scripts/equipment-manager.sh" detect
 
   # Installation automatique basée sur la détection USB
   log "Installation automatique des drivers détectés"
@@ -607,25 +612,25 @@ if [ -f "$INSTALL_DIR/server/scripts/equipment-manager.sh" ]; then
   # Installation automatique des caméras ASI si détectées
   if lsusb | grep -q "03c3"; then
     log "Caméra(s) ZWO ASI détectée(s), installation automatique du support"
-    "$INSTALL_DIR/server/scripts/equipment-manager.sh" install asi
+    AUTO_ACCEPT=yes "$INSTALL_DIR/server/scripts/equipment-manager.sh" install asi
   fi
 
   # Installation automatique des caméras QHY si détectées
   if lsusb | grep -q "1618"; then
     log "Caméra(s) QHY détectée(s), installation automatique du support"
-    "$INSTALL_DIR/server/scripts/equipment-manager.sh" install qhy
+    AUTO_ACCEPT=yes "$INSTALL_DIR/server/scripts/equipment-manager.sh" install qhy
   fi
 
   # Installation automatique des caméras Canon si détectées
   if lsusb | grep -q "04a9"; then
     log "Caméra(s) Canon détectée(s), installation automatique du support"
-    "$INSTALL_DIR/server/scripts/equipment-manager.sh" install canon
+    AUTO_ACCEPT=yes "$INSTALL_DIR/server/scripts/equipment-manager.sh" install canon
   fi
 
   # Installation automatique des caméras Nikon si détectées
   if lsusb | grep -q "04b0"; then
     log "Caméra(s) Nikon détectée(s), installation automatique du support"
-    "$INSTALL_DIR/server/scripts/equipment-manager.sh" install nikon
+    AUTO_ACCEPT=yes "$INSTALL_DIR/server/scripts/equipment-manager.sh" install nikon
   fi
 
   # Éviter explicitement Player One (conflit connu)
@@ -646,7 +651,12 @@ else
     if [ -f "$INSTALL_DIR/server/scripts/brands/asi/install-asi-complete.sh" ]; then
       log "Installation automatique du support ASI"
       chmod +x "$INSTALL_DIR/server/scripts/brands/asi/install-asi-complete.sh"
-      "$INSTALL_DIR/server/scripts/brands/asi/install-asi-complete.sh"
+      AUTO_ACCEPT=yes "$INSTALL_DIR/server/scripts/brands/asi/install-asi-complete.sh"
+    elif [ -f "$INSTALL_DIR/server/scripts/auto-install-asi.sh" ]; then
+      log "Installation automatique du support ASI (fallback)"
+      chmod +x "$INSTALL_DIR/server/scripts/auto-install-asi.sh"
+      # Utiliser yes pour auto-accepter
+      echo "y" | "$INSTALL_DIR/server/scripts/auto-install-asi.sh"
     fi
   fi
 
@@ -655,7 +665,7 @@ else
     if [ -f "$INSTALL_DIR/server/scripts/brands/qhy/install-qhy.sh" ]; then
       log "Installation automatique du support QHY"
       chmod +x "$INSTALL_DIR/server/scripts/brands/qhy/install-qhy.sh"
-      "$INSTALL_DIR/server/scripts/brands/qhy/install-qhy.sh"
+      AUTO_ACCEPT=yes "$INSTALL_DIR/server/scripts/brands/qhy/install-qhy.sh"
     fi
   fi
 
@@ -664,7 +674,7 @@ else
     if [ -f "$INSTALL_DIR/server/scripts/brands/canon/install-canon.sh" ]; then
       log "Installation automatique du support Canon"
       chmod +x "$INSTALL_DIR/server/scripts/brands/canon/install-canon.sh"
-      "$INSTALL_DIR/server/scripts/brands/canon/install-canon.sh"
+      AUTO_ACCEPT=yes "$INSTALL_DIR/server/scripts/brands/canon/install-canon.sh"
     fi
   fi
 
@@ -673,7 +683,7 @@ else
     if [ -f "$INSTALL_DIR/server/scripts/brands/nikon/install-nikon.sh" ]; then
       log "Installation automatique du support Nikon"
       chmod +x "$INSTALL_DIR/server/scripts/brands/nikon/install-nikon.sh"
-      "$INSTALL_DIR/server/scripts/brands/nikon/install-nikon.sh"
+      AUTO_ACCEPT=yes "$INSTALL_DIR/server/scripts/brands/nikon/install-nikon.sh"
     fi
   fi
 

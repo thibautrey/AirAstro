@@ -284,11 +284,16 @@ install_from_database() {
 # Fonction pour forcer la réinstallation de tous les drivers
 force_reinstall_all() {
     log_warning "ATTENTION: Réinstallation forcée de tous les drivers INDI"
-    read -p "Êtes-vous sûr de vouloir continuer? (y/N): " -r
     
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        log_info "Opération annulée"
-        return 0
+    if [ "$AUTO_ACCEPT" = "yes" ] || [ "$AIRASTRO_AUTO_INSTALL" = "true" ]; then
+        log_info "Mode auto-acceptation activé, continuation de la réinstallation"
+    else
+        read -p "Êtes-vous sûr de vouloir continuer? (y/N): " -r
+        
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log_info "Opération annulée"
+            return 0
+        fi
     fi
     
     log_info "Suppression de tous les drivers INDI..."

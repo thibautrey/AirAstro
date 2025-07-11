@@ -23,15 +23,26 @@ warning "⚠️  Ce script est déprécié!"
 echo "Utilisez plutôt le nouveau gestionnaire d'équipements:"
 echo "  ./equipment-manager.sh install asi"
 echo
-echo "Continuez avec ce script? (y/N)"
-read -r response
-if [[ ! "$response" =~ ^[Yy]$ ]]; then
-    echo "Utilisation du nouveau script..."
+
+# Vérifier la variable d'environnement AUTO_ACCEPT
+if [ "$AUTO_ACCEPT" = "yes" ] || [ "$AIRASTRO_AUTO_INSTALL" = "true" ]; then
+    echo "Mode auto-acceptation activé, utilisation du nouveau script..."
     if [ -f "$PROJECT_ROOT/scripts/equipment-manager.sh" ]; then
         exec "$PROJECT_ROOT/scripts/equipment-manager.sh" install asi
     else
-        error "Script equipment-manager.sh non trouvé"
-        exit 1
+        warning "Script equipment-manager.sh non trouvé, continuation avec le script actuel"
+    fi
+else
+    echo "Continuez avec ce script? (y/N)"
+    read -r response
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        echo "Utilisation du nouveau script..."
+        if [ -f "$PROJECT_ROOT/scripts/equipment-manager.sh" ]; then
+            exec "$PROJECT_ROOT/scripts/equipment-manager.sh" install asi
+        else
+            error "Script equipment-manager.sh non trouvé"
+            exit 1
+        fi
     fi
 fi
 

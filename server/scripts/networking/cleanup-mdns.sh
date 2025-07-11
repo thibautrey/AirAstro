@@ -38,16 +38,20 @@ fi
 
 # Option pour restaurer le hostname original
 echo
-read -p "Voulez-vous restaurer le hostname original ? (y/N): " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    read -p "Entrez le nouveau hostname (ou appuyez sur Entrée pour 'raspberrypi'): " NEW_HOSTNAME
-    NEW_HOSTNAME=${NEW_HOSTNAME:-raspberrypi}
-    
-    log "Changement du hostname vers: $NEW_HOSTNAME"
-    run "echo '$NEW_HOSTNAME' > /etc/hostname"
-    run "hostnamectl set-hostname $NEW_HOSTNAME"
-    run "sed -i '/127.0.1.1/c\127.0.1.1\t$NEW_HOSTNAME.local $NEW_HOSTNAME' /etc/hosts"
+if [ "$AUTO_ACCEPT" = "yes" ] || [ "$AIRASTRO_AUTO_INSTALL" = "true" ]; then
+    log "Mode auto-acceptation activé, pas de restauration du hostname"
+else
+    read -p "Voulez-vous restaurer le hostname original ? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        read -p "Entrez le nouveau hostname (ou appuyez sur Entrée pour 'raspberrypi'): " NEW_HOSTNAME
+        NEW_HOSTNAME=${NEW_HOSTNAME:-raspberrypi}
+        
+        log "Changement du hostname vers: $NEW_HOSTNAME"
+        run "echo '$NEW_HOSTNAME' > /etc/hostname"
+        run "hostnamectl set-hostname $NEW_HOSTNAME"
+        run "sed -i '/127.0.1.1/c\127.0.1.1\t$NEW_HOSTNAME.local $NEW_HOSTNAME' /etc/hosts"
+    fi
 fi
 
 # Redémarrage d'Avahi

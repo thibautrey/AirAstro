@@ -23,11 +23,15 @@ fi
 # Vérification que nous sommes sur un Raspberry Pi
 if ! grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
   log "⚠️  Ce script est optimisé pour Raspberry Pi"
-  read -p "Continuer quand même ? (y/N): " -n 1 -r
-  echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    log "Annulation de la mise à jour"
-    exit 0
+  if [ "$AUTO_ACCEPT" = "yes" ] || [ "$AIRASTRO_AUTO_INSTALL" = "true" ]; then
+    log "Mode auto-acceptation activé, poursuite de l'installation"
+  else
+    read -p "Continuer quand même ? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      log "Annulation de la mise à jour"
+      exit 0
+    fi
   fi
 fi
 
