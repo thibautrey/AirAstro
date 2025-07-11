@@ -1,6 +1,7 @@
 import { Request, Response, Router } from "express";
 
 import { AutoConfigurationService } from "../services/auto-configuration.service";
+import { AutoIndiManager } from "../services/auto-indi-manager";
 import { DriverManager } from "../indi";
 import { EquipmentDatabaseService } from "../services/equipment-database.service";
 import { EquipmentManagerService } from "../services/equipment-manager.service";
@@ -14,6 +15,48 @@ const equipmentManager = new EquipmentManagerService(
   equipmentDatabase
 );
 const autoConfigService = new AutoConfigurationService();
+
+// Initialiser l'AutoIndiManager pour récupérer les données de détection USB
+let autoIndiManager: AutoIndiManager;
+
+const initAutoIndiManager = () => {
+  if (!autoIndiManager) {
+    autoIndiManager = new AutoIndiManager({
+      enableAutoStart: true,
+      logLevel: "info",
+      usb: {
+        pollInterval: 5000,
+        indiRestartDelay: 3000,
+        enableAutoRestart: true,
+      },
+      indi: {
+        port: 7624,
+        enableVerbose: true,
+        maxRetries: 3,
+        retryDelay: 5000,
+      },
+    });
+  }
+  return autoIndiManager;
+};
+
+// Fonction pour s'assurer que l'auto-indi est démarré
+const ensureAutoIndiStarted = async () => {
+  try {
+    const manager = initAutoIndiManager();
+    const status = await manager.getStatus();
+
+    // Si le système n'est pas en cours d'exécution, le démarrer
+    if (!status.usbDetector.running) {
+      console.log(
+        "🔄 Démarrage automatique de l'auto-indi depuis l'API equipment..."
+      );
+      await manager.start();
+    }
+  } catch (error) {
+    console.warn("Impossible de démarrer l'auto-indi:", error);
+  }
+};
 
 // Initialiser la base de données au démarrage
 equipmentDatabase
@@ -52,48 +95,84 @@ equipmentManager.on("autoSetupCompleted", (result) => {
 // GET /api/equipment - Lister tous les équipements détectés
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const equipment = await equipmentManager.getEquipmentList();
-    const status = equipmentManager.getEquipmentStatus();
     const includeUnknown = req.query.includeUnknown === "true";
 
-    // Combiner les informations de détection et de statut
-    const enrichedEquipment = equipment
-      .filter((device) => {
-        // Si includeUnknown est true, ne pas filtrer
-        if (includeUnknown) {
+    // Utiliser les données de l'auto-indi si disponible
+    let equipment: any[] = [];
+    let isMonitoring = false;
+
+    try {
+      const manager = initAutoIndiManager();
+      const autoIndiDevices = manager.getDetectedDevices();
+      const autoIndiStatus = await manager.getStatus();
+
+      // Convertir les données auto-indi au format attendu par l'API equipment
+      equipment = autoIndiDevices
+        .filter((device) => {
+          // Si includeUnknown est true, ne pas filtrer
+          if (includeUnknown) {
+            return true;
+          }
+
+          // Filtrer les hubs USB et contrôleurs
+          if (!device.brand || device.matchingDrivers.length === 0) {
+            return false;
+          }
+
           return true;
-        }
+        })
+        .map((device) => ({
+          id: device.id,
+          name:
+            device.description || `${device.manufacturer} ${device.product}`,
+          type: device.brand === "ZWO" ? "camera" : "unknown", // Mapping simple pour l'instant
+          manufacturer: device.manufacturer || device.brand || "Inconnu",
+          model: device.product || device.model || "Inconnu",
+          connection: "usb" as const,
+          driverStatus:
+            device.matchingDrivers.length > 0 ? "found" : "not-found",
+          autoInstallable: device.matchingDrivers.length > 0,
+          confidence: device.matchingDrivers.length > 0 ? 90 : 30,
+          status: "connected" as const, // Les appareils détectés par USB sont considérés comme connectés
+          lastSeen: new Date(),
+        }));
 
-        // Filtrer les équipements complètement inconnus avec faible confiance
-        // ou les équipements série/USB génériques de très faible confiance
-        if (device.type === "unknown" && device.confidence < 50) {
-          return false;
-        }
+      isMonitoring = autoIndiStatus.usbDetector.running;
+    } catch (autoIndiError) {
+      console.warn(
+        "Auto-indi non disponible, utilisation de l'ancien système:",
+        autoIndiError
+      );
 
-        // Filtrer également les équipements avec une confiance extrêmement faible (< 10)
-        // qui sont probablement des contrôleurs ou des hubs
-        if (device.confidence < 10) {
-          return false;
-        }
+      // Fallback sur l'ancien système si auto-indi n'est pas disponible
+      const oldEquipment = await equipmentManager.getEquipmentList();
+      const status = equipmentManager.getEquipmentStatus();
 
-        return true;
-      })
-      .map((device) => {
-        const deviceStatus = status.find((s) => s.id === device.id);
-        return {
-          ...device,
-          status: deviceStatus?.status || "disconnected",
-          lastSeen: deviceStatus?.lastSeen,
-          errorMessage: deviceStatus?.errorMessage,
-        };
-      });
+      equipment = oldEquipment
+        .filter((device) => {
+          if (includeUnknown) return true;
+          if (device.type === "unknown" && device.confidence < 50) return false;
+          if (device.confidence < 10) return false;
+          return true;
+        })
+        .map((device) => {
+          const deviceStatus = status.find((s) => s.id === device.id);
+          return {
+            ...device,
+            status: deviceStatus?.status || "disconnected",
+            lastSeen: deviceStatus?.lastSeen,
+            errorMessage: deviceStatus?.errorMessage,
+          };
+        });
+
+      isMonitoring = true;
+    }
 
     res.json({
-      equipment: enrichedEquipment,
-      totalCount: enrichedEquipment.length,
-      connectedCount: enrichedEquipment.filter((e) => e.status === "connected")
-        .length,
-      isMonitoring: true,
+      equipment,
+      totalCount: equipment.length,
+      connectedCount: equipment.filter((e) => e.status === "connected").length,
+      isMonitoring,
       isSetupInProgress: equipmentManager.isSetupInProgress(),
     });
   } catch (error) {
@@ -584,7 +663,7 @@ router.post("/state", async (req: Request, res: Response) => {
     res.json({ success: true, state: mountStateService.getState() });
   } catch (error) {
     res.status(500).json({
-      error: "Erreur lors de la mise \u00e0 jour de l\u0027\e9tat",
+      error: "Erreur lors de la mise \u00e0 jour de l\u0027e9tat",
       details: error instanceof Error ? error.message : "Erreur inconnue",
     });
   }

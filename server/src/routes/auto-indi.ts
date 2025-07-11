@@ -296,6 +296,204 @@ router.get("/logs", async (req, res) => {
 });
 
 /**
+ * GET /api/auto-indi/diagnostics
+ * Obtenir des informations de diagnostic détaillées
+ */
+router.get("/diagnostics", async (req, res) => {
+  try {
+    const manager = initAutoIndiManager();
+
+    // Obtenir les informations de diagnostic
+    const diagnostics = {
+      timestamp: new Date().toISOString(),
+      system: {
+        status: await manager.getStatus(),
+        detectedDevices: manager.getDetectedDevices(),
+        currentDrivers: manager.getCurrentDrivers(),
+      },
+      usb: {
+        // Exécuter lsusb pour voir les périphériques USB bruts
+        lsusb: await new Promise<string[]>((resolve, reject) => {
+          const { exec } = require("child_process");
+          exec("lsusb", (error: any, stdout: any, stderr: any) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(stdout.trim().split("\n"));
+            }
+          });
+        }),
+        // Vérifier les permissions
+        udevRules: await new Promise<string[]>((resolve) => {
+          const { exec } = require("child_process");
+          exec(
+            'ls -la /etc/udev/rules.d/*astro* /etc/udev/rules.d/*indi* /etc/udev/rules.d/*zwo* /etc/udev/rules.d/*asi* 2>/dev/null || echo "Aucune règle udev trouvée"',
+            (error: any, stdout: any) => {
+              resolve(stdout.trim().split("\n"));
+            }
+          );
+        }),
+      },
+      indi: {
+        // Vérifier si le service INDI est actif
+        servicestatus: await new Promise<string[]>((resolve) => {
+          const { exec } = require("child_process");
+          exec(
+            'ps aux | grep indi | grep -v grep || echo "Aucun processus INDI trouvé"',
+            (error: any, stdout: any) => {
+              resolve(stdout.trim().split("\n"));
+            }
+          );
+        }),
+        // Vérifier les drivers installés
+        installedDrivers: await manager.getInstalledDrivers(),
+      },
+      logs: await manager.getRecentLogs(20),
+    };
+
+    res.json({
+      success: true,
+      data: diagnostics,
+    });
+  } catch (error) {
+    console.error("Erreur lors de la récupération des diagnostics:", error);
+    res.status(500).json({
+      success: false,
+      error: "Erreur lors de la récupération des diagnostics",
+      details: error instanceof Error ? error.message : "Erreur inconnue",
+    });
+  }
+});
+
+/**
+ * POST /api/auto-indi/force-usb-detection
+ * Forcer le démarrage du détecteur USB
+ */
+router.post("/force-usb-detection", async (req, res) => {
+  try {
+    const manager = initAutoIndiManager();
+
+    // Forcer le redémarrage du détecteur USB
+    console.log("🔄 Redémarrage forcé du détecteur USB...");
+
+    // Arrêter d'abord le système
+    await manager.stop();
+
+    // Attendre un peu
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Redémarrer le système
+    await manager.start();
+
+    // Obtenir le statut après redémarrage
+    const status = await manager.getStatus();
+
+    res.json({
+      success: true,
+      message: "Détecteur USB redémarré avec succès",
+      data: {
+        status,
+        detectedDevices: manager.getDetectedDevices(),
+      },
+    });
+  } catch (error) {
+    console.error("Erreur lors du redémarrage du détecteur USB:", error);
+    res.status(500).json({
+      success: false,
+      error: "Erreur lors du redémarrage du détecteur USB",
+      details: error instanceof Error ? error.message : "Erreur inconnue",
+    });
+  }
+});
+
+/**
+ * POST /api/auto-indi/force-start
+ * Forcer le démarrage du système même s'il est déjà initialisé
+ */
+router.post("/force-start", async (req, res) => {
+  try {
+    const manager = initAutoIndiManager();
+
+    // Forcer le redémarrage complet du système
+    console.log("🔄 Forçage du démarrage du système...");
+
+    // Arrêter d'abord le système
+    await manager.stop();
+
+    // Attendre un peu
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Redémarrer le système
+    await manager.start();
+
+    // Obtenir le statut après redémarrage
+    const status = await manager.getStatus();
+
+    res.json({
+      success: true,
+      message: "Système forcé au démarrage avec succès",
+      data: {
+        status,
+        detectedDevices: manager.getDetectedDevices(),
+      },
+    });
+  } catch (error) {
+    console.error("Erreur lors du forçage du démarrage:", error);
+    res.status(500).json({
+      success: false,
+      error: "Erreur lors du forçage du démarrage",
+      details: error instanceof Error ? error.message : "Erreur inconnue",
+    });
+  }
+});
+
+/**
+ * GET /api/auto-indi/debug-usb
+ * Diagnostiquer la détection USB
+ */
+router.get("/debug-usb", async (req, res) => {
+  try {
+    const { exec } = require("child_process");
+    const { promisify } = require("util");
+    const execAsync = promisify(exec);
+
+    // Exécuter lsusb pour voir les périphériques USB bruts
+    const { stdout: lsusbOutput } = await execAsync("lsusb");
+
+    // Vérifier les permissions
+    const { stdout: permissionsOutput } = await execAsync(
+      "ls -la /dev/bus/usb/ | head -10"
+    );
+
+    // Vérifier les règles udev
+    const { stdout: udevOutput } = await execAsync(
+      'find /etc/udev/rules.d/ -name "*zwo*" -o -name "*asi*" -o -name "*astro*" 2>/dev/null || echo "Aucune règle udev trouvée"'
+    );
+
+    const manager = initAutoIndiManager();
+    const status = await manager.getStatus();
+
+    res.json({
+      success: true,
+      data: {
+        systemStatus: status,
+        usbRawOutput: lsusbOutput.trim().split("\n"),
+        permissions: permissionsOutput.trim().split("\n"),
+        udevRules: udevOutput.trim().split("\n"),
+        detectedDevices: manager.getDetectedDevices(),
+      },
+    });
+  } catch (error) {
+    console.error("Erreur lors du debug USB:", error);
+    res.status(500).json({
+      success: false,
+      error: "Erreur lors du debug USB",
+      details: error instanceof Error ? error.message : "Erreur inconnue",
+    });
+  }
+});
+
+/**
  * Middleware pour initialiser le gestionnaire automatique INDI au démarrage
  */
 export const initAutoIndiOnStartup = async () => {
