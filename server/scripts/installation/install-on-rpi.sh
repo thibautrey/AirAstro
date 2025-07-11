@@ -17,7 +17,20 @@ run() { if [ "$(id -u)" -eq 0 ]; then bash -c "$*"; else sudo bash -c "$*"; fi }
 
 log "Updating package lists"
 run "apt-get update -y"
-run "apt-get install -y git curl build-essential"
+run "apt-get install -y git curl build-essential python3 python3-pip python3-venv python3-dev"
+
+# Vérifier l'installation de Python3 et pip3
+if ! command -v python3 >/dev/null; then
+  error "Python3 n'a pas pu être installé"
+  exit 1
+fi
+
+if ! command -v pip3 >/dev/null; then
+  error "pip3 n'a pas pu être installé"
+  exit 1
+fi
+
+log "✅ Python3 $(python3 --version) et pip3 installés avec succès"
 
 if ! command -v node >/dev/null || [ "$(node -v | cut -d. -f1 | tr -d 'v')" -lt 20 ]; then
   log "Installing Node.js 20"
@@ -126,7 +139,71 @@ if command -v python3 >/dev/null && command -v pip3 >/dev/null; then
     log "✅ Tous les modules Python requis sont déjà installés"
   fi
 else
-  log "❌ Python3 ou pip3 non disponible"
+  log "❌ Python3 ou pip3 non disponible, installation automatique"
+
+  # Installation de Python3 et pip3
+  log "Installation de Python3 et pip3"
+  run "apt-get update -qq"
+  run "apt-get install -y python3 python3-pip python3-venv python3-dev"
+
+  # Vérifier l'installation
+  if command -v python3 >/dev/null && command -v pip3 >/dev/null; then
+    log "✅ Python3 et pip3 installés avec succès"
+
+    # Maintenant installer les modules Python de base
+    log "Installation des modules Python de base après installation de Python"
+    PYTHON_MODULES=(
+      "numpy:NumPy (calculs scientifiques)"
+      "astropy:AstroPy (astronomie)"
+      "pyindi-client:PyINDI (client INDI)"
+    )
+
+    MODULES_TO_INSTALL=()
+
+    # Vérifier quels modules sont manquants
+    for module_info in "${PYTHON_MODULES[@]}"; do
+      module_name=$(echo "$module_info" | cut -d: -f1)
+      module_desc=$(echo "$module_info" | cut -d: -f2)
+
+      if python3 -c "import $module_name" 2>/dev/null; then
+        log "✅ $module_desc déjà installé"
+      else
+        log "❌ $module_desc manquant"
+        MODULES_TO_INSTALL+=("$module_name")
+      fi
+    done
+
+    # Installer uniquement les modules manquants
+    if [ ${#MODULES_TO_INSTALL[@]} -gt 0 ]; then
+      log "Installation des modules manquants: ${MODULES_TO_INSTALL[*]}"
+      if python3 -m pip install --user "${MODULES_TO_INSTALL[@]}"; then
+        log "✅ Modules Python installés avec succès"
+      else
+        log "⚠️  Erreur lors de l'installation, tentative avec sudo"
+        sudo python3 -m pip install "${MODULES_TO_INSTALL[@]}" || true
+      fi
+
+      # Vérification finale
+      ALL_INSTALLED=true
+      for module in "${MODULES_TO_INSTALL[@]}"; do
+        if ! python3 -c "import $module" 2>/dev/null; then
+          log "❌ Module $module toujours manquant"
+          ALL_INSTALLED=false
+        fi
+      done
+
+      if [ "$ALL_INSTALLED" = true ]; then
+        log "✅ Tous les modules Python requis sont installés"
+      else
+        log "⚠️  Certains modules Python sont manquants (continuons)"
+      fi
+    else
+      log "✅ Tous les modules Python requis sont déjà installés"
+    fi
+  else
+    log "❌ Échec de l'installation de Python3/pip3"
+    log "⚠️  Fonctionnalités Python limitées - installation manuelle requise"
+  fi
 fi
 
 cd "$INSTALL_DIR/apps/web"
