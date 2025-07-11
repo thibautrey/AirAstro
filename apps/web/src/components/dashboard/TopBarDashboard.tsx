@@ -9,7 +9,6 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 interface TopBarDashboardProps {
-  deviceId?: string;
   updateStatus?: UpdateStatus;
   updateInfo?: any;
   updateError?: string | null;
@@ -20,7 +19,6 @@ interface TopBarDashboardProps {
 }
 
 export default function TopBarDashboard({
-  deviceId,
   updateStatus = UpdateStatus.IDLE,
   updateInfo,
   updateError,
@@ -122,7 +120,6 @@ export default function TopBarDashboard({
       <EquipmentDrawer
         isOpen={showEquipmentDrawer}
         onClose={handleCloseDrawer}
-        deviceId={deviceId}
       />
 
       {/* Update Modal */}

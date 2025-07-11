@@ -1,3 +1,5 @@
+import airAstroUrlService from "./airastro-url.service";
+
 export interface CameraParameters {
   exposure: number;
   gain: number;
@@ -42,17 +44,13 @@ export interface CameraInfo {
 }
 
 class CameraService {
-  private baseUrl: string;
-
-  constructor() {
-    this.baseUrl =
-      import.meta.env.MODE === "production"
-        ? "/api/camera"
-        : "http://localhost:3000/api/camera";
+  private buildApiUrl(endpoint: string): string {
+    return airAstroUrlService.buildApiUrl(endpoint);
   }
 
   async getAvailableCameras(): Promise<CameraInfo[]> {
-    const response = await fetch(`${this.baseUrl}/cameras`);
+    const url = this.buildApiUrl("/api/camera/cameras");
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(
         `Erreur lors de la récupération des caméras: ${response.statusText}`
@@ -62,7 +60,8 @@ class CameraService {
   }
 
   async selectCamera(cameraName: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/cameras/select`, {
+    const url = this.buildApiUrl("/api/camera/cameras/select");
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -78,7 +77,8 @@ class CameraService {
   }
 
   async getCameraStatus(): Promise<CameraStatus> {
-    const response = await fetch(`${this.baseUrl}/status`);
+    const url = this.buildApiUrl("/api/camera/status");
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(
         `Erreur lors de la récupération du statut: ${response.statusText}`
@@ -90,7 +90,8 @@ class CameraService {
   async updateParameters(
     parameters: Partial<CameraParameters>
   ): Promise<CameraParameters> {
-    const response = await fetch(`${this.baseUrl}/parameters`, {
+    const url = this.buildApiUrl("/api/camera/parameters");
+    const response = await fetch(url, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -109,7 +110,8 @@ class CameraService {
   }
 
   async startCapture(parameters?: Partial<CameraParameters>): Promise<string> {
-    const response = await fetch(`${this.baseUrl}/capture`, {
+    const url = this.buildApiUrl("/api/camera/capture");
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -128,7 +130,8 @@ class CameraService {
   }
 
   async cancelCapture(): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/capture`, {
+    const url = this.buildApiUrl("/api/camera/capture");
+    const response = await fetch(url, {
       method: "DELETE",
     });
 
@@ -143,7 +146,8 @@ class CameraService {
     enabled: boolean,
     targetTemperature?: number
   ): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/cooling`, {
+    const url = this.buildApiUrl("/api/camera/cooling");
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -159,7 +163,8 @@ class CameraService {
   }
 
   async getImageHistory(): Promise<string[]> {
-    const response = await fetch(`${this.baseUrl}/images`);
+    const url = this.buildApiUrl("/api/camera/images");
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(
         `Erreur lors de la récupération de l'historique: ${response.statusText}`
@@ -169,7 +174,8 @@ class CameraService {
   }
 
   async deleteImage(filename: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/images/${filename}`, {
+    const url = this.buildApiUrl(`/api/camera/images/${filename}`);
+    const response = await fetch(url, {
       method: "DELETE",
     });
 

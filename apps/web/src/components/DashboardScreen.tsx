@@ -9,16 +9,12 @@ import TopBarDashboard from "./dashboard/TopBarDashboard";
 import UpdateNotification from "./UpdateNotification";
 import { UpdateStatus } from "../types/update";
 import { useEquipment } from "../hooks/useEquipment";
-import { useParams } from "react-router-dom";
 import { useUpdate } from "../hooks/useUpdate";
 
 export default function DashboardScreen() {
-  const { id } = useParams<{ id: string }>();
   const [notificationDismissed, setNotificationDismissed] = useState(false);
   const [showGuidingOverlay, setShowGuidingOverlay] = useState(false);
-
-  // Construire l'URL du device
-  const deviceUrl = id ? `http://${id}` : "";
+  const [hasInitialCheckRun, setHasInitialCheckRun] = useState(false);
 
   const {
     status: updateStatus,
@@ -27,7 +23,7 @@ export default function DashboardScreen() {
     checkForUpdate,
     downloadAndInstallUpdate,
     resetUpdate,
-  } = useUpdate(deviceUrl);
+  } = useUpdate();
 
   // Hook pour récupérer les équipements
   const { equipment } = useEquipment({
@@ -36,12 +32,13 @@ export default function DashboardScreen() {
     includeUnknown: false,
   });
 
-  // Vérifier automatiquement les mises à jour au chargement
+  // Vérifier automatiquement les mises à jour au chargement (une seule fois)
   useEffect(() => {
-    if (deviceUrl && checkForUpdate) {
+    if (checkForUpdate && !hasInitialCheckRun) {
       checkForUpdate();
+      setHasInitialCheckRun(true);
     }
-  }, [deviceUrl, checkForUpdate]);
+  }, [checkForUpdate, hasInitialCheckRun]);
 
   const handleUpdateFromNotification = () => {
     setNotificationDismissed(true);
@@ -57,10 +54,9 @@ export default function DashboardScreen() {
   };
 
   return (
-    <div className="viewport-height bg-bg-surface overflow-hidden relative">
+    <div className="relative overflow-hidden viewport-height bg-bg-surface">
       {/* Global toolbar at top */}
       <TopBarDashboard
-        deviceId={id}
         updateStatus={updateStatus}
         updateInfo={updateInfo}
         updateError={updateError}
@@ -81,7 +77,7 @@ export default function DashboardScreen() {
       )}
 
       {/* Main content area with overlays */}
-      <div className="relative dashboard-content-height flex">
+      <div className="relative flex dashboard-content-height">
         {/* Left vertical mode rail */}
         <ModeRail
           showGuidingOverlay={showGuidingOverlay}
@@ -89,7 +85,7 @@ export default function DashboardScreen() {
         />
 
         {/* Central stage area */}
-        <div className="flex-1 relative">
+        <div className="relative flex-1">
           <LiveCanvas />
           <GuidingOverlay isVisible={showGuidingOverlay} />
         </div>

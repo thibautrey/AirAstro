@@ -1,16 +1,25 @@
 import { UpdateInfo, UpdateStatus } from "../types/update";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import UpdateService from "../services/updateService";
+import { useAirAstroUrl } from "./useAirAstroUrl";
 
-export function useUpdate(deviceUrl: string) {
+export function useUpdate() {
+  const { baseUrl } = useAirAstroUrl();
   const [status, setStatus] = useState<UpdateStatus>(UpdateStatus.IDLE);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const updateService = new UpdateService(deviceUrl);
+  const updateService = useMemo(() => {
+    return baseUrl ? new UpdateService(baseUrl) : null;
+  }, [baseUrl]);
 
   const checkForUpdate = useCallback(async () => {
+    if (!updateService) {
+      setError("Service de mise à jour non disponible");
+      return;
+    }
+
     setStatus(UpdateStatus.CHECKING);
     setError(null);
 
@@ -24,10 +33,10 @@ export function useUpdate(deviceUrl: string) {
       setError(err instanceof Error ? err.message : "Erreur inconnue");
       setStatus(UpdateStatus.ERROR);
     }
-  }, [deviceUrl]);
+  }, [updateService]);
 
   const downloadAndInstallUpdate = useCallback(async () => {
-    if (!updateInfo?.updateAvailable) return;
+    if (!updateInfo?.updateAvailable || !updateService) return;
 
     try {
       // Phase de téléchargement
@@ -50,7 +59,7 @@ export function useUpdate(deviceUrl: string) {
       setError(err instanceof Error ? err.message : "Erreur inconnue");
       setStatus(UpdateStatus.ERROR);
     }
-  }, [updateInfo, deviceUrl]);
+  }, [updateInfo, updateService]);
 
   const resetUpdate = useCallback(() => {
     setStatus(UpdateStatus.IDLE);

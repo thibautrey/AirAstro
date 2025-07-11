@@ -10,13 +10,12 @@ import {
 
 import { clsx } from "clsx";
 import { createPortal } from "react-dom";
-import { useState } from "react";
 import { usePortal } from "../hooks/usePortal";
+import { useState } from "react";
 
 interface EquipmentDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  deviceId?: string;
 }
 
 type EquipmentType =
@@ -62,7 +61,6 @@ const equipmentTypes: Array<{
 export default function EquipmentDrawer({
   isOpen,
   onClose,
-  deviceId,
 }: EquipmentDrawerProps) {
   const [activeEquipment, setActiveEquipment] =
     useState<EquipmentType>("MainCamera");

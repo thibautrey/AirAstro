@@ -32,7 +32,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<DeviceWelcome />} />
           <Route path="/setup" element={<EquipmentSetup />} />
-          <Route path="/device/:id/control" element={<DashboardScreen />} />
+          <Route path="/control" element={<DashboardScreen />} />
         </Routes>
       </Router>
 

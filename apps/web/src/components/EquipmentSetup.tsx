@@ -9,9 +9,9 @@ import NumberInput from "./ui/NumberInput";
 import Select from "./ui/Select";
 import TopBar from "./ui/TopBar";
 import { useEquipment } from "../hooks/useEquipment";
-import { usePersistentState } from "../hooks/usePersistentState";
 import { useLocation } from "../hooks/useLocation";
 import { useNavigate } from "react-router-dom";
+import { usePersistentState } from "../hooks/usePersistentState";
 
 export default function EquipmentSetup() {
   const navigate = useNavigate();
@@ -71,8 +71,7 @@ export default function EquipmentSetup() {
 
         // Naviguer vers l'écran de contrôle après un délai
         setTimeout(() => {
-          const deviceId = "airastro-001";
-          navigate(`/device/${deviceId}/control`);
+          navigate("/control");
         }, 2000);
       } else {
         setSetupMessage(
@@ -120,9 +119,7 @@ export default function EquipmentSetup() {
   };
 
   const handleComplete = () => {
-    // Simuler un ID d'appareil pour la démo
-    const deviceId = "airastro-001";
-    navigate(`/device/${deviceId}/control`);
+    navigate("/control");
   };
 
   // Générer les options dynamiquement à partir des équipements détectés

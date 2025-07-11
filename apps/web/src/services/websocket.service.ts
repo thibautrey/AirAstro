@@ -1,3 +1,5 @@
+import airAstroUrlService from "./airastro-url.service";
+
 // Interface pour WebSocket (sans dépendance socket.io pour l'instant)
 export interface WebSocketClient {
   connect(): void;
@@ -17,10 +19,24 @@ export class SimpleWebSocketService {
   private isConnected = false;
 
   constructor() {
-    this.url =
-      import.meta.env.MODE === "production"
-        ? `ws://${window.location.host}/ws`
-        : "ws://localhost:3000/ws";
+    this.url = this.buildWebSocketUrl();
+  }
+
+  private buildWebSocketUrl(): string {
+    try {
+      const baseUrl = airAstroUrlService.getBaseUrl();
+      if (baseUrl) {
+        // Convertir HTTP en WebSocket
+        return baseUrl.replace(/^http/, "ws") + "/ws";
+      }
+    } catch (error) {
+      console.warn("URL AirAstro non disponible, utilisation de la fallback");
+    }
+
+    // Fallback pour le développement
+    return import.meta.env.MODE === "production"
+      ? `ws://${window.location.host}/ws`
+      : "ws://localhost:3000/ws";
   }
 
   connect(): void {
