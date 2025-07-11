@@ -19,7 +19,7 @@ const app = express();
 const httpServer = createServer(app);
 const bonjourInstance = bonjour();
 
-// Configuration WebSocket (commenté pour l'instant)
+// WebSocket configuration (currently disabled)
 // const webSocketService = new WebSocketService(httpServer);
 
 // Enable CORS for all routes
@@ -53,18 +53,18 @@ if (port !== requestedPort) {
 
 const driverManager = new DriverManager();
 
-// Initialisation de la base de données d'équipements
+// Initialize equipment database
 const equipmentDatabase = new EquipmentDatabaseService();
 
-// Initialisation asynchrone de la base de données
+// Asynchronous initialization of services
 async function initializeServices() {
   try {
-    console.log("🔄 Initialisation des services...");
+    console.log("🔄 Initializing services...");
     await equipmentDatabase.initializeDatabase();
-    console.log("✅ Services initialisés avec succès");
+    console.log("✅ Services initialized successfully");
   } catch (error) {
-    console.error("❌ Erreur lors de l'initialisation des services:", error);
-    console.log("⚠️  Poursuite avec la base de données par défaut");
+    console.error("❌ Error during services initialization:", error);
+    console.log("⚠️  Continuing with default database");
   }
 }
 
@@ -184,7 +184,7 @@ const server = httpServer.listen(port, () => {
 
   console.log(`📡 mDNS discovery: Dual-layer (System + Application)`);
 
-  // Configuration mDNS au niveau application (complément du système)
+  // Application-level mDNS configuration (complements system service)
   const service = bonjourInstance.publish({
     name: "airastro",
     type: "http",
@@ -192,8 +192,8 @@ const server = httpServer.listen(port, () => {
     txt: {
       description: "AirAstro Astronomy Server",
       version: "0.0.1",
-      layer: "application", // Indique que c'est la couche application
-      systemMdns: "enabled", // Indique que mDNS système est actif
+      layer: "application", // indicates this is the application layer
+      systemMdns: "enabled", // system-level mDNS is active
       features: "imaging,guiding,platesolving,scheduler",
       interface: "web",
       path: "/",
@@ -210,7 +210,7 @@ const server = httpServer.listen(port, () => {
     console.log("   System-level mDNS via Avahi should still work");
   });
 
-  // Arrêt propre du service mDNS lors de l'arrêt du serveur
+  // Cleanly stop the mDNS service when shutting down the server
   process.on("SIGINT", () => {
     console.log("\n🛑 Shutting down server...");
     service.stop();
@@ -226,25 +226,25 @@ const server = httpServer.listen(port, () => {
   });
 });
 
-// Gestion des erreurs de serveur
+// Server error handling
 server.on("error", (err: any) => {
   if (err.code === "EACCES") {
     console.error(`❌ Permission denied for port ${port}`);
-    console.error(`💡 Solutions possibles:`);
-    console.error(`   1. Utiliser un port > 1024 (ex: PORT=3000)`);
-    console.error(`   2. Lancer avec sudo (non recommandé)`);
+    console.error(`💡 Possible solutions:`);
+    console.error(`   1. Use a port > 1024 (e.g. PORT=3000)`);
+    console.error(`   2. Run with sudo (not recommended)`);
     console.error(
-      `   3. Configurer les capacités: sudo setcap 'cap_net_bind_service=+ep' $(which node)`
+      `   3. Configure capabilities: sudo setcap 'cap_net_bind_service=+ep' $(which node)`
     );
     process.exit(1);
   } else if (err.code === "EADDRINUSE") {
-    console.error(`❌ Port ${port} déjà utilisé`);
-    console.error(`💡 Solutions possibles:`);
-    console.error(`   1. Utiliser un autre port (ex: PORT=3001)`);
-    console.error(`   2. Arrêter le processus utilisant ce port`);
+    console.error(`❌ Port ${port} already in use`);
+    console.error(`💡 Possible solutions:`);
+    console.error(`   1. Use another port (e.g. PORT=3001)`);
+    console.error(`   2. Stop the process using this port`);
     process.exit(1);
   } else {
-    console.error(`❌ Erreur serveur:`, err);
+    console.error(`❌ Server error:`, err);
     process.exit(1);
   }
 });

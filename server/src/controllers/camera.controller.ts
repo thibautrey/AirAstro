@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { CameraService } from "../services/camera.service";
 
-// Instance unique du service caméra
+// Singleton instance of the camera service
 const cameraService = new CameraService();
 
 export async function getCameras(req: Request, res: Response) {
@@ -17,7 +17,7 @@ export async function selectCamera(req: Request, res: Response) {
   try {
     const { cameraName } = req.body;
     if (!cameraName) {
-      return res.status(400).json({ error: "Nom de caméra requis" });
+      return res.status(400).json({ error: "Camera name required" });
     }
 
     await cameraService.selectCamera(cameraName);
@@ -63,7 +63,7 @@ export async function startCapture(req: Request, res: Response) {
     res.json({
       success: true,
       captureId,
-      message: "Capture démarrée",
+      message: "Capture started",
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -73,7 +73,7 @@ export async function startCapture(req: Request, res: Response) {
 export async function cancelCapture(req: Request, res: Response) {
   try {
     await cameraService.cancelCapture();
-    res.json({ success: true, message: "Capture annulée" });
+    res.json({ success: true, message: "Capture cancelled" });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -84,7 +84,7 @@ export async function setCooling(req: Request, res: Response) {
     const { enabled, targetTemperature } = req.body;
     await cameraService.setCooling(enabled, targetTemperature);
 
-    res.json({ success: true, message: "Refroidissement configuré" });
+    res.json({ success: true, message: "Cooling configured" });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -103,13 +103,13 @@ export async function deleteImage(req: Request, res: Response) {
   try {
     const { filename } = req.params;
     await cameraService.deleteImage(filename);
-    res.json({ success: true, message: "Image supprimée" });
+    res.json({ success: true, message: "Image deleted" });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 }
 
-// Obtenir l'instance du service pour les WebSocket
+// Retrieve the service instance for WebSocket usage
 export function getCameraService(): CameraService {
   return cameraService;
 }
