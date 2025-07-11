@@ -45,6 +45,7 @@ export default function EquipmentSetup() {
   const [autoSetupStarted, setAutoSetupStarted] = useState(false);
   const [setupMessage, setSetupMessage] = useState("");
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
+  const [isConnectionPopoverOpen, setIsConnectionPopoverOpen] = useState(false);
 
   const [status] = useState<"Connected" | "Connecting…" | "Lost">("Connected");
 
@@ -164,14 +165,61 @@ export default function EquipmentSetup() {
     handleComplete();
   };
 
+  const handleStatusClick = () => {
+    setIsConnectionPopoverOpen(!isConnectionPopoverOpen);
+  };
+
   return (
     <div className="flex flex-col overflow-hidden viewport-height bg-bg-surface">
-      <TopBar
-        onBack={handleBack}
-        status={status}
-        serialNumber="AS-2024-001"
-        appVersion="v1.0.0"
-      />
+      <div className="relative">
+        <TopBar
+          onBack={handleBack}
+          status={status}
+          serialNumber="AS-2024-001"
+          appVersion="v1.0.0"
+          onStatusClick={handleStatusClick}
+        />
+
+        {/* Popover pour la connexion AirAstro */}
+        {isConnectionPopoverOpen && (
+          <div className="absolute left-0 right-0 z-50 mx-4 mt-2 border rounded-lg shadow-lg top-full bg-zinc-800 border-zinc-700">
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold text-white">
+                  Connexion AirAstro
+                </h3>
+                <button
+                  onClick={() => setIsConnectionPopoverOpen(false)}
+                  className="text-gray-400 transition-colors hover:text-white"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <AirAstroConnectionManager />
+            </div>
+          </div>
+        )}
+
+        {/* Overlay pour fermer le popover */}
+        {isConnectionPopoverOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/20"
+            onClick={() => setIsConnectionPopoverOpen(false)}
+          />
+        )}
+      </div>
 
       <div className="flex-1 px-4 py-8 pb-20 overflow-y-auto">
         <div className="max-w-lg mx-auto">
@@ -395,8 +443,7 @@ export default function EquipmentSetup() {
             </div>
           </div>
 
-          {/* Gestionnaire de connexion AirAstro */}
-          <AirAstroConnectionManager />
+          {/* Gestionnaire de connexion AirAstro - Supprimé, maintenant dans le popover */}
         </div>
       </div>
 

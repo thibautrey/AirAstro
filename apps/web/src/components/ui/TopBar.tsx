@@ -7,6 +7,7 @@ interface TopBarProps {
   status: "Connected" | "Connecting…" | "Lost";
   serialNumber?: string;
   appVersion?: string;
+  onStatusClick?: () => void;
 }
 
 export default function TopBar({
@@ -14,6 +15,7 @@ export default function TopBar({
   status,
   serialNumber = "AS-2024-001",
   appVersion = "v1.0.0",
+  onStatusClick,
 }: TopBarProps) {
   const [isStandalone, setIsStandalone] = useState(false);
 
@@ -63,10 +65,21 @@ export default function TopBar({
         </div>
 
         {/* Center: Status */}
-        <div
-          className={`text-sm font-medium tracking-wide uppercase flex-shrink-0 px-4 ${getStatusColor()}`}
-        >
-          {status}
+        <div className="flex-shrink-0 px-4">
+          {onStatusClick ? (
+            <button
+              onClick={onStatusClick}
+              className={`text-sm font-medium tracking-wide uppercase transition-colors hover:opacity-80 underline underline-offset-2 ${getStatusColor()}`}
+            >
+              {status}
+            </button>
+          ) : (
+            <div
+              className={`text-sm font-medium tracking-wide uppercase ${getStatusColor()}`}
+            >
+              {status}
+            </div>
+          )}
         </div>
 
         {/* Right: Serial & Version */}
