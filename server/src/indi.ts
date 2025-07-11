@@ -220,7 +220,8 @@ export class DriverManager {
     try {
       // Obtenir la liste des devices depuis INDI
       const devicesOutput = await this.indiClient.getProp(
-        "*.CONNECTION.CONNECT"
+        "*",
+        "CONNECTION.CONNECT"
       );
       const devices: IndiDevice[] = [];
 
@@ -271,7 +272,8 @@ export class DriverManager {
 
       // Obtenir le type de device
       const driverExec = await this.indiClient.getProp(
-        `${deviceName}.DRIVER_INFO.DRIVER_EXEC`
+        deviceName,
+        "DRIVER_INFO.DRIVER_EXEC"
       );
       if (driverExec) {
         info.driver = driverExec.trim();
@@ -280,7 +282,8 @@ export class DriverManager {
 
       // Obtenir le nom affiché
       const driverName = await this.indiClient.getProp(
-        `${deviceName}.DRIVER_INFO.DRIVER_NAME`
+        deviceName,
+        "DRIVER_INFO.DRIVER_NAME"
       );
       if (driverName) {
         info.label = driverName.trim();
@@ -288,7 +291,8 @@ export class DriverManager {
 
       // Obtenir la version du driver
       const driverVersion = await this.indiClient.getProp(
-        `${deviceName}.DRIVER_INFO.DRIVER_VERSION`
+        deviceName,
+        "DRIVER_INFO.DRIVER_VERSION"
       );
 
       // Obtenir les propriétés importantes
@@ -343,29 +347,31 @@ export class DriverManager {
     try {
       const properties: IndiProperty[] = [];
 
-      // Obtenir toutes les propriétés du device
-      const allProps = await this.indiClient.getProp(`${deviceName}.*`);
+      // Pour cette implémentation simplifiée, on va récupérer quelques propriétés connues
+      // Une implémentation plus complète nécessiterait une API INDI plus avancée
+      const commonProperties = [
+        "CONNECTION.CONNECT",
+        "CONNECTION.DISCONNECT",
+        "DRIVER_INFO.DRIVER_NAME",
+        "DRIVER_INFO.DRIVER_EXEC",
+        "DRIVER_INFO.DRIVER_VERSION",
+      ];
 
-      if (allProps) {
-        const lines = allProps.split("\n").filter((line) => line.trim());
-
-        for (const line of lines) {
-          const match = line.match(/^([^.]+)\.([^.]+)\.([^=]+)=(.+)$/);
-          if (match) {
-            const [, device, group, propName, value] = match;
-
-            // Filtrer les propriétés importantes
-            if (this.isImportantProperty(group, propName)) {
-              properties.push({
-                name: `${group}.${propName}`,
-                label: propName,
-                type: this.inferPropertyType(propName, value),
-                value: this.parsePropertyValue(value),
-                writable: this.isWritableProperty(group, propName),
-                state: "idle", // On pourrait l'obtenir depuis INDI mais c'est plus complexe
-              });
-            }
+      for (const prop of commonProperties) {
+        try {
+          const value = await this.indiClient.getProp(deviceName, prop);
+          if (value) {
+            properties.push({
+              name: prop,
+              label: prop.split(".").pop() || prop,
+              type: this.inferPropertyType(prop, value),
+              value: this.parsePropertyValue(value),
+              writable: this.isWritableProperty(prop, prop),
+              state: "idle",
+            });
           }
+        } catch (error) {
+          // Ignorer les propriétés non disponibles
         }
       }
 
@@ -503,7 +509,9 @@ export class DriverManager {
    */
   async connectDevice(deviceName: string): Promise<void> {
     try {
-      await this.indiClient.setProp(`${deviceName}.CONNECTION.CONNECT`, "On");
+      await this.indiClient.setProp(deviceName, "CONNECTION.CONNECT", {
+        CONNECT: "On",
+      });
       console.log(`Équipement ${deviceName} connecté`);
     } catch (error) {
       console.error(`Erreur lors de la connexion à ${deviceName}:`, error);
@@ -516,7 +524,9 @@ export class DriverManager {
    */
   async disconnectDevice(deviceName: string): Promise<void> {
     try {
-      await this.indiClient.setProp(`${deviceName}.CONNECTION.CONNECT`, "Off");
+      await this.indiClient.setProp(deviceName, "CONNECTION.CONNECT", {
+        CONNECT: "Off",
+      });
       console.log(`Équipement ${deviceName} déconnecté`);
     } catch (error) {
       console.error(`Erreur lors de la déconnexion de ${deviceName}:`, error);
@@ -532,7 +542,7 @@ export class DriverManager {
     propertyName: string
   ): Promise<string> {
     try {
-      return await this.indiClient.getProp(`${deviceName}.${propertyName}`);
+      return await this.indiClient.getProp(deviceName, propertyName);
     } catch (error) {
       console.error(
         `Erreur lors de la lecture de ${deviceName}.${propertyName}:`,
@@ -551,7 +561,11 @@ export class DriverManager {
     value: string
   ): Promise<void> {
     try {
-      await this.indiClient.setProp(`${deviceName}.${propertyName}`, value);
+      // Déterminer le nom de l'élément principal basé sur le nom de propriété
+      const elementName = this.getElementNameFromProperty(propertyName);
+      await this.indiClient.setProp(deviceName, propertyName, {
+        [elementName]: value,
+      });
       console.log(`Propriété ${deviceName}.${propertyName} définie à ${value}`);
     } catch (error) {
       console.error(
@@ -563,12 +577,28 @@ export class DriverManager {
   }
 
   /**
+   * Obtenir le nom d'élément principal pour une propriété
+   */
+  private getElementNameFromProperty(propertyName: string): string {
+    // Logique simplifiée pour déterminer le nom d'élément principal
+    if (propertyName.includes("CONNECTION")) return "CONNECT";
+    if (propertyName.includes("EXPOSE")) return "EXPOSE";
+    if (propertyName.includes("FOCUS")) return "FOCUS";
+    if (propertyName.includes("POSITION")) return "POSITION";
+
+    // Par défaut, utiliser le dernier segment du nom de propriété
+    const segments = propertyName.split(".");
+    return segments[segments.length - 1];
+  }
+
+  /**
    * Vérifier si le serveur INDI est en cours d'exécution
    */
   async isIndiServerRunning(): Promise<boolean> {
     try {
-      const result = await this.indiClient.getProp("*.CONNECTION.CONNECT");
-      return result !== null && result !== "";
+      // Essayer de se connecter au serveur INDI
+      await this.indiClient.connect();
+      return true;
     } catch (error) {
       return false;
     }
@@ -993,6 +1023,47 @@ export class DriverManager {
   }
 
   /**
+   * Installer un driver INDI
+   */
+  async installDriver(name: string): Promise<void> {
+    console.log(`📦 Installation du driver: ${name}`);
+
+    try {
+      // Vérifier si le driver est déjà installé
+      const installedDrivers = await this.getInstalledDrivers();
+      if (installedDrivers.includes(name)) {
+        console.log(`✅ Driver ${name} déjà installé`);
+        return;
+      }
+
+      // Essayer d'installer via apt-get
+      await this.exec("sudo apt-get update");
+      await this.exec(`sudo apt-get install -y ${name}`);
+
+      console.log(`✅ Driver ${name} installé avec succès`);
+    } catch (error) {
+      console.error(`❌ Erreur lors de l'installation de ${name}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Exécuter une commande système
+   */
+  private async exec(command: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const { exec } = require("child_process");
+      exec(command, (error: any, stdout: string, stderr: string) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(stdout);
+        }
+      });
+    });
+  }
+
+  /**
    * Prendre une photo avec une caméra
    */
   async captureImage(
@@ -1004,7 +1075,8 @@ export class DriverManager {
 
       // Vérifier que la caméra est connectée
       const isConnected = await this.indiClient.getProp(
-        `${cameraName}.CONNECTION.CONNECT`
+        cameraName,
+        "CONNECTION.CONNECT"
       );
       if (isConnected !== "On") {
         throw new Error(`La caméra ${cameraName} n'est pas connectée`);
@@ -1012,14 +1084,16 @@ export class DriverManager {
 
       // Définir le temps d'exposition
       await this.indiClient.setProp(
-        `${cameraName}.CCD_EXPOSURE.CCD_EXPOSURE_VALUE`,
-        exposureTime.toString()
+        cameraName,
+        "CCD_EXPOSURE.CCD_EXPOSURE_VALUE",
+        { "CCD_EXPOSURE_VALUE": exposureTime.toString() }
       );
 
       // Démarrer l'exposition
       await this.indiClient.setProp(
-        `${cameraName}.CCD_EXPOSURE.CCD_EXPOSURE_REQUEST`,
-        "On"
+        cameraName,
+        "CCD_EXPOSURE.CCD_EXPOSURE_REQUEST",
+        { "CCD_EXPOSURE_REQUEST": "On" }
       );
 
       console.log(`✅ Exposition démarrée pour ${cameraName}`);
@@ -1040,7 +1114,8 @@ export class DriverManager {
 
       // Vérifier que la monture est connectée
       const isConnected = await this.indiClient.getProp(
-        `${mountName}.CONNECTION.CONNECT`
+        mountName,
+        "CONNECTION.CONNECT"
       );
       if (isConnected !== "On") {
         throw new Error(`La monture ${mountName} n'est pas connectée`);
@@ -1048,16 +1123,18 @@ export class DriverManager {
 
       // Définir les coordonnées
       await this.indiClient.setProp(
-        `${mountName}.EQUATORIAL_EOD_COORD.RA`,
-        ra.toString()
+        mountName,
+        "EQUATORIAL_EOD_COORD.RA",
+        { "RA": ra.toString() }
       );
       await this.indiClient.setProp(
-        `${mountName}.EQUATORIAL_EOD_COORD.DEC`,
-        dec.toString()
+        mountName,
+        "EQUATORIAL_EOD_COORD.DEC",
+        { "DEC": dec.toString() }
       );
 
       // Démarrer le mouvement
-      await this.indiClient.setProp(`${mountName}.ON_COORD_SET.SLEW`, "On");
+      await this.indiClient.setProp(mountName, "ON_COORD_SET.SLEW", { "SLEW": "On" });
 
       console.log(`✅ Mouvement démarré pour ${mountName}`);
     } catch (error) {
@@ -1077,7 +1154,8 @@ export class DriverManager {
 
       // Vérifier que le focuser est connecté
       const isConnected = await this.indiClient.getProp(
-        `${focuserName}.CONNECTION.CONNECT`
+        focuserName,
+        "CONNECTION.CONNECT"
       );
       if (isConnected !== "On") {
         throw new Error(`Le focuser ${focuserName} n'est pas connecté`);
@@ -1085,8 +1163,9 @@ export class DriverManager {
 
       // Définir la position
       await this.indiClient.setProp(
-        `${focuserName}.ABS_FOCUS_POSITION.FOCUS_ABSOLUTE_POSITION`,
-        position.toString()
+        focuserName,
+        "ABS_FOCUS_POSITION.FOCUS_ABSOLUTE_POSITION",
+        { "FOCUS_ABSOLUTE_POSITION": position.toString() }
       );
 
       console.log(`✅ Position du focuser ${focuserName} ajustée`);
@@ -1110,7 +1189,8 @@ export class DriverManager {
 
       // Vérifier que la roue à filtres est connectée
       const isConnected = await this.indiClient.getProp(
-        `${filterWheelName}.CONNECTION.CONNECT`
+        filterWheelName,
+        "CONNECTION.CONNECT"
       );
       if (isConnected !== "On") {
         throw new Error(
@@ -1120,8 +1200,9 @@ export class DriverManager {
 
       // Changer de filtre
       await this.indiClient.setProp(
-        `${filterWheelName}.FILTER_SLOT.FILTER_SLOT_VALUE`,
-        filterSlot.toString()
+        filterWheelName,
+        "FILTER_SLOT.FILTER_SLOT_VALUE",
+        { "FILTER_SLOT_VALUE": filterSlot.toString() }
       );
 
       console.log(`✅ Filtre changé sur ${filterWheelName}`);
@@ -1151,32 +1232,38 @@ export class DriverManager {
 
       // Essayer de récupérer diverses informations météo
       const tempProp = await this.indiClient.getProp(
-        `${weatherStationName}.WEATHER_TEMPERATURE.TEMPERATURE`
+        weatherStationName,
+        "WEATHER_TEMPERATURE.TEMPERATURE"
       );
       if (tempProp) weatherInfo.temperature = parseFloat(tempProp);
 
       const humidityProp = await this.indiClient.getProp(
-        `${weatherStationName}.WEATHER_HUMIDITY.HUMIDITY`
+        weatherStationName,
+        "WEATHER_HUMIDITY.HUMIDITY"
       );
       if (humidityProp) weatherInfo.humidity = parseFloat(humidityProp);
 
       const pressureProp = await this.indiClient.getProp(
-        `${weatherStationName}.WEATHER_PRESSURE.PRESSURE`
+        weatherStationName,
+        "WEATHER_PRESSURE.PRESSURE"
       );
       if (pressureProp) weatherInfo.pressure = parseFloat(pressureProp);
 
       const windProp = await this.indiClient.getProp(
-        `${weatherStationName}.WEATHER_WIND_SPEED.WIND_SPEED`
+        weatherStationName,
+        "WEATHER_WIND_SPEED.WIND_SPEED"
       );
       if (windProp) weatherInfo.windSpeed = parseFloat(windProp);
 
       const cloudProp = await this.indiClient.getProp(
-        `${weatherStationName}.WEATHER_CLOUD_COVER.CLOUD_COVER`
+        weatherStationName,
+        "WEATHER_CLOUD_COVER.CLOUD_COVER"
       );
       if (cloudProp) weatherInfo.cloudCover = parseFloat(cloudProp);
 
       const skyProp = await this.indiClient.getProp(
-        `${weatherStationName}.WEATHER_SKY_QUALITY.SKY_QUALITY`
+        weatherStationName,
+        "WEATHER_SKY_QUALITY.SKY_QUALITY"
       );
       if (skyProp) weatherInfo.skyQuality = parseFloat(skyProp);
 
@@ -1200,7 +1287,8 @@ export class DriverManager {
   }> {
     try {
       const exposureState = await this.indiClient.getProp(
-        `${cameraName}.CCD_EXPOSURE.CCD_EXPOSURE_REQUEST`
+        cameraName,
+        "CCD_EXPOSURE.CCD_EXPOSURE_REQUEST"
       );
       const exposing = exposureState === "On";
 
@@ -1209,7 +1297,8 @@ export class DriverManager {
 
       if (exposing) {
         const remainingProp = await this.indiClient.getProp(
-          `${cameraName}.CCD_EXPOSURE.CCD_EXPOSURE_VALUE`
+          cameraName,
+          "CCD_EXPOSURE.CCD_EXPOSURE_VALUE"
         );
         if (remainingProp) {
           remainingTime = parseFloat(remainingProp);
@@ -1243,22 +1332,26 @@ export class DriverManager {
       const position: any = {};
 
       const raProp = await this.indiClient.getProp(
-        `${mountName}.EQUATORIAL_EOD_COORD.RA`
+        mountName,
+        "EQUATORIAL_EOD_COORD.RA"
       );
       if (raProp) position.ra = parseFloat(raProp);
 
       const decProp = await this.indiClient.getProp(
-        `${mountName}.EQUATORIAL_EOD_COORD.DEC`
+        mountName,
+        "EQUATORIAL_EOD_COORD.DEC"
       );
       if (decProp) position.dec = parseFloat(decProp);
 
       const trackingProp = await this.indiClient.getProp(
-        `${mountName}.TELESCOPE_TRACK_STATE.TRACK_ON`
+        mountName,
+        "TELESCOPE_TRACK_STATE.TRACK_ON"
       );
       if (trackingProp) position.isTracking = trackingProp === "On";
 
       const parkProp = await this.indiClient.getProp(
-        `${mountName}.TELESCOPE_PARK.PARK`
+        mountName,
+        "TELESCOPE_PARK.PARK"
       );
       if (parkProp) position.isParked = parkProp === "On";
 
@@ -1283,8 +1376,9 @@ export class DriverManager {
 
       const trackingValue = tracking ? "On" : "Off";
       await this.indiClient.setProp(
-        `${mountName}.TELESCOPE_TRACK_STATE.TRACK_${trackingValue.toUpperCase()}`,
-        "On"
+        mountName,
+        `TELESCOPE_TRACK_STATE.TRACK_${trackingValue.toUpperCase()}`,
+        { [`TRACK_${trackingValue.toUpperCase()}`]: "On" }
       );
 
       console.log(
@@ -1310,8 +1404,9 @@ export class DriverManager {
 
       const parkValue = park ? "PARK" : "UNPARK";
       await this.indiClient.setProp(
-        `${mountName}.TELESCOPE_PARK.${parkValue}`,
-        "On"
+        mountName,
+        `TELESCOPE_PARK.${parkValue}`,
+        { [parkValue]: "On" }
       );
 
       console.log(`✅ Monture ${mountName} ${park ? "parkée" : "déparkée"}`);
