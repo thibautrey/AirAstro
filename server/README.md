@@ -1,6 +1,6 @@
 # AirAstro Server
 
-This directory contains the Node.js service that runs on the Raspberry Pi. The server will be responsible for interacting with INDI/ASCOM drivers and exposing APIs for the mobile applications.
+This directory contains the Node.js service that runs on the Raspberry Pi. The server communicates with astronomy equipment exclusively through **INDI server**. Drivers are started using `indiserver` and properties are accessed via the native INDI interfaces. Driver installation and maintenance remain fully automatic.
 
 ## Requirements
 
