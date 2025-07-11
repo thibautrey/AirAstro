@@ -1086,14 +1086,14 @@ export class DriverManager {
       await this.indiClient.setProp(
         cameraName,
         "CCD_EXPOSURE.CCD_EXPOSURE_VALUE",
-        { "CCD_EXPOSURE_VALUE": exposureTime.toString() }
+        { CCD_EXPOSURE_VALUE: exposureTime.toString() }
       );
 
       // Démarrer l'exposition
       await this.indiClient.setProp(
         cameraName,
         "CCD_EXPOSURE.CCD_EXPOSURE_REQUEST",
-        { "CCD_EXPOSURE_REQUEST": "On" }
+        { CCD_EXPOSURE_REQUEST: "On" }
       );
 
       console.log(`✅ Exposition démarrée pour ${cameraName}`);
@@ -1122,19 +1122,17 @@ export class DriverManager {
       }
 
       // Définir les coordonnées
-      await this.indiClient.setProp(
-        mountName,
-        "EQUATORIAL_EOD_COORD.RA",
-        { "RA": ra.toString() }
-      );
-      await this.indiClient.setProp(
-        mountName,
-        "EQUATORIAL_EOD_COORD.DEC",
-        { "DEC": dec.toString() }
-      );
+      await this.indiClient.setProp(mountName, "EQUATORIAL_EOD_COORD.RA", {
+        RA: ra.toString(),
+      });
+      await this.indiClient.setProp(mountName, "EQUATORIAL_EOD_COORD.DEC", {
+        DEC: dec.toString(),
+      });
 
       // Démarrer le mouvement
-      await this.indiClient.setProp(mountName, "ON_COORD_SET.SLEW", { "SLEW": "On" });
+      await this.indiClient.setProp(mountName, "ON_COORD_SET.SLEW", {
+        SLEW: "On",
+      });
 
       console.log(`✅ Mouvement démarré pour ${mountName}`);
     } catch (error) {
@@ -1165,7 +1163,7 @@ export class DriverManager {
       await this.indiClient.setProp(
         focuserName,
         "ABS_FOCUS_POSITION.FOCUS_ABSOLUTE_POSITION",
-        { "FOCUS_ABSOLUTE_POSITION": position.toString() }
+        { FOCUS_ABSOLUTE_POSITION: position.toString() }
       );
 
       console.log(`✅ Position du focuser ${focuserName} ajustée`);
@@ -1202,7 +1200,7 @@ export class DriverManager {
       await this.indiClient.setProp(
         filterWheelName,
         "FILTER_SLOT.FILTER_SLOT_VALUE",
-        { "FILTER_SLOT_VALUE": filterSlot.toString() }
+        { FILTER_SLOT_VALUE: filterSlot.toString() }
       );
 
       console.log(`✅ Filtre changé sur ${filterWheelName}`);
@@ -1403,11 +1401,9 @@ export class DriverManager {
       );
 
       const parkValue = park ? "PARK" : "UNPARK";
-      await this.indiClient.setProp(
-        mountName,
-        `TELESCOPE_PARK.${parkValue}`,
-        { [parkValue]: "On" }
-      );
+      await this.indiClient.setProp(mountName, `TELESCOPE_PARK.${parkValue}`, {
+        [parkValue]: "On",
+      });
 
       console.log(`✅ Monture ${mountName} ${park ? "parkée" : "déparkée"}`);
     } catch (error) {
