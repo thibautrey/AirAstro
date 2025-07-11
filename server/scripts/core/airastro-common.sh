@@ -43,6 +43,23 @@ airastro_log() {
     esac
 }
 
+# Fonctions raccourcies pour la compatibilité avec les scripts existants
+log_info() {
+    airastro_log "INFO" "$1"
+}
+
+log_warning() {
+    airastro_log "WARN" "$1"
+}
+
+log_error() {
+    airastro_log "ERROR" "$1"
+}
+
+log_debug() {
+    airastro_log "DEBUG" "$1"
+}
+
 # Fonction pour exécuter des commandes avec ou sans sudo
 run_command() {
     if [ "$(id -u)" -eq 0 ]; then
@@ -55,7 +72,7 @@ run_command() {
 # Fonction pour initialiser les répertoires AirAstro
 init_airastro_directories() {
     airastro_log "INFO" "Initialisation des répertoires AirAstro"
-    
+
     # Créer le répertoire de base
     if [ ! -d "$AIRASTRO_BASE_PATH" ]; then
         if [ "$(id -u)" -eq 0 ]; then
@@ -67,7 +84,7 @@ init_airastro_directories() {
         fi
         airastro_log "INFO" "Répertoire de base créé: $AIRASTRO_BASE_PATH"
     fi
-    
+
     # Créer les sous-répertoires
     for dir in "$AIRASTRO_VERSIONS_DIR" "$AIRASTRO_BACKUPS_DIR" "$AIRASTRO_LOGS_DIR" "$AIRASTRO_CONFIG_DIR"; do
         if [ ! -d "$dir" ]; then
@@ -79,7 +96,7 @@ init_airastro_directories() {
             airastro_log "INFO" "Répertoire créé: $dir"
         fi
     done
-    
+
     airastro_log "INFO" "Initialisation des répertoires terminée"
 }
 
@@ -102,11 +119,11 @@ check_airastro_permissions() {
 # Fonction pour valider que nous sommes dans un environnement AirAstro
 validate_airastro_environment() {
     local script_dir="$1"
-    
+
     # Chercher le répertoire racine du projet
     local project_root=""
     local current_dir="$script_dir"
-    
+
     while [ "$current_dir" != "/" ]; do
         if [ -f "$current_dir/server/package.json" ] && [ -f "$current_dir/README.md" ]; then
             project_root="$current_dir"
@@ -114,12 +131,12 @@ validate_airastro_environment() {
         fi
         current_dir="$(dirname "$current_dir")"
     done
-    
+
     if [ -z "$project_root" ]; then
         airastro_log "ERROR" "Impossible de trouver le répertoire racine d'AirAstro"
         return 1
     fi
-    
+
     echo "$project_root"
     return 0
 }
@@ -127,15 +144,15 @@ validate_airastro_environment() {
 # Fonction d'initialisation complète
 init_airastro_environment() {
     airastro_log "INFO" "Initialisation de l'environnement AirAstro"
-    
+
     # Vérifier les permissions
     if ! check_airastro_permissions; then
         return 1
     fi
-    
+
     # Initialiser les répertoires
     init_airastro_directories
-    
+
     return 0
 }
 
@@ -143,6 +160,10 @@ init_airastro_environment() {
 if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
     # Le script est sourcé, exporter les fonctions
     export -f airastro_log
+    export -f log_info
+    export -f log_warning
+    export -f log_error
+    export -f log_debug
     export -f run_command
     export -f init_airastro_directories
     export -f check_airastro_permissions
