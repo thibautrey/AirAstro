@@ -1,3 +1,4 @@
+import { io, Socket } from "socket.io-client";
 import airAstroUrlService from "./airastro-url.service";
 
 export interface IndiEvent {
@@ -26,177 +27,205 @@ export interface CameraEvent {
 }
 
 class IndiWebSocketService {
-  private ws: WebSocket | null = null;
+  private socket: Socket | null = null;
   private listeners: Map<
     string,
     Set<(event: IndiEvent | CameraEvent) => void>
   > = new Map();
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 10;
-  private reconnectDelay = 1000;
   private isConnecting = false;
 
   connect(): void {
-    if (
-      this.isConnecting ||
-      (this.ws && this.ws.readyState === WebSocket.OPEN)
-    ) {
+    if (this.isConnecting || (this.socket && this.socket.connected)) {
       return;
     }
 
     this.isConnecting = true;
 
     try {
-      const wsUrl = airAstroUrlService.buildWebSocketUrl("indi");
-      this.ws = new WebSocket(wsUrl);
+      const baseUrl = airAstroUrlService.getBaseUrl();
+      if (!baseUrl) {
+        console.error("❌ URL de base AirAstro non disponible");
+        this.isConnecting = false;
+        return;
+      }
 
-      this.ws.onopen = () => {
-        console.log("✅ Connecté au WebSocket INDI");
+      // Configuration de Socket.IO pour se connecter au namespace INDI
+      this.socket = io(baseUrl, {
+        path: "/ws/indi",
+        transports: ["websocket", "polling"],
+        timeout: 5000,
+        reconnection: false, // On gère la reconnexion nous-mêmes
+      });
+
+      this.socket.on("connect", () => {
+        console.log("✅ Connecté au Socket.IO INDI");
         this.isConnecting = false;
         this.reconnectAttempts = 0;
         this.emit("connected", {
           type: "connected",
           timestamp: new Date().toISOString(),
         });
-      };
+      });
 
-      this.ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          this.handleMessage(data);
-        } catch (error) {
-          console.error("Erreur lors du parsing du message WebSocket:", error);
-        }
-      };
-
-      this.ws.onclose = () => {
-        console.log("❌ WebSocket INDI fermé");
+      this.socket.on("disconnect", (reason) => {
+        console.log("❌ Socket.IO INDI déconnecté:", reason);
         this.isConnecting = false;
         this.emit("disconnected", {
           type: "disconnected",
           timestamp: new Date().toISOString(),
         });
         this.attemptReconnect();
-      };
+      });
 
-      this.ws.onerror = (error) => {
-        console.error("🔥 Erreur WebSocket INDI:", error);
+      this.socket.on("connect_error", (error) => {
+        console.error("🔥 Erreur de connexion Socket.IO INDI:", error);
         this.isConnecting = false;
         this.emit("error", {
           type: "error",
-          data: { message: "Erreur de connexion WebSocket" },
+          data: { message: error.message },
           timestamp: new Date().toISOString(),
         });
-      };
+        this.attemptReconnect();
+      });
+
+      // Écouter les événements INDI du serveur
+      this.setupIndiEventListeners();
     } catch (error) {
-      console.error("Erreur lors de la création du WebSocket:", error);
+      console.error("Erreur lors de la création du Socket.IO:", error);
       this.isConnecting = false;
     }
   }
 
-  private handleMessage(data: any): void {
-    const timestamp = new Date().toISOString();
+  private setupIndiEventListeners(): void {
+    if (!this.socket) return;
 
-    // Messages INDI
-    if (data.type === "indi-update") {
-      const event: IndiEvent = {
-        type: "propertyUpdated",
-        device: data.device,
-        property: data.property,
-        data: data.state ? { state: data.state } : data.data,
-        timestamp,
-      };
-      this.emit("propertyUpdated", event);
-      this.emit("indi", event);
-    }
+    // Événements INDI génériques
+    this.socket.on("indi:connected", (data) => {
+      this.emit("connected", {
+        type: "connected",
+        data,
+        timestamp: new Date().toISOString(),
+      });
+    });
 
-    if (data.type === "indi-property-defined") {
-      const event: IndiEvent = {
+    this.socket.on("indi:disconnected", (data) => {
+      this.emit("disconnected", {
+        type: "disconnected",
+        data,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    this.socket.on("indi:error", (data) => {
+      this.emit("error", {
+        type: "error",
+        data,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    this.socket.on("indi:propertyDefined", (data) => {
+      this.emit("propertyDefined", {
         type: "propertyDefined",
         device: data.device,
         property: data.property,
-        data: data.data,
-        timestamp,
-      };
-      this.emit("propertyDefined", event);
-      this.emit("indi", event);
-    }
+        data: data.prop,
+        timestamp: data.timestamp || new Date().toISOString(),
+      });
+    });
 
-    if (data.type === "indi-message") {
-      const event: IndiEvent = {
+    this.socket.on("indi:propertyUpdated", (data) => {
+      this.emit("propertyUpdated", {
+        type: "propertyUpdated",
+        device: data.device,
+        property: data.property,
+        data: { state: data.state },
+        timestamp: data.timestamp || new Date().toISOString(),
+      });
+    });
+
+    this.socket.on("indi:message", (data) => {
+      this.emit("message", {
         type: "message",
         device: data.device,
         data: { message: data.message, timestamp: data.timestamp },
-        timestamp,
-      };
-      this.emit("message", event);
-      this.emit("indi", event);
-    }
+        timestamp: new Date().toISOString(),
+      });
+    });
 
-    // Messages caméra
-    if (data.type === "camera-status-update") {
-      const event: CameraEvent = {
+    // Événements caméra
+    this.socket.on("camera:statusUpdate", (data) => {
+      this.emit("cameraStatusUpdate", {
         type: "cameraStatusUpdate",
         data: data.status,
-        timestamp,
-      };
-      this.emit("cameraStatusUpdate", event);
-      this.emit("camera", event);
-    }
+        timestamp: data.timestamp || new Date().toISOString(),
+      });
+    });
 
-    if (data.type === "exposure-progress") {
-      const event: CameraEvent = {
+    this.socket.on("camera:exposureStarted", (data) => {
+      this.emit("exposureProgress", {
+        type: "exposureProgress",
+        data: { progress: 0, timeRemaining: 0 },
+        timestamp: data.timestamp || new Date().toISOString(),
+      });
+    });
+
+    this.socket.on("camera:exposureProgress", (data) => {
+      this.emit("exposureProgress", {
         type: "exposureProgress",
         data: { progress: data.progress, timeRemaining: data.timeRemaining },
-        timestamp,
-      };
-      this.emit("exposureProgress", event);
-      this.emit("camera", event);
-    }
+        timestamp: data.timestamp || new Date().toISOString(),
+      });
+    });
 
-    if (data.type === "exposure-complete") {
-      const event: CameraEvent = {
+    this.socket.on("camera:exposureCompleted", (data) => {
+      this.emit("exposureComplete", {
         type: "exposureComplete",
-        data: data.data,
-        timestamp,
-      };
-      this.emit("exposureComplete", event);
-      this.emit("camera", event);
-    }
+        data,
+        timestamp: data.timestamp || new Date().toISOString(),
+      });
+    });
 
-    if (data.type === "image-received") {
-      const event: CameraEvent = {
+    this.socket.on("camera:imageReceived", (data) => {
+      this.emit("imageReceived", {
         type: "imageReceived",
         data: {
           filename: data.filename,
           filepath: data.filepath,
           parameters: data.parameters,
         },
-        timestamp,
-      };
-      this.emit("imageReceived", event);
-      this.emit("camera", event);
-    }
+        timestamp: data.timestamp || new Date().toISOString(),
+      });
+    });
 
-    if (data.type === "camera-error") {
-      const event: CameraEvent = {
-        type: "cameraError",
-        data: { error: data.error },
-        timestamp,
-      };
-      this.emit("cameraError", event);
-      this.emit("camera", event);
-    }
+    this.socket.on("camera:temperatureUpdate", (data) => {
+      this.emit("cameraStatusUpdate", {
+        type: "cameraStatusUpdate",
+        data: { temperature: data.temperature },
+        timestamp: data.timestamp || new Date().toISOString(),
+      });
+    });
+
+    this.socket.on("device:connectionChanged", (data) => {
+      this.emit("propertyUpdated", {
+        type: "propertyUpdated",
+        device: data.device,
+        property: "CONNECTION",
+        data: { connected: data.connected },
+        timestamp: data.timestamp || new Date().toISOString(),
+      });
+    });
   }
 
   private attemptReconnect(): void {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      const delay =
-        this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+      const delay = 1000 * Math.pow(2, this.reconnectAttempts - 1);
 
       console.log(
-        `⏳ Tentative de reconnexion WebSocket dans ${delay}ms (${this.reconnectAttempts}/${this.maxReconnectAttempts})`
+        `⏳ Tentative de reconnexion Socket.IO dans ${delay}ms (${this.reconnectAttempts}/${this.maxReconnectAttempts})`
       );
 
       setTimeout(() => {
@@ -270,16 +299,16 @@ class IndiWebSocketService {
   }
 
   disconnect(): void {
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
     }
     this.listeners.clear();
     this.reconnectAttempts = 0;
   }
 
   isConnected(): boolean {
-    return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
+    return this.socket !== null && this.socket.connected;
   }
 }
 
