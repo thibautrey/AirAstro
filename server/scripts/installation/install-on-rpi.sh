@@ -572,6 +572,28 @@ SERVICE
     log "Démarrage du service AirAstro"
     run "systemctl start airastro.service"
   fi
+
+  # Attendre un peu que le service se stabilise
+  sleep 3
+
+  # Vérifier que le service a bien démarré
+  if systemctl is-active --quiet airastro; then
+    log "✅ Service AirAstro démarré avec succès"
+
+    # Afficher le statut du service
+    log "Statut du service AirAstro:"
+    systemctl status airastro.service --no-pager -l || true
+
+    # Afficher les dernières lignes du log
+    log "Dernières lignes du log AirAstro:"
+    journalctl -u airastro.service --no-pager -l -n 10 || true
+  else
+    error "❌ Échec du démarrage du service AirAstro"
+    log "Diagnostic du service:"
+    systemctl status airastro.service --no-pager -l || true
+    log "Dernières erreurs du log:"
+    journalctl -u airastro.service --no-pager -l -n 20 || true
+  fi
 else
   # Service déjà configuré, juste s'assurer qu'il est activé et démarré
   if ! systemctl is-enabled --quiet airastro; then
@@ -579,11 +601,38 @@ else
     run "systemctl enable airastro.service"
   fi
 
-  if ! systemctl is-active --quiet airastro; then
+  # Recharger la configuration systemd au cas où il y aurait eu des changements
+  run "systemctl daemon-reload"
+
+  # Toujours redémarrer le service pour appliquer les dernières modifications du code
+  if systemctl is-active --quiet airastro; then
+    log "Redémarrage du service AirAstro pour appliquer les dernières modifications"
+    run "systemctl restart airastro.service"
+  else
     log "Démarrage du service AirAstro"
     run "systemctl start airastro.service"
+  fi
+
+  # Attendre un peu que le service se stabilise
+  sleep 3
+
+  # Vérifier que le service a bien démarré
+  if systemctl is-active --quiet airastro; then
+    log "✅ Service AirAstro démarré avec succès"
+
+    # Afficher le statut du service
+    log "Statut du service AirAstro:"
+    systemctl status airastro.service --no-pager -l || true
+
+    # Afficher les dernières lignes du log
+    log "Dernières lignes du log AirAstro:"
+    journalctl -u airastro.service --no-pager -l -n 10 || true
   else
-    log "✅ Service AirAstro déjà actif"
+    error "❌ Échec du démarrage du service AirAstro"
+    log "Diagnostic du service:"
+    systemctl status airastro.service --no-pager -l || true
+    log "Dernières erreurs du log:"
+    journalctl -u airastro.service --no-pager -l -n 20 || true
   fi
 fi
 
@@ -727,6 +776,33 @@ log "🎯 AirAstro est maintenant accessible via:"
 log "   - http://airastro.local (découverte automatique)"
 log "   - http://10.42.0.1 (point d'accès WiFi)"
 log "   - http://$(hostname -I | awk '{print $1}') (IP locale)"
+log ""
+
+# Vérification finale de l'état du service
+log "📊 État final du service AirAstro:"
+if systemctl is-active --quiet airastro; then
+  log "✅ Service AirAstro : ACTIF"
+
+  # Vérifier si le port 3000 est ouvert
+  if netstat -tln 2>/dev/null | grep -q ":3000 "; then
+    log "✅ Port 3000 : OUVERT"
+  else
+    warn "⚠️  Port 3000 : non détecté (démarrage en cours...)"
+  fi
+else
+  error "❌ Service AirAstro : ARRÊTÉ"
+  log "Pour diagnostiquer le problème :"
+  log "   sudo systemctl status airastro.service"
+  log "   sudo journalctl -u airastro.service -f"
+fi
+
+log ""
+log "🔧 Commandes utiles pour surveiller AirAstro :"
+log "   - Statut du service : sudo systemctl status airastro.service"
+log "   - Logs en temps réel : sudo journalctl -u airastro.service -f"
+log "   - Redémarrer le service : sudo systemctl restart airastro.service"
+log "   - Arrêter le service : sudo systemctl stop airastro.service"
+log "   - Démarrer le service : sudo systemctl start airastro.service"
 log ""
 log "🔧 Scripts de gestion disponibles:"
 log "   - $INSTALL_DIR/server/scripts/installation/post-install-check.sh (vérification complète)"

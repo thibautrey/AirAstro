@@ -63,7 +63,7 @@ export class EquipmentDetectorService {
 
     try {
       // Utiliser INDI comme source unique et source de vérité
-      console.log("� Récupération des équipements via INDI...");
+      console.log("📡 Récupération des équipements via INDI...");
       const devices = await this.detectIndiDevices();
 
       console.log(
@@ -94,6 +94,11 @@ export class EquipmentDetectorService {
         // Déterminer le type d'équipement
         const deviceType = this.mapIndiTypeToDetectedType(indiDevice.type);
 
+        // Vérifier le statut du driver de manière plus précise
+        const driverStatus = await this.checkDriverStatus(
+          indiDevice.driver || "unknown"
+        );
+
         // Convertir l'IndiDevice en DetectedDevice
         const detectedDevice: DetectedDevice = {
           id: `indi-${indiDevice.name}`,
@@ -103,14 +108,14 @@ export class EquipmentDetectorService {
           model: indiDevice.model || indiDevice.name,
           connection: "usb", // La plupart des équipements INDI sont USB
           driverName: indiDevice.driver,
-          driverStatus: indiDevice.connected ? "running" : "installed",
-          autoInstallable: false, // Déjà géré par INDI
+          driverStatus: driverStatus,
+          autoInstallable: driverStatus === "not-found", // Peut être installé automatiquement si non trouvé
           confidence: 95, // Confiance élevée pour les équipements INDI
         };
 
         devices.push(detectedDevice);
         console.log(
-          `📡 Équipement INDI détecté: ${detectedDevice.name} (${detectedDevice.type})`
+          `📡 Équipement INDI détecté: ${detectedDevice.name} (${detectedDevice.type}) - Driver: ${detectedDevice.driverStatus}`
         );
       }
 
@@ -228,25 +233,44 @@ export class EquipmentDetectorService {
     driverName: string
   ): Promise<DetectedDevice["driverStatus"]> {
     try {
-      const installedDrivers = await this.driverManager.getInstalledDrivers();
-      const runningDrivers = this.driverManager.listRunningDrivers();
-
-      if (runningDrivers.includes(driverName)) {
-        return "running";
-      } else if (installedDrivers.includes(driverName)) {
-        return "installed";
-      } else {
-        // Vérifier si le driver est disponible pour installation
-        const availableDrivers = await this.driverManager.getAvailableDrivers();
-        if (availableDrivers.includes(driverName)) {
-          return "found";
-        } else {
-          return "not-found";
-        }
+      if (!driverName || driverName === "unknown") {
+        return "not-found";
       }
+
+      // Vérifier si le driver est en cours d'exécution
+      const runningDrivers = this.driverManager.listRunningDrivers();
+      if (
+        runningDrivers.some(
+          (driver) => driver.includes(driverName) || driverName.includes(driver)
+        )
+      ) {
+        return "running";
+      }
+
+      // Vérifier si le driver est installé
+      const installedDrivers = await this.driverManager.getInstalledDrivers();
+      if (
+        installedDrivers.some(
+          (driver) => driver.includes(driverName) || driverName.includes(driver)
+        )
+      ) {
+        return "installed";
+      }
+
+      // Vérifier si le driver est disponible pour installation
+      const availableDrivers = await this.driverManager.getAvailableDrivers();
+      if (
+        availableDrivers.some(
+          (driver) => driver.includes(driverName) || driverName.includes(driver)
+        )
+      ) {
+        return "found";
+      }
+
+      return "not-found";
     } catch (error) {
       console.error(
-        "Erreur lors de la vérification du statut du driver:",
+        `Erreur lors de la vérification du statut du driver ${driverName}:`,
         error
       );
       return "not-found";
