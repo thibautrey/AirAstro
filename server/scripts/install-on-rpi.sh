@@ -110,6 +110,16 @@ run "systemctl restart airastro.service"
 log "Configuration des scripts de gestion mDNS"
 chmod +x "$INSTALL_DIR/server/scripts/"*.sh
 
+# Initialiser l'environnement AirAstro
+log "Initialisation de l'environnement AirAstro"
+if [ -f "$INSTALL_DIR/server/scripts/init-airastro-environment.sh" ]; then
+  "$INSTALL_DIR/server/scripts/init-airastro-environment.sh"
+else
+  # Fallback: créer manuellement les répertoires
+  run "mkdir -p /opt/airastro"
+  run "chmod 755 /opt/airastro"
+fi
+
 # Vérification finale de la configuration mDNS
 log "Vérification de la configuration mDNS"
 if [ -f "$INSTALL_DIR/server/scripts/check-mdns.sh" ]; then

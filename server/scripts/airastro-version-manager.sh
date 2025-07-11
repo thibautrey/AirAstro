@@ -3,6 +3,15 @@
 # AirAstro Version Manager
 # Gestion des versions avec téléchargement, installation et rollback
 
+# Charger les utilitaires communs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/airastro-common.sh" ]; then
+    source "$SCRIPT_DIR/airastro-common.sh"
+else
+    echo "Erreur: airastro-common.sh non trouvé" >&2
+    exit 1
+fi
+
 # Configuration
 BASE_PATH="/opt/airastro"
 VERSIONS_DIR="$BASE_PATH/versions"
@@ -13,16 +22,10 @@ CONFIG_FILE="$BASE_PATH/config/version.json"
 GITHUB_REPO="https://github.com/thibautdewit/AirAstro"
 GITHUB_API="https://api.github.com/repos/thibautdewit/AirAstro"
 
-# Couleurs pour les logs
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Fonction de logging
+# Fonction de logging (utilise celle de airastro-common.sh)
 log() {
-    local level="$1"
+    airastro_log "$1" "$2"
+}
     local message="$2"
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
 
@@ -42,22 +45,12 @@ log() {
     esac
 # Initialisation des répertoires
 initialize_directories() {
-    log "INFO" "Initializing version management directories"
-    
-    for dir in "$VERSIONS_DIR" "$BACKUPS_DIR" "$LOGS_DIR"; do
-        if [[ ! -d "$dir" ]]; then
-            mkdir -p "$dir"
-            log "INFO" "Created directory: $dir"
-        fi
-    done
+    init_airastro_environment
 }
 
 # Vérification des permissions
 check_permissions() {
-    if [[ $EUID -ne 0 ]]; then
-        log "ERROR" "This script must be run as root"
-        exit 1
-    fi
+    check_airastro_permissions
 }
 
 # Obtenir la version actuelle
@@ -94,23 +87,23 @@ list_versions() {
 download_version() {
     local tag="$1"
     local version_dir="$VERSIONS_DIR/$tag"
-    
+
     if [[ -d "$version_dir" ]]; then
         log "WARN" "Version $tag already exists at $version_dir"
         return 0
     fi
-    
+
     log "INFO" "Downloading version $tag"
-    
+
     # Créer le répertoire de la version
     mkdir -p "$version_dir"
-    
+
     # URL du tarball
     local tarball_url="$GITHUB_REPO/archive/refs/tags/$tag.tar.gz"
-    
+
     # Télécharger et extraire
     log "INFO" "Downloading from: $tarball_url"
-    
+
     if curl -L "$tarball_url" | tar -xz -C "$version_dir" --strip-components=1; then
         log "INFO" "Successfully downloaded version $tag"
         return 0
@@ -125,23 +118,23 @@ download_version() {
 build_version() {
     local tag="$1"
     local version_dir="$VERSIONS_DIR/$tag"
-    
+
     if [[ ! -d "$version_dir" ]]; then
         log "ERROR" "Version directory not found: $version_dir"
         return 1
     fi
-    
+
     log "INFO" "Building version $tag"
-    
+
     # Aller dans le répertoire de la version
     cd "$version_dir"
-    
+
     # Installer les dépendances et construire le serveur
     if [[ -f "server/package.json" ]]; then
         log "INFO" "Installing server dependencies"
         cd server
         npm install --production
-        
+
         if [[ -f "tsconfig.json" ]]; then
             log "INFO" "Building TypeScript server"
             npm run build || {
@@ -151,7 +144,7 @@ build_version() {
         fi
         cd ..
     fi
-    
+
     # Construire l'application web
     if [[ -f "apps/web/package.json" ]]; then
         log "INFO" "Building web application"
@@ -163,7 +156,7 @@ build_version() {
         }
         cd ../..
     fi
-    
+
     log "INFO" "Successfully built version $tag"
     return 0
 }
@@ -173,7 +166,7 @@ create_backup() {
     local version_tag="$1"
     local backup_name="backup_$(date +%Y%m%d_%H%M%S)_$version_tag"
     local backup_path="$BACKUPS_DIR/$backup_name"
-    
+
     if [[ -L "$CURRENT_SYMLINK" ]]; then
         local current_path=$(readlink "$CURRENT_SYMLINK")
         if [[ -d "$current_path" ]]; then
@@ -182,7 +175,7 @@ create_backup() {
             log "INFO" "Backup created successfully"
         fi
     fi
-    
+
     # Nettoyer les anciennes sauvegardes (garder les 10 dernières)
     cleanup_backups
 }
@@ -191,7 +184,7 @@ create_backup() {
 cleanup_backups() {
     local max_backups=10
     local backup_count=$(ls -1 "$BACKUPS_DIR" 2>/dev/null | wc -l)
-    
+
     if [[ $backup_count -gt $max_backups ]]; then
         log "INFO" "Cleaning up old backups (keeping $max_backups)"
         ls -1t "$BACKUPS_DIR" | tail -n +$((max_backups + 1)) | while read -r backup; do
@@ -205,35 +198,35 @@ cleanup_backups() {
 switch_version() {
     local tag="$1"
     local version_dir="$VERSIONS_DIR/$tag"
-    
+
     if [[ ! -d "$version_dir" ]]; then
         log "ERROR" "Version directory not found: $version_dir"
         return 1
     fi
-    
+
     local current_version=$(get_current_version)
-    
+
     # Créer une sauvegarde si une version est active
     if [[ "$current_version" != "none" ]]; then
         create_backup "$current_version"
     fi
-    
+
     log "INFO" "Switching to version $tag"
-    
+
     # Supprimer l'ancien lien symbolique
     if [[ -L "$CURRENT_SYMLINK" ]]; then
         rm "$CURRENT_SYMLINK"
     fi
-    
+
     # Créer le nouveau lien symbolique
     ln -s "$version_dir" "$CURRENT_SYMLINK"
-    
+
     if [[ $? -eq 0 ]]; then
         log "INFO" "Successfully switched to version $tag"
-        
+
         # Mettre à jour le fichier de configuration
         update_config "$tag"
-        
+
         return 0
     else
         log "ERROR" "Failed to switch to version $tag"
@@ -245,7 +238,7 @@ switch_version() {
 update_config() {
     local tag="$1"
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    
+
     if [[ -f "$CONFIG_FILE" ]]; then
         # Utiliser jq pour mettre à jour le JSON
         if command -v jq &> /dev/null; then
@@ -262,22 +255,22 @@ update_config() {
 # Rollback vers la dernière sauvegarde
 rollback() {
     local latest_backup=$(ls -1t "$BACKUPS_DIR" 2>/dev/null | head -n 1)
-    
+
     if [[ -z "$latest_backup" ]]; then
         log "ERROR" "No backups available for rollback"
         return 1
     fi
-    
+
     log "INFO" "Rolling back to: $latest_backup"
-    
+
     # Supprimer le lien symbolique actuel
     if [[ -L "$CURRENT_SYMLINK" ]]; then
         rm "$CURRENT_SYMLINK"
     fi
-    
+
     # Créer un lien vers la sauvegarde
     ln -s "$BACKUPS_DIR/$latest_backup" "$CURRENT_SYMLINK"
-    
+
     if [[ $? -eq 0 ]]; then
         log "INFO" "Rollback successful"
         return 0
@@ -315,13 +308,13 @@ show_help() {
 main() {
     local command="$1"
     local arg="$2"
-    
+
     # Vérifier les permissions
     check_permissions
-    
+
     # Initialiser les répertoires
     initialize_directories
-    
+
     case "$command" in
         "init")
             log "INFO" "Version manager initialized"

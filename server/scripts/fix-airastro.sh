@@ -34,6 +34,16 @@ fi
 SERVER_DIR="$AIRASTRO_DIR/server"
 SERVICE_FILE="/etc/systemd/system/airastro.service"
 
+# 0. Initialisation des répertoires système
+log "0. Initialisation des répertoires système"
+if [ -f "$SERVER_DIR/scripts/init-airastro-environment.sh" ]; then
+    "$SERVER_DIR/scripts/init-airastro-environment.sh"
+else
+    # Fallback: créer manuellement les répertoires
+    run "mkdir -p /opt/airastro"
+    run "chmod 755 /opt/airastro"
+fi
+
 # 1. Arrêt du service existant
 log "1. Arrêt du service existant"
 run "systemctl stop airastro.service 2>/dev/null || true"
