@@ -101,36 +101,8 @@ export class CameraService extends EventEmitter {
     // Récupérer les caméras détectées depuis le système d'équipements
     const detectedCameras = await this.getDetectedCameras();
 
-    // Ajouter les caméras simulées pour la démo
-    const simulatedCameras: CameraInfo[] = [
-      {
-        name: "ZWO ASI294MC",
-        driver: "indi-asi",
-        model: "ASI294MC",
-        maxBinning: 4,
-        pixelSize: 4.63,
-        sensorWidth: 4144,
-        sensorHeight: 2822,
-        hasCooling: true,
-        hasFilterWheel: false,
-        supportedFormats: ["FITS", "TIFF", "RAW"],
-      },
-      {
-        name: "Canon EOS 6D",
-        driver: "indi-gphoto",
-        model: "EOS 6D",
-        maxBinning: 1,
-        pixelSize: 6.55,
-        sensorWidth: 5472,
-        sensorHeight: 3648,
-        hasCooling: false,
-        hasFilterWheel: false,
-        supportedFormats: ["RAW", "TIFF"],
-      },
-    ];
-
-    // Combiner les caméras détectées et simulées
-    return [...detectedCameras, ...simulatedCameras];
+    // Retourner uniquement les caméras réellement détectées et configurées
+    return detectedCameras;
   }
 
   private async getDetectedCameras(): Promise<CameraInfo[]> {
@@ -165,13 +137,111 @@ export class CameraService extends EventEmitter {
         }
       }
 
-      return cameras;
+      // Récupérer aussi les caméras configurées manuellement via l'état de l'équipement
+      const configuredCameras = await this.getConfiguredCameras();
+
+      // Combiner les caméras détectées et configurées, en évitant les doublons
+      const allCameras = [...cameras];
+
+      for (const configuredCamera of configuredCameras) {
+        const exists = allCameras.some(
+          (camera) =>
+            camera.name === configuredCamera.name ||
+            camera.model === configuredCamera.model
+        );
+
+        if (!exists) {
+          allCameras.push(configuredCamera);
+        }
+      }
+
+      return allCameras;
     } catch (error) {
       console.error(
         "Erreur lors de la récupération des caméras détectées:",
         error
       );
       return [];
+    }
+  }
+
+  private async getConfiguredCameras(): Promise<CameraInfo[]> {
+    try {
+      // Récupérer l'état de l'équipement configuré
+      const response = await fetch("http://localhost:3000/api/equipment/state");
+      if (!response.ok) {
+        return [];
+      }
+
+      const state = await response.json();
+      const configuredCameras: CameraInfo[] = [];
+
+      // Ajouter la caméra principale si configurée
+      if (state.selectedMainCamera) {
+        const mainCameraInfo = await this.getCameraInfoFromId(
+          state.selectedMainCamera
+        );
+        if (mainCameraInfo) {
+          configuredCameras.push(mainCameraInfo);
+        }
+      }
+
+      // Ajouter la caméra de guidage si configurée
+      if (state.selectedGuideCamera) {
+        const guideCameraInfo = await this.getCameraInfoFromId(
+          state.selectedGuideCamera
+        );
+        if (guideCameraInfo) {
+          configuredCameras.push(guideCameraInfo);
+        }
+      }
+
+      return configuredCameras;
+    } catch (error) {
+      console.error(
+        "Erreur lors de la récupération des caméras configurées:",
+        error
+      );
+      return [];
+    }
+  }
+
+  private async getCameraInfoFromId(
+    cameraId: string
+  ): Promise<CameraInfo | null> {
+    try {
+      // Récupérer les informations de la caméra depuis l'API d'équipement
+      const response = await fetch(
+        `http://localhost:3000/api/equipment/${cameraId}`
+      );
+      if (!response.ok) {
+        return null;
+      }
+
+      const device = await response.json();
+
+      if (device.type === "camera" || device.type === "guide-camera") {
+        return {
+          name: device.name,
+          driver: device.driverName || "unknown",
+          model: device.model || device.name,
+          maxBinning: this.getCameraMaxBinning(device),
+          pixelSize: this.getCameraPixelSize(device),
+          sensorWidth: this.getCameraSensorWidth(device),
+          sensorHeight: this.getCameraSensorHeight(device),
+          hasCooling: this.getCameraHasCooling(device),
+          hasFilterWheel: false,
+          supportedFormats: this.getCameraSupportedFormats(device),
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error(
+        `Erreur lors de la récupération de la caméra ${cameraId}:`,
+        error
+      );
+      return null;
     }
   }
 
