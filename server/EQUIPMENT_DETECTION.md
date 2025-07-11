@@ -100,8 +100,9 @@ Exécutez le script d'installation :
 
 ```bash
 cd /path/to/airastro/server
-chmod +x scripts/install-indi-drivers.sh
-./scripts/install-indi-drivers.sh
+chmod +x scripts/maintain-indi-drivers.sh
+./scripts/maintain-indi-drivers.sh install-missing
+./scripts/maintain-indi-drivers.sh update-all
 ```
 
 ### Installation Manuelle

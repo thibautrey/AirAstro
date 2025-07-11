@@ -6,15 +6,15 @@ Ce répertoire contient plusieurs scripts pour l'installation des drivers INDI n
 
 ### Scripts principaux
 
-1. **`install-all-drivers.sh`** - Script unifié (recommandé)
+1. **`maintain-indi-drivers.sh`** - Script unifié de maintenance
 
-   - Combine l'installation des drivers essentiels et complets
-   - Options : `--essential-only` ou `--full`
-   - Utilisé par défaut dans `install-on-rpi.sh`
+   - Installe tous les drivers manquants
+   - Met à jour les drivers existants
+   - Peut configurer une mise à jour automatique quotidienne
 
 2. **`install-on-rpi.sh`** - Script d'installation principal
    - Installe AirAstro complet sur Raspberry Pi
-   - Inclut l'installation des drivers INDI
+   - Appelle `maintain-indi-drivers.sh` pour installer tous les drivers
    - Configure les services système
 
 ### Scripts de drivers individuels
@@ -35,21 +35,19 @@ Ce répertoire contient plusieurs scripts pour l'installation des drivers INDI n
 ### Installation complète (recommandé)
 
 ```bash
-# Via le script unifié
-./install-all-drivers.sh --full
-
-# Via le script principal
+# Installation via le script principal
 ./install-on-rpi.sh
+
+# Ou directement avec le script de maintenance
+./maintain-indi-drivers.sh install-missing
+./maintain-indi-drivers.sh update-all
 ```
 
 ### Installation minimale
 
 ```bash
 # Uniquement les drivers essentiels
-./install-all-drivers.sh --essential-only
-
-# Ou directement
-./install-drivers.sh
+./maintain-indi-drivers.sh install-from-db
 ```
 
 ### Installation manuelle avancée
@@ -64,10 +62,8 @@ Ce répertoire contient plusieurs scripts pour l'installation des drivers INDI n
 
 ## Ordre d'exécution recommandé
 
-1. **`install-on-rpi.sh`** appelle automatiquement `install-all-drivers.sh`
-2. **`install-all-drivers.sh`** exécute dans l'ordre :
-   - `install-drivers.sh` (drivers essentiels)
-   - `install-indi-drivers.sh full` (drivers complets)
+1. **`install-on-rpi.sh`** utilise `maintain-indi-drivers.sh`
+2. **`maintain-indi-drivers.sh`** peut installer les drivers manquants puis mettre à jour l'ensemble
 
 ## Logs et diagnostic
 
@@ -88,9 +84,7 @@ Tous les scripts sont compatibles avec :
 Pour mettre à jour les drivers :
 
 ```bash
-# Réinstaller tous les drivers
-./install-all-drivers.sh --full
-
-# Ou utiliser le script de maintenance
-./maintain-indi-drivers.sh
+# Utiliser le script de maintenance
+./maintain-indi-drivers.sh install-missing
+./maintain-indi-drivers.sh update-all
 ```

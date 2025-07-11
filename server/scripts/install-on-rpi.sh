@@ -70,22 +70,15 @@ fi
 
 # Installation des drivers INDI
 log "Installation des drivers INDI"
-if [ -f "$INSTALL_DIR/server/scripts/install-all-drivers.sh" ]; then
-  chmod +x "$INSTALL_DIR/server/scripts/install-all-drivers.sh"
-  "$INSTALL_DIR/server/scripts/install-all-drivers.sh" --full
+if [ -f "$INSTALL_DIR/server/scripts/maintain-indi-drivers.sh" ]; then
+  chmod +x "$INSTALL_DIR/server/scripts/maintain-indi-drivers.sh"
+  "$INSTALL_DIR/server/scripts/maintain-indi-drivers.sh" install-missing
+  "$INSTALL_DIR/server/scripts/maintain-indi-drivers.sh" update-all
+  "$INSTALL_DIR/server/scripts/maintain-indi-drivers.sh" setup-auto-update
 else
-  log "Script d'installation unifié des drivers non trouvé, utilisation des scripts individuels"
-
-  # Fallback vers les scripts individuels
-  if [ -f "$INSTALL_DIR/server/scripts/install-drivers.sh" ]; then
-    chmod +x "$INSTALL_DIR/server/scripts/install-drivers.sh"
-    "$INSTALL_DIR/server/scripts/install-drivers.sh"
-  fi
-
-  if [ -f "$INSTALL_DIR/server/scripts/install-indi-drivers.sh" ]; then
-    chmod +x "$INSTALL_DIR/server/scripts/install-indi-drivers.sh"
-    "$INSTALL_DIR/server/scripts/install-indi-drivers.sh" full
-  fi
+  log "Script de maintenance des drivers non trouvé, installation minimale via apt-get"
+  sudo apt-get update
+  sudo apt-get install -y indi-bin indi-full
 fi
 
 AIRASTRO_SERVICE=/etc/systemd/system/airastro.service

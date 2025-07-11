@@ -53,9 +53,9 @@ Support automatique pour :
 
 ### Scripts d'Installation
 
-#### 🛠️ Scripts Bash
+-#### 🛠️ Scripts Bash
 
-- **`install-indi-drivers.sh`** : Installation complète des drivers INDI
+- **`maintain-indi-drivers.sh`** : Installation et mise à jour complètes des drivers INDI
 - **`auto-configure-equipment.sh`** : Configuration automatique au démarrage
 - **`test-equipment-detection.sh`** : Tests complets du système
 
@@ -125,7 +125,8 @@ User Opens Setup Screen → Fetch Equipment → Display Cards → Click Auto Con
 
 ```bash
 # Installation complète sur Raspberry Pi
-sudo ./scripts/install-indi-drivers.sh
+sudo ./scripts/maintain-indi-drivers.sh install-missing
+sudo ./scripts/maintain-indi-drivers.sh update-all
 
 # Test du système
 ./scripts/test-equipment-detection.sh
