@@ -1,6 +1,6 @@
 {
   "name": "airastro-server",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Raspberry Pi server for AirAstro",
   "main": "dist/index.js",
   "scripts": {
