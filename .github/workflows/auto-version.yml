@@ -11,6 +11,8 @@ jobs:
   auto-version:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -263,7 +265,7 @@ jobs:
           git commit -m "$COMMIT_MSG"
 
       - name: Push changes
-        if: steps.changed-files.outputs.should_version == 'true'
+        if: steps.changed-files.outputs.should_version == 'true' && github.event_name == 'push'
         run: |
           # Vérifier s'il y a des commits à pousser
           if git log origin/$(git branch --show-current)..HEAD --oneline | grep -q .; then
@@ -274,7 +276,7 @@ jobs:
           fi
 
       - name: Create Git Tags
-        if: steps.changed-files.outputs.should_version == 'true'
+        if: steps.changed-files.outputs.should_version == 'true' && github.event_name == 'push'
         run: |
           # Créer des tags pour chaque version mise à jour
           if [ "${{ steps.changed-files.outputs.server_changed }}" = "true" ] && [ -n "$SERVER_NEW_VERSION" ]; then
