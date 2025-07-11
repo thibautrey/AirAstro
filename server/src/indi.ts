@@ -130,7 +130,8 @@ const KNOWN_BRANDS: Record<string, BrandInfo> = {
     installationScript: "brands/playerone/install-playerone.sh",
     diagnosticScript: "brands/playerone/diagnose-playerone.sh",
     hasKnownConflicts: true, // Nouveau flag pour indiquer des conflits connus
-    conflictNote: "Conflits de packages connus entre libplayerone et libplayeronecamera2. Installation manuelle recommandée."
+    conflictNote:
+      "Conflits de packages connus entre libplayerone et libplayeronecamera2. Installation manuelle recommandée.",
   },
   pegasus: {
     name: "Pegasus Astro",
@@ -799,7 +800,9 @@ export class DriverManager {
 
     // Vérifier s'il y a des conflits connus
     if (brand.hasKnownConflicts) {
-      console.warn(`⚠️  Marque ${brand.name} a des conflits connus: ${brand.conflictNote}`);
+      console.warn(
+        `⚠️  Marque ${brand.name} a des conflits connus: ${brand.conflictNote}`
+      );
       return {
         success: false,
         installedPackages: [],
@@ -832,15 +835,27 @@ export class DriverManager {
       // Actions spécifiques selon la marque
       if (brandName.toLowerCase() === "player one") {
         actions.push("Suppression des packages en conflit");
-        actions.push("sudo apt-get remove --purge indi-playerone libplayerone libplayeronecamera2");
-        actions.push("sudo rm -f /lib/udev/rules.d/99-player_one_astronomy.rules");
-        actions.push("sudo rm -f /etc/udev/rules.d/99-player_one_astronomy.rules");
+        actions.push(
+          "sudo apt-get remove --purge indi-playerone libplayerone libplayeronecamera2"
+        );
+        actions.push(
+          "sudo rm -f /lib/udev/rules.d/99-player_one_astronomy.rules"
+        );
+        actions.push(
+          "sudo rm -f /etc/udev/rules.d/99-player_one_astronomy.rules"
+        );
         actions.push("sudo apt-get autoremove");
         actions.push("sudo apt-get autoclean");
 
-        recommendations.push("Installation manuelle recommandée depuis le site officiel Player One");
-        recommendations.push("Télécharger les drivers depuis https://player-one-astronomy.com/");
-        recommendations.push("Installer les drivers dans l'ordre: SDK -> INDI Driver");
+        recommendations.push(
+          "Installation manuelle recommandée depuis le site officiel Player One"
+        );
+        recommendations.push(
+          "Télécharger les drivers depuis https://player-one-astronomy.com/"
+        );
+        recommendations.push(
+          "Installer les drivers dans l'ordre: SDK -> INDI Driver"
+        );
       }
 
       return {
