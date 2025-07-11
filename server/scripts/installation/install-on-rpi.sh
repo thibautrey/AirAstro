@@ -47,6 +47,22 @@ npm run build
 log "Cleaning up dev dependencies"
 npm install --omit=dev
 
+# Installation des modules Python de base pour l'astronomie
+log "Installation des modules Python de base"
+if command -v python3 >/dev/null && command -v pip3 >/dev/null; then
+  log "Installation des modules Python essentiels"
+  python3 -m pip install --user numpy astropy pyindi-client
+
+  # Vérifier l'installation
+  if python3 -c "import numpy, astropy" 2>/dev/null; then
+    log "Modules Python de base installés avec succès"
+  else
+    log "Erreur lors de l'installation des modules Python de base"
+  fi
+else
+  log "Python3 ou pip3 non disponible"
+fi
+
 cd "$INSTALL_DIR/apps/web"
 
 log "Building web interface"
@@ -198,6 +214,55 @@ run "systemctl restart airastro.service"
 log "Configuration des scripts de gestion mDNS"
 chmod +x "$INSTALL_DIR/server/scripts/"*.sh
 
+# Détection et installation automatique des équipements
+log "Détection et installation automatique des équipements"
+if [ -f "$INSTALL_DIR/server/scripts/equipment-manager.sh" ]; then
+  log "Détection automatique des équipements connectés"
+  "$INSTALL_DIR/server/scripts/equipment-manager.sh" detect
+
+  # Installation automatique des caméras ASI si détectées
+  if lsusb | grep -q "03c3"; then
+    log "Caméra(s) ZWO ASI détectée(s), installation automatique du support"
+    "$INSTALL_DIR/server/scripts/equipment-manager.sh" install asi
+  fi
+
+  # Installation automatique des caméras QHY si détectées
+  if lsusb | grep -q "1618"; then
+    log "Caméra(s) QHY détectée(s), installation automatique du support"
+    "$INSTALL_DIR/server/scripts/equipment-manager.sh" install qhy
+  fi
+
+  # Installation automatique des caméras Canon si détectées
+  if lsusb | grep -q "04a9"; then
+    log "Caméra(s) Canon détectée(s), installation automatique du support"
+    "$INSTALL_DIR/server/scripts/equipment-manager.sh" install canon
+  fi
+
+  # Installation automatique des caméras Nikon si détectées
+  if lsusb | grep -q "04b0"; then
+    log "Caméra(s) Nikon détectée(s), installation automatique du support"
+    "$INSTALL_DIR/server/scripts/equipment-manager.sh" install nikon
+  fi
+
+  log "Installation automatique des équipements terminée"
+else
+  log "Script de gestion des équipements non trouvé, détection manuelle"
+
+  # Détection manuelle et installation si nécessaire
+  if lsusb | grep -q "03c3"; then
+    log "Caméra(s) ZWO ASI détectée(s)"
+    if [ -f "$INSTALL_DIR/server/scripts/brands/asi/install-asi-complete.sh" ]; then
+      log "Installation automatique du support ASI"
+      "$INSTALL_DIR/server/scripts/brands/asi/install-asi-complete.sh"
+    else
+      log "Installation manuelle des modules Python pour ASI"
+      if command -v python3 >/dev/null && command -v pip3 >/dev/null; then
+        python3 -m pip install --user zwoasi pyindi-client astropy numpy
+      fi
+    fi
+  fi
+fi
+
 # Initialiser l'environnement AirAstro
 log "Initialisation de l'environnement AirAstro"
 if [ -f "$INSTALL_DIR/server/scripts/init-airastro-environment.sh" ]; then
@@ -215,6 +280,15 @@ if [ -f "$INSTALL_DIR/server/scripts/check-mdns.sh" ]; then
   "$INSTALL_DIR/server/scripts/check-mdns.sh"
 fi
 
+# Vérification post-installation complète
+log "Vérification post-installation complète"
+if [ -f "$INSTALL_DIR/server/scripts/installation/post-install-check.sh" ]; then
+  chmod +x "$INSTALL_DIR/server/scripts/installation/post-install-check.sh"
+  "$INSTALL_DIR/server/scripts/installation/post-install-check.sh"
+else
+  log "Script de vérification post-installation non trouvé"
+fi
+
 log "Installation complete!"
 log ""
 log "🎯 AirAstro est maintenant accessible via:"
@@ -222,8 +296,10 @@ log "   - http://airastro.local (découverte automatique)"
 log "   - http://10.42.0.1 (point d'accès WiFi)"
 log "   - http://$(hostname -I | awk '{print $1}') (IP locale)"
 log ""
-log "🔧 Scripts de gestion mDNS disponibles:"
-log "   - $INSTALL_DIR/server/scripts/check-mdns.sh (diagnostic)"
-log "   - $INSTALL_DIR/server/scripts/configure-mdns.sh (reconfiguration)"
-log "   - $INSTALL_DIR/server/scripts/cleanup-mdns.sh (nettoyage)"
+log "🔧 Scripts de gestion disponibles:"
+log "   - $INSTALL_DIR/server/scripts/installation/post-install-check.sh (vérification complète)"
+log "   - $INSTALL_DIR/server/scripts/equipment-manager.sh (gestion équipements)"
+log "   - $INSTALL_DIR/server/scripts/check-mdns.sh (diagnostic mDNS)"
+log "   - $INSTALL_DIR/server/scripts/configure-mdns.sh (reconfiguration mDNS)"
+log "   - $INSTALL_DIR/server/scripts/cleanup-mdns.sh (nettoyage mDNS)"
 

@@ -159,15 +159,75 @@ if $PYTHON_CMD -c "import zwoasi" 2>/dev/null; then
     log_success "Module zwoasi déjà installé"
 else
     log_info "Installation du module zwoasi via pip"
-    $PYTHON_CMD -m pip install --user zwoasi
-
-    # Vérifier l'installation
-    if $PYTHON_CMD -c "import zwoasi" 2>/dev/null; then
-        log_success "Module zwoasi installé avec succès"
+    
+    # Essayer d'abord avec pip utilisateur
+    if $PYTHON_CMD -m pip install --user zwoasi; then
+        log_success "Module zwoasi installé avec succès (utilisateur)"
     else
-        log_error "Échec de l'installation du module zwoasi"
-        exit 1
+        log_warning "Échec installation utilisateur, tentative installation système"
+        if sudo $PYTHON_CMD -m pip install zwoasi; then
+            log_success "Module zwoasi installé avec succès (système)"
+        else
+            log_error "Échec de l'installation du module zwoasi"
+            log_info "Tentative d'installation manuelle..."
+            
+            # Installation manuelle si pip échoue
+            TEMP_DIR=$(mktemp -d)
+            cd "$TEMP_DIR"
+            
+            if git clone https://github.com/python-zwoasi/python-zwoasi.git; then
+                cd python-zwoasi
+                if $PYTHON_CMD setup.py install --user; then
+                    log_success "Module zwoasi installé manuellement"
+                else
+                    log_error "Échec de l'installation manuelle"
+                    cd /
+                    rm -rf "$TEMP_DIR"
+                    exit 1
+                fi
+            else
+                log_error "Impossible de cloner le repository zwoasi"
+                exit 1
+            fi
+            
+            cd /
+            rm -rf "$TEMP_DIR"
+        fi
     fi
+fi
+
+# Installation d'autres modules Python essentiels
+log_info "Installation des modules Python complémentaires"
+PYTHON_MODULES=(
+    "numpy"
+    "astropy"
+    "pyindi-client"
+)
+
+for module in "${PYTHON_MODULES[@]}"; do
+    if $PYTHON_CMD -c "import $module" 2>/dev/null; then
+        log_success "Module $module déjà installé"
+    else
+        log_info "Installation du module $module"
+        if $PYTHON_CMD -m pip install --user "$module"; then
+            log_success "Module $module installé avec succès"
+        else
+            log_warning "Échec installation $module (utilisateur), tentative système"
+            if sudo $PYTHON_CMD -m pip install "$module"; then
+                log_success "Module $module installé avec succès (système)"
+            else
+                log_warning "Échec installation $module (continuons sans)"
+            fi
+        fi
+    fi
+done
+
+# Vérifier l'installation finale du module zwoasi
+if $PYTHON_CMD -c "import zwoasi" 2>/dev/null; then
+    log_success "Module zwoasi accessible"
+else
+    log_error "Module zwoasi non accessible après installation"
+    exit 1
 fi
 
 # 4. Configuration des permissions (si pas déjà fait)
