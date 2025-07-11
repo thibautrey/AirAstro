@@ -16,7 +16,132 @@ export interface UsbDevice {
   productId: string;
   manufacturer?: string;
   product?: string;
+  brand?: string;
+  model?: string;
 }
+
+// Interface pour les informations de marque
+export interface BrandInfo {
+  name: string;
+  vendorIds: string[];
+  productPatterns: string[];
+  driverPatterns: string[];
+  packageNames: string[];
+  description: string;
+  installationScript?: string;
+  diagnosticScript?: string;
+}
+
+// Base de données des marques connues
+const KNOWN_BRANDS: Record<string, BrandInfo> = {
+  zwo: {
+    name: "ZWO",
+    vendorIds: ["03c3"],
+    productPatterns: ["asi", "zwo"],
+    driverPatterns: ["asi", "zwo"],
+    packageNames: ["indi-asi", "libasi", "asi-camera"],
+    description: "ZWO ASI Cameras",
+    installationScript: "brands/asi/install-asi-complete.sh",
+    diagnosticScript: "brands/asi/diagnose-asi.sh",
+  },
+  qhy: {
+    name: "QHYCCD",
+    vendorIds: ["1618"],
+    productPatterns: ["qhy"],
+    driverPatterns: ["qhy"],
+    packageNames: ["indi-qhy", "libqhy"],
+    description: "QHY CCD Cameras",
+  },
+  celestron: {
+    name: "Celestron",
+    vendorIds: ["0525"],
+    productPatterns: ["celestron"],
+    driverPatterns: ["celestron"],
+    packageNames: ["indi-celestron"],
+    description: "Celestron Telescopes",
+  },
+  skywatcher: {
+    name: "SkyWatcher",
+    vendorIds: ["0525"],
+    productPatterns: ["skywatcher", "eq6", "eq5", "az-eq"],
+    driverPatterns: ["skywatcher", "eq6", "eq5"],
+    packageNames: ["indi-skywatcher", "indi-eqmod"],
+    description: "SkyWatcher Mounts",
+  },
+  meade: {
+    name: "Meade",
+    vendorIds: ["0525"],
+    productPatterns: ["meade", "lx200"],
+    driverPatterns: ["meade", "lx200"],
+    packageNames: ["indi-meade"],
+    description: "Meade Telescopes",
+  },
+  atik: {
+    name: "Atik",
+    vendorIds: ["04d8"],
+    productPatterns: ["atik"],
+    driverPatterns: ["atik"],
+    packageNames: ["indi-atik"],
+    description: "Atik Cameras",
+  },
+  moravian: {
+    name: "Moravian",
+    vendorIds: ["04d8"],
+    productPatterns: ["moravian", "g2", "g3", "g4"],
+    driverPatterns: ["moravian", "gxccd"],
+    packageNames: ["indi-gxccd"],
+    description: "Moravian Instruments",
+  },
+  sbig: {
+    name: "SBIG",
+    vendorIds: ["0d56"],
+    productPatterns: ["sbig", "st-"],
+    driverPatterns: ["sbig"],
+    packageNames: ["indi-sbig"],
+    description: "SBIG Cameras",
+  },
+  starlight: {
+    name: "Starlight Xpress",
+    vendorIds: ["1278"],
+    productPatterns: ["starlight", "sxv", "lodestar"],
+    driverPatterns: ["sx"],
+    packageNames: ["indi-sx"],
+    description: "Starlight Xpress Cameras",
+  },
+  playerone: {
+    name: "Player One",
+    vendorIds: ["a0a0"],
+    productPatterns: ["player", "one"],
+    driverPatterns: ["playerone"],
+    packageNames: ["indi-playerone"],
+    description: "Player One Astronomy Cameras",
+  },
+  pegasus: {
+    name: "Pegasus Astro",
+    vendorIds: ["0483"],
+    productPatterns: ["pegasus", "upb", "ppb"],
+    driverPatterns: ["pegasus"],
+    packageNames: ["indi-pegasus"],
+    description: "Pegasus Astro Power Boxes",
+  },
+  svbony: {
+    name: "SVBony",
+    vendorIds: ["0547"],
+    productPatterns: [
+      "svbony",
+      "sv105",
+      "sv205",
+      "sv305",
+      "sv405",
+      "sv505",
+      "sv605",
+      "sv905",
+    ],
+    driverPatterns: ["svbony", "sv105", "sv205", "sv305"],
+    packageNames: ["indi-svbony", "libsvbony"],
+    description: "SVBony Cameras",
+  },
+};
 
 export class DriverManager {
   private searchDirs: string[];
@@ -95,6 +220,75 @@ export class DriverManager {
     const lower = query.toLowerCase();
     const names = await this.getAvailableDrivers();
     return names.filter((n) => n.toLowerCase().includes(lower));
+  }
+
+  // Nouvelle méthode pour détecter la marque d'un périphérique USB
+  private detectBrandFromUsbDevice(device: UsbDevice): BrandInfo | null {
+    for (const [key, brand] of Object.entries(KNOWN_BRANDS)) {
+      // Vérifier l'ID du vendeur
+      if (brand.vendorIds.includes(device.vendorId.toLowerCase())) {
+        return brand;
+      }
+
+      // Vérifier les patterns dans la description
+      const description = device.description.toLowerCase();
+      const manufacturer = device.manufacturer?.toLowerCase() || "";
+      const product = device.product?.toLowerCase() || "";
+
+      for (const pattern of brand.productPatterns) {
+        if (
+          description.includes(pattern) ||
+          manufacturer.includes(pattern) ||
+          product.includes(pattern)
+        ) {
+          return brand;
+        }
+      }
+    }
+    return null;
+  }
+
+  // Méthode pour obtenir les drivers recommandés pour une marque
+  private async getRecommendedDriversForBrand(
+    brand: BrandInfo
+  ): Promise<string[]> {
+    const installed = await this.getInstalledDrivers();
+    const recommended: string[] = [];
+
+    for (const pattern of brand.driverPatterns) {
+      const matching = installed.filter((driver) =>
+        driver.toLowerCase().includes(pattern)
+      );
+      recommended.push(...matching);
+    }
+
+    return recommended;
+  }
+
+  // Méthode pour obtenir les suggestions d'installation pour une marque
+  async getBrandInstallationSuggestions(brand: BrandInfo): Promise<{
+    missingPackages: string[];
+    installationScript?: string;
+    diagnosticScript?: string;
+  }> {
+    const installed = await this.getInstalledDrivers();
+    const hasAnyDriver = brand.driverPatterns.some((pattern) =>
+      installed.some((driver) => driver.toLowerCase().includes(pattern))
+    );
+
+    if (hasAnyDriver) {
+      return {
+        missingPackages: [],
+        installationScript: brand.installationScript,
+        diagnosticScript: brand.diagnosticScript,
+      };
+    }
+
+    return {
+      missingPackages: brand.packageNames,
+      installationScript: brand.installationScript,
+      diagnosticScript: brand.diagnosticScript,
+    };
   }
 
   async getInstalledDrivers(): Promise<string[]> {
@@ -207,26 +401,43 @@ export class DriverManager {
         // Obtenir des informations détaillées sur l'appareil
         const detailedInfo = await this.getUsbDeviceDetails(bus, device);
 
-        const tokens = desc
-          .toLowerCase()
-          .split(/[^a-z0-9]+/)
-          .filter((t) => t.length >= 3);
-        const matchingDrivers = installed.filter((d) => {
-          const dl = d.toLowerCase();
-          return tokens.some((t) => dl.includes(t));
-        });
-
-        devices.push({
+        // Créer l'objet device de base
+        const usbDevice: UsbDevice = {
           bus,
           device,
           id,
           vendorId,
           productId,
           description: desc,
-          matchingDrivers,
+          matchingDrivers: [],
           manufacturer: detailedInfo.manufacturer,
           product: detailedInfo.product,
-        });
+        };
+
+        // Détecter la marque
+        const brand = this.detectBrandFromUsbDevice(usbDevice);
+        if (brand) {
+          usbDevice.brand = brand.name;
+          usbDevice.model = this.extractModelFromDevice(usbDevice, brand);
+
+          // Obtenir les drivers recommandés pour cette marque
+          const recommendedDrivers = await this.getRecommendedDriversForBrand(
+            brand
+          );
+          usbDevice.matchingDrivers = recommendedDrivers;
+        } else {
+          // Fallback sur l'ancienne méthode de détection
+          const tokens = desc
+            .toLowerCase()
+            .split(/[^a-z0-9]+/)
+            .filter((t) => t.length >= 3);
+          usbDevice.matchingDrivers = installed.filter((d) => {
+            const dl = d.toLowerCase();
+            return tokens.some((t) => dl.includes(t));
+          });
+        }
+
+        devices.push(usbDevice);
       }
 
       return devices;
@@ -234,6 +445,145 @@ export class DriverManager {
       console.error("Erreur lors de la liste des appareils USB:", error);
       return [];
     }
+  }
+
+  // Méthode pour extraire le modèle d'un périphérique basé sur sa marque
+  private extractModelFromDevice(
+    device: UsbDevice,
+    brand: BrandInfo
+  ): string | undefined {
+    const description = device.description.toLowerCase();
+    const manufacturer = device.manufacturer?.toLowerCase() || "";
+    const product = device.product?.toLowerCase() || "";
+
+    // Patterns spécifiques par marque pour extraire le modèle
+    switch (brand.name) {
+      case "ZWO":
+        // Pour ZWO, chercher ASI suivi de chiffres
+        const asiMatch = (
+          description +
+          " " +
+          manufacturer +
+          " " +
+          product
+        ).match(/asi\s*(\d+\w*)/i);
+        if (asiMatch) {
+          return `ASI ${asiMatch[1]}`;
+        }
+        break;
+
+      case "QHYCCD":
+        // Pour QHY, chercher QHY suivi de chiffres
+        const qhyMatch = (
+          description +
+          " " +
+          manufacturer +
+          " " +
+          product
+        ).match(/qhy\s*(\d+\w*)/i);
+        if (qhyMatch) {
+          return `QHY ${qhyMatch[1]}`;
+        }
+        break;
+
+      case "Player One":
+        // Pour Player One, chercher des patterns comme "Neptune-C" ou "Mars-C"
+        const poMatch = (
+          description +
+          " " +
+          manufacturer +
+          " " +
+          product
+        ).match(
+          /(neptune|mars|uranus|saturn|apollo|ceres|poseidon)[-\s]*[cm]?/i
+        );
+        if (poMatch) {
+          return poMatch[0].toUpperCase();
+        }
+        break;
+
+      default:
+        // Fallback générique - essayer d'extraire un modèle basé sur les patterns de la marque
+        for (const pattern of brand.productPatterns) {
+          const regex = new RegExp(`${pattern}[\\s-]*([\\w\\d]+)`, "i");
+          const match = (
+            description +
+            " " +
+            manufacturer +
+            " " +
+            product
+          ).match(regex);
+          if (match) {
+            return match[0];
+          }
+        }
+    }
+
+    return undefined;
+  }
+
+  // Méthode pour obtenir les informations détaillées d'une marque
+  getBrandInfo(brandName: string): BrandInfo | null {
+    const brand = Object.values(KNOWN_BRANDS).find(
+      (b) => b.name.toLowerCase() === brandName.toLowerCase()
+    );
+    return brand || null;
+  }
+
+  // Méthode pour lister toutes les marques supportées
+  getSupportedBrands(): BrandInfo[] {
+    return Object.values(KNOWN_BRANDS);
+  }
+
+  // Méthode pour détecter automatiquement les équipements connectés avec leurs marques
+  async detectConnectedEquipment(): Promise<{
+    devices: UsbDevice[];
+    brandSummary: Record<
+      string,
+      {
+        brand: BrandInfo;
+        devices: UsbDevice[];
+        hasDrivers: boolean;
+        recommendations: {
+          missingPackages: string[];
+          installationScript?: string;
+          diagnosticScript?: string;
+        };
+      }
+    >;
+  }> {
+    const devices = await this.listUsbDevices();
+    const brandSummary: Record<string, any> = {};
+
+    for (const device of devices) {
+      if (device.brand) {
+        const brandKey = device.brand.toLowerCase();
+        const brandInfo = this.getBrandInfo(device.brand);
+
+        if (brandInfo) {
+          if (!brandSummary[brandKey]) {
+            brandSummary[brandKey] = {
+              brand: brandInfo,
+              devices: [],
+              hasDrivers: false,
+              recommendations: await this.getBrandInstallationSuggestions(
+                brandInfo
+              ),
+            };
+          }
+
+          brandSummary[brandKey].devices.push(device);
+          if (device.matchingDrivers.length > 0) {
+            brandSummary[brandKey].hasDrivers = true;
+          }
+        }
+      }
+    }
+
+    return {
+      devices,
+      brandSummary,
+    };
   }
 
   private async getUsbDeviceDetails(
@@ -288,6 +638,117 @@ export class DriverManager {
         error
       );
       throw error;
+    }
+  }
+
+  // Méthode pour installer les drivers d'une marque spécifique
+  async installBrandDrivers(brandName: string): Promise<{
+    success: boolean;
+    installedPackages: string[];
+    failedPackages: string[];
+    scriptExecuted?: boolean;
+  }> {
+    const brand = this.getBrandInfo(brandName);
+    if (!brand) {
+      throw new Error(`Marque ${brandName} non supportée`);
+    }
+
+    console.log(`🔧 Installation des drivers pour ${brand.name}...`);
+
+    const installedPackages: string[] = [];
+    const failedPackages: string[] = [];
+    let scriptExecuted = false;
+
+    // Essayer d'exécuter le script d'installation spécifique s'il existe
+    if (brand.installationScript) {
+      try {
+        const scriptPath = path.join(
+          process.cwd(),
+          "scripts",
+          brand.installationScript
+        );
+        console.log(`🔧 Exécution du script d'installation: ${scriptPath}`);
+
+        // Vérifier si le script existe
+        try {
+          await fs.access(scriptPath);
+          await exec(`chmod +x ${scriptPath}`);
+          await exec(`${scriptPath}`);
+          scriptExecuted = true;
+          console.log(`✅ Script d'installation exécuté avec succès`);
+        } catch (scriptError) {
+          console.warn(
+            `⚠️  Script d'installation non trouvé ou échec: ${scriptError}`
+          );
+          // Continuer avec l'installation des packages
+        }
+      } catch (error) {
+        console.warn(`⚠️  Erreur lors de l'exécution du script: ${error}`);
+      }
+    }
+
+    // Installation des packages individuels
+    for (const packageName of brand.packageNames) {
+      try {
+        await this.installDriver(packageName);
+        installedPackages.push(packageName);
+      } catch (error) {
+        console.warn(`⚠️  Échec de l'installation de ${packageName}: ${error}`);
+        failedPackages.push(packageName);
+      }
+    }
+
+    const success = installedPackages.length > 0 || scriptExecuted;
+
+    if (success) {
+      console.log(`✅ Installation terminée pour ${brand.name}`);
+      if (installedPackages.length > 0) {
+        console.log(`   Packages installés: ${installedPackages.join(", ")}`);
+      }
+      if (failedPackages.length > 0) {
+        console.log(`   Packages échoués: ${failedPackages.join(", ")}`);
+      }
+    } else {
+      console.log(`❌ Aucun driver installé pour ${brand.name}`);
+    }
+
+    return {
+      success,
+      installedPackages,
+      failedPackages,
+      scriptExecuted,
+    };
+  }
+
+  // Méthode pour exécuter le diagnostic d'une marque
+  async runBrandDiagnostic(brandName: string): Promise<{
+    success: boolean;
+    output: string;
+  }> {
+    const brand = this.getBrandInfo(brandName);
+    if (!brand || !brand.diagnosticScript) {
+      throw new Error(`Diagnostic non disponible pour ${brandName}`);
+    }
+
+    try {
+      const scriptPath = path.join(
+        process.cwd(),
+        "scripts",
+        brand.diagnosticScript
+      );
+      console.log(`🔍 Exécution du diagnostic pour ${brand.name}...`);
+
+      const { stdout } = await exec(`chmod +x ${scriptPath} && ${scriptPath}`);
+
+      return {
+        success: true,
+        output: stdout,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        output: error instanceof Error ? error.message : String(error),
+      };
     }
   }
 }
