@@ -1,128 +1,26 @@
 # AirAstro
 
-AirAstro is a monorepo aiming to create an open source alternative to commercial astrophotography controllers such as ASIAIR and Stellarmate. The project delivers:
+**AirAstro** is an open source controller for astrophotography. It lets you run modern capture software on a tiny Raspberry Pi and control a wide range of telescopes and cameras without being locked to a single vendor.
 
-- **iOS application** – a simple user interface to control astrophotography equipment with modern astronomy-optimized design.
-- **Android application** – identical features and interface as the iOS app using React Native.
-- **Web application** – a browser-based UI served by the Raspberry Pi.
-- **Raspberry Pi server** – Node.js service that runs INDI/ASCOM drivers and
-  exposes control APIs.
-
-The goal is to replicate the feature set while staying easy to use. The applications communicate with the server which is designed to run on a Raspberry Pi.
-
-## 🌌 Design System
-
-AirAstro features a specialized design system optimized for astronomy applications:
-
-- **Night Vision Preservation**: Black backgrounds with blue alerts for important notifications and red for critical errors only
-- **High Contrast**: White text on dark backgrounds for excellent readability
-- **Consistent Colors**: Green for actions, blue for navigation and alerts, red for critical errors only
-- **Modern UI**: Clean interface with subtle shadows and smooth animations
-
-See [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) for complete guidelines.
-
-## Repository Structure
-
-```
-apps/          - Mobile applications
-  ios/         - iOS specific code (SwiftUI with astronomy design system)
-  android/     - Android specific code (React Native recommended)
-server/        - Node.js implementation of the Raspberry Pi server
-```
-
-## Technology Stack
-
-### iOS Application
-
-- **React Native** for cross-platform consistency
-- **Dark mode optimized** for night vision preservation
-- **Modern UI components** following astronomy color palette
-- **Landscape-first design** for telescope mounting
-
-### Android Application (Recommended)
-
-- **React Native** for cross-platform consistency
-- **Shared design system** with iOS for uniform experience
-- **TypeScript** for type safety and better development experience
-- **Navigation optimized** for astronomy workflows
-
-### Server
-
-- **Node.js** with lightweight framework
-- **INDI/ASCOM drivers** for hardware compatibility
-- **RESTful APIs** for mobile app communication
-- **Raspberry Pi optimized** for field deployment
-
-## Using Open Source Drivers
-
-AirAstro relies on the INDI and ASCOM projects to provide hardware support. This avoids the need to implement device drivers from scratch.
+- **Works with many brands** – AirAstro uses the INDI/ASCOM driver projects so you can mix equipment from different manufacturers.
+- **Based on open hardware** – the server runs on a standard Raspberry Pi and the code is completely free to use.
+- **Simple to set up** – install the server with a single command and access it from your phone or computer.
 
 ## Getting Started
 
-### Prerequisites
-
-- **iOS Development**: Xcode 14+ on macOS
-- **Android Development**: Node.js 18+, Android Studio, React Native CLI
-- **Server Development**: Node.js 20+, Raspberry Pi OS
-
-### Quick Start
-
-1. **Clone the repository**
+1. Prepare a Raspberry Pi with Raspberry Pi OS.
+2. Run our one‑line installer:
 
    ```bash
-   git clone https://github.com/airastro/airastro.git
-   cd airastro
+   curl -sSL https://raw.githubusercontent.com/thibautrey/AirAstro/main/server/scripts/install-on-rpi.sh | bash
    ```
+3. Once finished, open `http://airastro.local` in your browser to start using the web interface or mobile apps.
 
-2. **iOS Development**
+A detailed guide is available in [docs/RASPBERRY_PI_INSTALLATION.md](docs/RASPBERRY_PI_INSTALLATION.md).
 
-   ```bash
-   cd apps/ios/AirAstro/AirAstro
-   open AirAstro.xcodeproj
-   ```
+## Technical Documentation
 
-3. **Android Development (React Native)**
-
-   ```bash
-   cd apps/android
-   npm install
-   npx @react-native-community/cli init AirAstroRN --template react-native-template-typescript
-   ```
-
-4. **Server Development**
-
-   ```bash
-   cd server
-   npm install
-   npm start
-   ```
-
-5. **Web Interface (Development)**
-   ```bash
-   cd apps/web
-   npm install
-   npm run build
-   ```
-   The Raspberry Pi install and update scripts automatically build the web interface, but you can run these commands locally for development. The built files will be served at `http://airastro.local` when the server is running.
-
-## Status
-
-- ✅ **Design System**: Complete astronomy-optimized color palette and components
-- 🚧 **iOS App**: Basic SwiftUI implementation with modern design
-- 🚧 **Android App**: React Native setup guide and configuration ready
-- 📋 **Server**: Placeholder for future development
-- 📋 **Hardware Integration**: INDI/ASCOM drivers to be implemented
-
-## Design Principles
-
-1. **Astronomy First**: Every design decision considers night vision preservation
-2. **Cross-Platform Consistency**: iOS and Android apps share identical UX
-3. **Modern & Clean**: Contemporary UI with astronomy-specific adaptations
-4. **Field-Ready**: Optimized for outdoor use with telescopes
-
-## Contributing
-
-Please see [CONTRIBUTING.md](CONTRIBUTING.md) for development prerequisites and guidelines. **Important**: All UI contributions must follow the astronomy design system defined in [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md).
+Looking for implementation details or design guidelines? See the [docs](docs/) folder for all technical documentation including the [design system](docs/DESIGN_SYSTEM.md).
 
 ## License
 

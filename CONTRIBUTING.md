@@ -6,7 +6,7 @@ start building, make sure your development environment is ready.
 
 ## Design System Compliance
 
-**IMPORTANT**: AirAstro follows a strict design system optimized for astronomy applications. All UI contributions must comply with the astronomy-friendly design guidelines defined in `DESIGN_SYSTEM.md`.
+**IMPORTANT**: AirAstro follows a strict design system optimized for astronomy applications. All UI contributions must comply with the astronomy-friendly design guidelines defined in `docs/DESIGN_SYSTEM.md`.
 
 ### Key Design Requirements
 
@@ -16,7 +16,7 @@ start building, make sure your development environment is ready.
 - Test your UI components in dark environments to verify usability
 - Maintain consistency with existing component styling
 
-Please review `DESIGN_SYSTEM.md` thoroughly before making any UI changes.
+Please review `docs/DESIGN_SYSTEM.md` thoroughly before making any UI changes.
 
 ## Server Prerequisites
 
