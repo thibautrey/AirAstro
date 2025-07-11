@@ -122,20 +122,118 @@ export default function EquipmentSetup() {
   };
 
   // Générer les options dynamiquement à partir des équipements détectés
-  const generateOptions = (equipmentType: string) => {
+  const generateOptions = (
+    equipmentType: string,
+    currentFieldValue?: string
+  ) => {
+    // Obtenir la liste des équipements déjà sélectionnés (à exclure)
+    // En excluant la valeur actuelle du champ pour permettre la modification
+    const selectedEquipmentIds = [
+      formData.mount,
+      formData.mainCamera,
+      formData.guideCamera,
+    ]
+      .filter(Boolean)
+      .filter((id) => id !== currentFieldValue);
+
     return equipment
-      .filter(
-        (item) => item.type === equipmentType && item.status === "connected"
-      )
-      .map((item) => ({
-        value: item.id,
-        label: `${item.manufacturer} ${item.model}`,
-      }));
+      .filter((item) => item.type === equipmentType)
+      .map((item) => {
+        const isAlreadyUsed = selectedEquipmentIds.includes(item.id);
+        return {
+          value: item.id,
+          label: `${item.manufacturer} ${item.model}${
+            item.status !== "connected" ? ` (${item.status})` : ""
+          }${isAlreadyUsed ? " (déjà utilisé)" : ""}`,
+          disabled: isAlreadyUsed,
+        };
+      });
   };
 
-  const mountOptions = generateOptions("mount");
-  const cameraOptions = generateOptions("camera");
-  const guideCameraOptions = generateOptions("guide-camera");
+  // Fonction de débogage pour voir quels équipements ne sont pas proposés
+  const debugEquipmentFiltering = () => {
+    console.log("🔍 Analyse des équipements détectés :");
+    console.log("Total équipements:", equipment.length);
+
+    const cameraEquipment = equipment.filter((item) => item.type === "camera");
+    const guideCameraEquipment = equipment.filter(
+      (item) => item.type === "guide-camera"
+    );
+
+    console.log("Caméras détectées:", cameraEquipment);
+    console.log("Caméras de guidage détectées:", guideCameraEquipment);
+
+    // Afficher les détails des caméras de guidage
+    guideCameraEquipment.forEach((camera, index) => {
+      console.log(`📷 Caméra de guidage ${index + 1}:`, {
+        id: camera.id,
+        name: camera.name,
+        type: camera.type,
+        manufacturer: camera.manufacturer,
+        model: camera.model,
+        status: camera.status,
+        driverStatus: camera.driverStatus,
+        connection: camera.connection,
+        confidence: camera.confidence,
+      });
+    });
+
+    const availableCameras = generateOptions("camera");
+    const availableGuideCameras = generateOptions("guide-camera");
+
+    console.log("Caméras disponibles dans la liste:", availableCameras);
+    console.log(
+      "Caméras de guidage disponibles dans la liste:",
+      availableGuideCameras
+    );
+
+    // Expliquer le statut de chaque équipement
+    guideCameraEquipment.forEach((camera, index) => {
+      console.log(
+        `❓ Caméra de guidage ${
+          index + 1
+        } incluse dans la liste: OUI (statut: ${camera.status})`
+      );
+      if (camera.status === "error") {
+        console.log(
+          `⚠️  Caméra de guidage ${
+            index + 1
+          } a des erreurs - sélectionnable mais peut nécessiter une résolution d'erreur`
+        );
+        console.log(
+          `🔧 Message d'erreur: ${camera.errorMessage || "Non spécifié"}`
+        );
+      }
+    });
+  };
+
+  // Exécuter le débogage quand les équipements changent
+  useEffect(() => {
+    if (equipment.length > 0) {
+      debugEquipmentFiltering();
+    }
+  }, [equipment]);
+
+  const mountOptions = generateOptions("mount", formData.mount);
+
+  // Combiner les caméras principales et de guidage pour la sélection de caméra principale
+  // Permettre la modification en passant la valeur actuelle
+  const allCameraOptions = [
+    ...generateOptions("camera", formData.mainCamera),
+    ...generateOptions("guide-camera", formData.mainCamera).map((option) => ({
+      ...option,
+      label:
+        option.label.replace(" (déjà utilisé)", "") +
+        " (guidage)" +
+        (option.disabled ? " (déjà utilisé)" : ""),
+    })),
+  ];
+
+  const cameraOptions = allCameraOptions;
+  const guideCameraOptions = generateOptions(
+    "guide-camera",
+    formData.guideCamera
+  );
 
   // Tous les équipements sont désormais optionnels
   const isFormValid = true;
@@ -167,6 +265,45 @@ export default function EquipmentSetup() {
 
   const handleStatusClick = () => {
     setIsConnectionPopoverOpen(!isConnectionPopoverOpen);
+  };
+
+  // Fonction pour gérer les changements de sélection et éviter les conflits
+  const handleEquipmentSelection = (
+    field: keyof typeof formData,
+    value: string
+  ) => {
+    setFormData((prev) => {
+      const newData = { ...prev };
+
+      // Si on sélectionne un équipement déjà utilisé ailleurs, on nettoie l'autre champ
+      if (value && value !== prev[field]) {
+        // Vérifier et nettoyer chaque champ spécifiquement
+        if (field !== "mount" && newData.mount === value) {
+          newData.mount = "";
+        }
+        if (field !== "mainCamera" && newData.mainCamera === value) {
+          newData.mainCamera = "";
+        }
+        if (field !== "guideCamera" && newData.guideCamera === value) {
+          newData.guideCamera = "";
+        }
+      }
+
+      // Mettre à jour le champ actuel
+      if (field === "mount") {
+        newData.mount = value;
+      } else if (field === "mainCamera") {
+        newData.mainCamera = value;
+      } else if (field === "guideCamera") {
+        newData.guideCamera = value;
+      } else if (field === "mainFocalLength") {
+        newData.mainFocalLength = parseInt(value) || 0;
+      } else if (field === "guideFocalLength") {
+        newData.guideFocalLength = parseInt(value) || 0;
+      }
+
+      return newData;
+    });
   };
 
   return (
@@ -308,6 +445,29 @@ export default function EquipmentSetup() {
                 {summary.totalCount} équipement(s) détecté(s),{" "}
                 {summary.connectedCount} connecté(s)
               </p>
+
+              {/* Débogage - Afficher les types d'équipements détectés */}
+              {equipment.length > 0 && (
+                <div className="p-2 mt-2 text-xs rounded bg-zinc-900">
+                  <p className="mb-1 text-gray-400">Équipements par type :</p>
+                  <div className="flex flex-wrap gap-1">
+                    {Object.entries(
+                      equipment.reduce((acc, item) => {
+                        const key = `${item.type} (${item.status})`;
+                        acc[key] = (acc[key] || 0) + 1;
+                        return acc;
+                      }, {} as Record<string, number>)
+                    ).map(([type, count]) => (
+                      <span
+                        key={type}
+                        className="px-2 py-1 text-gray-300 rounded bg-zinc-800"
+                      >
+                        {type}: {count}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Bouton principal de configuration automatique */}
@@ -389,20 +549,18 @@ export default function EquipmentSetup() {
                   label="Monture (optionnel)"
                   options={mountOptions}
                   value={formData.mount}
-                  onChange={(value) =>
-                    setFormData((prev) => ({ ...prev, mount: value }))
-                  }
+                  onChange={(value) => handleEquipmentSelection("mount", value)}
                   placeholder="Sélectionner une monture"
                 />
               </div>
 
               {/* Rows 1-2 – Cameras */}
               <Select
-                label="Caméra principale (optionnel)"
+                label="Caméra principale (caméra ou guidage)"
                 options={cameraOptions}
                 value={formData.mainCamera}
                 onChange={(value) =>
-                  setFormData((prev) => ({ ...prev, mainCamera: value }))
+                  handleEquipmentSelection("mainCamera", value)
                 }
                 placeholder="Sélectionner une caméra"
               />
@@ -424,7 +582,7 @@ export default function EquipmentSetup() {
                 options={guideCameraOptions}
                 value={formData.guideCamera}
                 onChange={(value) =>
-                  setFormData((prev) => ({ ...prev, guideCamera: value }))
+                  handleEquipmentSelection("guideCamera", value)
                 }
                 placeholder="Sélectionner une caméra"
               />

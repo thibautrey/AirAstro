@@ -4,6 +4,7 @@ import { useState } from "react";
 interface SelectOption {
   value: string;
   label: string;
+  disabled?: boolean;
 }
 
 interface SelectProps {
@@ -30,7 +31,8 @@ export default function Select({
     (option) => option.value === selectedValue
   );
 
-  const handleSelect = (optionValue: string) => {
+  const handleSelect = (optionValue: string, disabled?: boolean) => {
+    if (disabled) return; // Ne pas permettre la sélection si l'option est désactivée
     setSelectedValue(optionValue);
     onChange?.(optionValue);
     setIsOpen(false);
@@ -38,7 +40,7 @@ export default function Select({
 
   return (
     <div className="space-y-2">
-      <label className="block text-text-secondary text-sm font-medium">
+      <label className="block text-sm font-medium text-text-secondary">
         {label}
       </label>
       <div className="relative">
@@ -75,13 +77,21 @@ export default function Select({
             />
 
             {/* Dropdown menu */}
-            <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 rounded shadow-elevation z-dropdown border border-zinc-700">
+            <div className="absolute left-0 right-0 mt-1 border rounded top-full bg-zinc-800 shadow-elevation z-dropdown border-zinc-700">
               {options.map((option) => (
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => handleSelect(option.value)}
-                  className="w-full px-3 py-2 text-left text-text-primary hover:bg-zinc-700 first:rounded-t last:rounded-b transition-colors"
+                  onClick={() => handleSelect(option.value, option.disabled)}
+                  disabled={option.disabled}
+                  className={`
+                    w-full px-3 py-2 text-left transition-colors first:rounded-t last:rounded-b
+                    ${
+                      option.disabled
+                        ? "text-text-secondary cursor-not-allowed opacity-50"
+                        : "text-text-primary hover:bg-zinc-700 cursor-pointer"
+                    }
+                  `}
                 >
                   {option.label}
                 </button>
