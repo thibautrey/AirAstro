@@ -203,6 +203,45 @@ EOF
     log_success "Mise à jour automatique configurée (quotidienne)"
 }
 
+# Assure que le service INDI existe et est actif
+ensure_indi_service() {
+    log_info "Vérification du service INDI..."
+
+    if [[ ! -f /etc/systemd/system/indi.service ]]; then
+        local indiserver_path
+        indiserver_path=$(command -v indiserver || echo "/usr/bin/indiserver")
+
+        cat << EOF | sudo tee /etc/systemd/system/indi.service > /dev/null
+[Unit]
+Description=INDI Server
+After=network.target
+
+[Service]
+Type=simple
+User=indi
+Group=indi
+ExecStart=${indiserver_path} -p 7624
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+        if ! id "indi" > /dev/null 2>&1; then
+            sudo useradd -r -s /usr/sbin/nologin -d /var/lib/indi indi
+            sudo mkdir -p /var/lib/indi
+            sudo chown indi:indi /var/lib/indi
+        fi
+
+        sudo systemctl daemon-reload
+        sudo systemctl enable indi.service
+        log_success "Service INDI créé"
+    fi
+
+    sudo systemctl start indi.service
+}
+
 # Fonction pour l'installation depuis la base de données d'équipements
 install_from_database() {
     log_info "Installation des drivers basée sur la base de données d'équipements..."
@@ -361,11 +400,12 @@ main() {
 }
 
 # Vérifier les privilèges sudo si nécessaire
-if [[ "$1" =~ ^(install-missing|update-all|clean|setup-auto-update|force-reinstall|auto-update)$ ]]; then
+if [[ "$1" =~ ^(install-missing|update-all|clean|setup-auto-update|force-reinstall|auto-update|install-from-db)$ ]]; then
     if ! sudo -n true 2>/dev/null; then
         log_error "Ce script nécessite des privilèges sudo pour cette opération"
         exit 1
     fi
+    ensure_indi_service
 fi
 
 # Exécuter le script
