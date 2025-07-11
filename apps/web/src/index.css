@@ -10,6 +10,8 @@
   --viewport-height: 100vh;
   --adjusted-viewport-height: 100vh;
   --visual-viewport-height: 100vh;
+  /* Hauteur de la barre du bas (HistogramBar) */
+  --histogram-bar-height: 5rem; /* 80px */
 }
 
 /* Styles pour les éléments non implémentés */
@@ -139,6 +141,17 @@ body {
 .dashboard-content-height-full {
   /* Dashboard content height minus header only - takes full height available */
   height: calc(var(--adjusted-viewport-height) - 44px);
+}
+
+.pb-histogram-bar {
+  /* Padding bottom pour laisser de l'espace pour la barre du bas */
+  padding-bottom: var(--histogram-bar-height);
+  overflow-y: auto;
+}
+
+.h-histogram-bar {
+  /* Hauteur de la barre du bas */
+  height: var(--histogram-bar-height);
 }
 
 .pwa-install-modal {

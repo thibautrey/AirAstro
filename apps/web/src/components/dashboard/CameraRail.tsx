@@ -72,17 +72,17 @@ export default function CameraRail() {
 
   if (isLoading) {
     return (
-      <div className="w-18 bg-black/45 backdrop-blur-sm rounded-l flex flex-col items-center justify-center gap-6 py-10">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cta-green"></div>
+      <div className="flex flex-col items-center justify-center gap-6 py-10 rounded-l w-18 bg-black/45 backdrop-blur-sm">
+        <div className="w-8 h-8 border-b-2 rounded-full animate-spin border-cta-green"></div>
         <span className="text-xs text-text-secondary">Chargement...</span>
       </div>
     );
   }
 
   return (
-    <div className="w-18 bg-black/45 backdrop-blur-sm rounded-l flex flex-col items-center gap-6 py-10 pb-24 relative">
+    <div className="relative flex flex-col items-center gap-6 pt-3 rounded-l w-18 bg-black/45 backdrop-blur-sm pb-histogram-bar">
       {/* Title */}
-      <h3 className="font-semibold text-sm text-cta-green tracking-wider">
+      <h3 className="text-sm font-semibold tracking-wider text-cta-green">
         PREVIEW
       </h3>
 
@@ -102,7 +102,7 @@ export default function CameraRail() {
       {/* Camera Selection */}
       <button
         onClick={() => setShowCameraSelector(!showCameraSelector)}
-        className="p-2 text-text-secondary hover:text-text-primary hover:bg-white/10 rounded transition-colors"
+        className="p-2 transition-colors rounded text-text-secondary hover:text-text-primary hover:bg-white/10"
         title="Sélectionner caméra"
       >
         <Camera size={20} />
@@ -125,7 +125,7 @@ export default function CameraRail() {
           value={cameraStatus?.lastParameters?.binning || "1x1"}
           onChange={(e) => handleParametersChange({ binning: e.target.value })}
           disabled={cameraStatus?.isCapturing}
-          className="bg-black/60 text-text-primary text-xs px-2 py-1 rounded border border-zinc-700/60 focus:border-cta-green focus:outline-none disabled:opacity-50"
+          className="px-2 py-1 text-xs border rounded bg-black/60 text-text-primary border-zinc-700/60 focus:border-cta-green focus:outline-none disabled:opacity-50"
         >
           <option value="1x1">1×1</option>
           <option value="2x2">2×2</option>
@@ -159,13 +159,13 @@ export default function CameraRail() {
             className="text-cta-green"
           />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-zinc-400 transition-all duration-300" />
+          <div className="w-8 h-8 transition-all duration-300 rounded-full bg-zinc-400" />
         )}
       </button>
 
       {/* Exposure time remaining */}
       {cameraStatus?.isCapturing && (
-        <div className="text-xs text-text-secondary text-center">
+        <div className="text-xs text-center text-text-secondary">
           <div>{formatTime(cameraStatus.exposureTimeRemaining)}</div>
           <div className="text-cta-green">restant</div>
         </div>
@@ -175,15 +175,15 @@ export default function CameraRail() {
       <div className="flex flex-col gap-3">
         <button
           onClick={() => setShowParameters(!showParameters)}
-          className="p-2 text-text-secondary hover:text-text-primary hover:bg-white/10 rounded transition-colors"
+          className="p-2 transition-colors rounded text-text-secondary hover:text-text-primary hover:bg-white/10"
           aria-label="Paramètres d'exposition"
         >
           <Settings size={20} />
-          <span className="block text-xs mt-1">PARAM</span>
+          <span className="block mt-1 text-xs">PARAM</span>
         </button>
 
         <button
-          className="p-2 text-text-secondary hover:text-text-primary hover:bg-white/10 rounded transition-colors"
+          className="p-2 transition-colors rounded text-text-secondary hover:text-text-primary hover:bg-white/10"
           aria-label="Télécharger"
         >
           <Download size={20} />
@@ -192,16 +192,16 @@ export default function CameraRail() {
 
       {/* Error display */}
       {error && (
-        <div className="absolute bottom-2 left-2 right-2 text-xs text-red-400 bg-red-900/30 p-2 rounded">
+        <div className="absolute p-2 text-xs text-red-400 rounded bottom-2 left-2 right-2 bg-red-900/30">
           {error}
         </div>
       )}
 
       {/* Camera Selector Modal */}
       {showCameraSelector && (
-        <div className="absolute right-full top-0 mr-2 w-72 bg-black/90 border border-zinc-700/60 rounded shadow-lg z-50">
+        <div className="absolute top-0 z-50 mr-2 border rounded shadow-lg right-full w-72 bg-black/90 border-zinc-700/60">
           <div className="p-4">
-            <h4 className="text-sm font-semibold text-text-primary mb-3">
+            <h4 className="mb-3 text-sm font-semibold text-text-primary">
               Sélectionner une caméra
             </h4>
             <CameraSelector
@@ -212,7 +212,7 @@ export default function CameraRail() {
             />
             <button
               onClick={() => setShowCameraSelector(false)}
-              className="mt-3 w-full text-xs text-text-secondary hover:text-text-primary"
+              className="w-full mt-3 text-xs text-text-secondary hover:text-text-primary"
             >
               Fermer
             </button>
@@ -222,9 +222,9 @@ export default function CameraRail() {
 
       {/* Parameters Modal */}
       {showParameters && cameraStatus?.lastParameters && (
-        <div className="absolute right-full top-0 mr-2 w-80 bg-black/90 border border-zinc-700/60 rounded shadow-lg z-50">
+        <div className="absolute top-0 z-50 mr-2 border rounded shadow-lg right-full w-80 bg-black/90 border-zinc-700/60">
           <div className="p-4">
-            <div className="flex justify-between items-center mb-3">
+            <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-semibold text-text-primary">
                 Paramètres de capture
               </h4>

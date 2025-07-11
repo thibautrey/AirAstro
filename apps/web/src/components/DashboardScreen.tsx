@@ -7,7 +7,6 @@ import LiveCanvas from "./dashboard/LiveCanvas";
 import ModeRail from "./dashboard/ModeRail";
 import TopBarDashboard from "./dashboard/TopBarDashboard";
 import UpdateNotification from "./UpdateNotification";
-import { UpdateStatus } from "../types/update";
 import { useEquipment } from "../hooks/useEquipment";
 import { useUpdate } from "../hooks/useUpdate";
 

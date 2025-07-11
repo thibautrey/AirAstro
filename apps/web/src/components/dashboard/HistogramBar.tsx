@@ -28,7 +28,7 @@ export default function HistogramBar() {
   };
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 h-20 bg-black/70 backdrop-blur-sm flex items-center divide-x divide-zinc-700/60">
+    <div className="absolute bottom-0 left-0 right-0 h-histogram-bar bg-black/70 backdrop-blur-sm flex items-center divide-x divide-zinc-700/60">
       {/* Constellation icon for plate solve - Non implémenté */}
       <div className="flex items-center justify-center w-16 relative opacity-30">
         <Star size={32} className="text-text-secondary" />
