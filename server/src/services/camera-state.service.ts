@@ -81,6 +81,11 @@ export class CameraStateService {
     await this.saveState();
   }
 
+  async updateState(updates: Partial<CameraState>): Promise<void> {
+    this.state = { ...this.state, ...updates };
+    await this.saveState();
+  }
+
   getLastParameters(): CameraParameters {
     return { ...this.state.lastParameters };
   }

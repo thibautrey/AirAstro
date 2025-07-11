@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
 import {
-  cameraService,
-  CameraStatus,
-  CameraParameters,
   CameraInfo,
+  CameraParameters,
+  CameraStatus,
+  cameraService,
 } from "../services/camera.service";
+import { useCallback, useEffect, useState } from "react";
+
+import { useIndiWebSocket } from "./useIndiWebSocket";
 
 interface UseCameraReturn {
   cameraStatus: CameraStatus | null;
@@ -27,6 +29,58 @@ export function useCamera(): UseCameraReturn {
   const [availableCameras, setAvailableCameras] = useState<CameraInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Configurer le WebSocket pour les mises à jour temps réel
+  useIndiWebSocket({
+    autoConnect: true,
+    onCameraEvent: (event) => {
+      switch (event.type) {
+        case "cameraStatusUpdate":
+          setCameraStatus(event.data);
+          break;
+        case "exposureProgress":
+          setCameraStatus((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  exposureProgress: event.data.progress,
+                  exposureTimeRemaining: event.data.timeRemaining,
+                }
+              : null
+          );
+          break;
+        case "exposureComplete":
+          setCameraStatus((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  isCapturing: false,
+                  exposureProgress: 100,
+                  exposureTimeRemaining: 0,
+                }
+              : null
+          );
+          break;
+        case "imageReceived":
+          setCameraStatus((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  lastImagePath: event.data.filepath,
+                }
+              : null
+          );
+          break;
+        case "cameraError":
+          setError(event.data.error);
+          break;
+      }
+    },
+    onError: (error) => {
+      console.warn("Erreur WebSocket INDI:", error);
+      // Ne pas afficher l'erreur WebSocket comme erreur caméra
+    },
+  });
 
   const refreshStatus = useCallback(async () => {
     try {
@@ -145,10 +199,10 @@ export function useCamera(): UseCameraReturn {
     refreshStatus();
   }, [loadCameras, refreshStatus]);
 
-  // Rafraîchir le statut régulièrement pendant une capture
+  // Rafraîchir le statut régulièrement pendant une capture (moins fréquent grâce au WebSocket)
   useEffect(() => {
     if (cameraStatus?.isCapturing) {
-      const interval = setInterval(refreshStatus, 1000);
+      const interval = setInterval(refreshStatus, 5000); // Réduire la fréquence à 5 secondes
       return () => clearInterval(interval);
     }
   }, [cameraStatus?.isCapturing, refreshStatus]);

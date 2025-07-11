@@ -3,7 +3,6 @@ import { IndiCamera } from "./indi-devices";
 import { IndiClient } from "./indi-client";
 import { cameraStateService } from "./camera-state.service";
 import { promises as fs } from "fs";
-import { indiIntegrationService } from "./indi-integration.service";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 
@@ -78,31 +77,15 @@ export class CameraService extends EventEmitter {
     this.imagesDirectory = path.join(process.cwd(), "images");
     this.ensureImagesDirectory();
 
-    // Utiliser le service d'intégration INDI
-    this.indiClient = indiIntegrationService.getIndiClient();
+    // Initialiser le client INDI
+    this.indiClient = new IndiClient();
     this.setupIndiEventHandlers();
 
     // Charger l'état persistant
     this.loadPersistedState();
 
-    // Initialiser le service INDI
-    this.initializeIndiService();
-  }
-
-  private async initializeIndiService(): Promise<void> {
-    try {
-      await indiIntegrationService.initialize();
-
-      // Attendre un peu pour que les devices soient détectés
-      setTimeout(() => {
-        if (this.selectedCameraName) {
-          this.reconnectSelectedCamera();
-        }
-      }, 2000);
-    } catch (error) {
-      console.error("❌ Impossible d'initialiser le service INDI:", error);
-      this.cameraStatus.error = "Impossible de se connecter au serveur INDI";
-    }
+    // Connecter au serveur INDI
+    this.connectToIndi();
   }
 
   private setupIndiEventHandlers(): void {
@@ -119,8 +102,7 @@ export class CameraService extends EventEmitter {
 
     this.indiClient.on("error", (error) => {
       console.error("🔥 Erreur INDI:", error);
-      this.cameraStatus.error =
-        error instanceof Error ? error.message : String(error);
+      this.cameraStatus.error = error.message;
       this.emit("cameraError", error);
     });
 
@@ -144,9 +126,21 @@ export class CameraService extends EventEmitter {
       }
     });
   }
+
   private async connectToIndi(): Promise<void> {
-    // Cette méthode n'est plus nécessaire car le service d'intégration gère la connexion
-    // Garde pour compatibilité
+    try {
+      await this.indiClient.connect();
+
+      // Attendre un peu pour que les devices soient détectés
+      setTimeout(() => {
+        if (this.selectedCameraName) {
+          this.reconnectSelectedCamera();
+        }
+      }, 2000);
+    } catch (error) {
+      console.error("❌ Impossible de se connecter au serveur INDI:", error);
+      this.cameraStatus.error = "Impossible de se connecter au serveur INDI";
+    }
   }
 
   private async reconnectSelectedCamera(): Promise<void> {
@@ -288,8 +282,7 @@ export class CameraService extends EventEmitter {
           "❌ Erreur lors de la vérification de la connexion:",
           error
         );
-        this.cameraStatus.error =
-          error instanceof Error ? error.message : String(error);
+        this.cameraStatus.error = error.message;
       }
     }
   }
@@ -383,8 +376,7 @@ export class CameraService extends EventEmitter {
       this.emit("cameraSelected", cameraName);
     } catch (error) {
       console.error("❌ Erreur lors de la sélection de la caméra:", error);
-      this.cameraStatus.error =
-        error instanceof Error ? error.message : String(error);
+      this.cameraStatus.error = error.message;
       this.cameraStatus.isConnected = false;
       throw error;
     }
@@ -476,8 +468,7 @@ export class CameraService extends EventEmitter {
       return captureId;
     } catch (error) {
       console.error("❌ Erreur lors du démarrage de la capture:", error);
-      this.cameraStatus.error =
-        error instanceof Error ? error.message : String(error);
+      this.cameraStatus.error = error.message;
       throw error;
     }
   }

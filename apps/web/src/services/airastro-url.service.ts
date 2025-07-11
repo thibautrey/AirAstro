@@ -240,6 +240,25 @@ class AirAstroUrlService {
   }
 
   /**
+   * Construit une URL WebSocket complète
+   */
+  public buildWebSocketUrl(endpoint: string): string {
+    if (!this.baseUrl) {
+      throw new Error(
+        "URL de base AirAstro non définie. Appelez detectAirAstro() d'abord."
+      );
+    }
+
+    // Convertir HTTP en WebSocket
+    let wsUrl = this.baseUrl.replace(/^http/, "ws");
+
+    // Nettoyer l'endpoint
+    const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+
+    return `${wsUrl}/ws${cleanEndpoint}`;
+  }
+
+  /**
    * Définit manuellement l'URL d'AirAstro
    */
   public async setManualUrl(url: string): Promise<boolean> {
