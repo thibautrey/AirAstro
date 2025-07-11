@@ -489,9 +489,11 @@ else
   fi
 fi
 
-# Rendre les scripts mDNS exécutables
-log "Configuration des scripts de gestion mDNS"
+# Rendre les scripts exécutables dès le début
+log "Configuration des scripts de gestion et permissions"
 chmod +x "$INSTALL_DIR/server/scripts/"*.sh
+chmod +x "$INSTALL_DIR/server/scripts/core/"*.sh
+chmod +x "$INSTALL_DIR/server/scripts/brands/"*/*.sh 2>/dev/null || true
 
 # Détection et installation automatique des équipements
 log "Détection et installation automatique des équipements"

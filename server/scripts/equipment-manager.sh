@@ -8,7 +8,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Source des fonctions communes
-source "$SCRIPT_DIR/core/airastro-common.sh"
+if [ -f "$SCRIPT_DIR/core/airastro-common.sh" ]; then
+    source "$SCRIPT_DIR/core/airastro-common.sh"
+else
+    # Fallback: définir les fonctions de base si le fichier commun n'est pas disponible
+    log_info() { echo -e "\033[0;32m[INFO]\033[0m $1"; }
+    log_success() { echo -e "\033[0;32m[SUCCESS]\033[0m $1"; }
+    log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; }
+    log_warning() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
+    log_debug() { echo -e "\033[0;34m[DEBUG]\033[0m $1"; }
+    echo -e "\033[1;33m[WARN]\033[0m Fichier commun non trouvé, utilisation des fonctions de base"
+fi
 
 # Configuration des marques supportées
 declare -A SUPPORTED_BRANDS=(

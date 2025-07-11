@@ -60,6 +60,21 @@ log_debug() {
     airastro_log "DEBUG" "$1"
 }
 
+# Fonction pour les messages de succès
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+# Fonction pour les messages d'avertissement avec couleur
+log_warn() {
+    airastro_log "WARN" "$1"
+}
+
+# Fonction pour les messages d'échec
+log_fail() {
+    echo -e "${RED}[FAIL]${NC} $1" >&2
+}
+
 # Fonction pour exécuter des commandes avec ou sans sudo
 run_command() {
     if [ "$(id -u)" -eq 0 ]; then
@@ -164,6 +179,9 @@ if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
     export -f log_warning
     export -f log_error
     export -f log_debug
+    export -f log_success
+    export -f log_warn
+    export -f log_fail
     export -f run_command
     export -f init_airastro_directories
     export -f check_airastro_permissions
