@@ -1,5 +1,52 @@
-#!/bin/bash
-set -e
+#!/bin/log() { echo -e "\033[1;32m[AirAstro]\033[0m $*"; }
+error() { echo -e "\033[1;31m[Error]\033[0m $*" >&2; }
+warn() { echo -e "\033[1;33m[Warning]\033[0m $*"; }
+
+if [ "$(id -u)" -ne 0 ] && ! command -v sudo >/dev/null; then
+  echo "This script requires root privileges or sudo" >&2
+  exit 1
+fi
+
+run() { if [ "$(id -u)" -eq 0 ]; then bash -c "$*"; else sudo bash -c "$*"; fi; }
+
+# Fonction pour nettoyer les conflits de packages
+fix_package_conflicts() {
+  log "Détection et résolution des conflits de packages..."
+
+  # Vérifier s'il y a des packages cassés
+  if ! run "dpkg --configure -a"; then
+    warn "Configuration des packages interrompue"
+  fi
+
+  # Résoudre le conflit spécifique Player One
+  if dpkg -l | grep -q "indi-playerone" && dpkg -l | grep -q "libplayerone"; then
+    log "Résolution du conflit Player One détecté"
+    # Supprimer les packages en conflit et les réinstaller proprement
+    run "dpkg --remove --force-remove-reinstreq indi-playerone libplayerone libplayeronecamera2 2>/dev/null || true"
+    run "apt-get purge -y indi-playerone libplayerone libplayeronecamera2 2>/dev/null || true"
+
+    # Nettoyer les fichiers de règles en conflit
+    run "rm -f /lib/udev/rules.d/99-player_one_astronomy.rules 2>/dev/null || true"
+    run "rm -f /etc/udev/rules.d/99-player_one_astronomy.rules 2>/dev/null || true"
+  fi
+
+  # Nettoyer le cache apt
+  run "apt-get clean"
+  run "apt-get autoclean"
+
+  # Réparation générale
+  if ! run "apt-get --fix-broken install -y"; then
+    warn "Réparation automatique échouée, nettoyage manuel..."
+
+    # Forcer la suppression des packages problématiques
+    run "dpkg --remove --force-remove-reinstreq --force-depends $(dpkg -l | grep '^..r' | awk '{print $2}') 2>/dev/null || true"
+
+    # Nouvelle tentative
+    run "apt-get --fix-broken install -y || true"
+  fi
+
+  log "✅ Conflits de packages résolus"
+}-e
 
 INSTALL_DIR=${AIRASTRO_DIR:-$HOME/AirAstro}
 REPO_URL="https://github.com/thibautrey/AirAstro.git"
@@ -17,6 +64,10 @@ run() { if [ "$(id -u)" -eq 0 ]; then bash -c "$*"; else sudo bash -c "$*"; fi }
 
 log "Updating package lists"
 run "apt-get update -y"
+
+# Résoudre les conflits de packages avant d'installer quoi que ce soit
+fix_package_conflicts
+
 run "apt-get install -y git curl build-essential python3 python3-pip python3-venv python3-dev"
 
 # Vérifier l'installation de Python3 et pip3
@@ -286,6 +337,82 @@ check_indi_installation() {
   fi
 }
 
+# Fonction pour installer INDI de manière sécurisée
+install_indi_safely() {
+  log "Installation sécurisée d'INDI..."
+
+  # Nettoyer les conflits avant l'installation
+  fix_package_conflicts
+
+  # Supprimer les anciens PPAs problématiques
+  log "Suppression des PPAs incompatibles"
+  if command -v add-apt-repository >/dev/null; then
+    run "add-apt-repository --remove ppa:mutlaqja/ppa || true"
+  fi
+  run "rm -f /etc/apt/sources.list.d/mutlaqja-ubuntu-ppa-focal*.list || true"
+  run "rm -f /etc/apt/sources.list.d/*mutlaqja* || true"
+  run "rm -f /etc/apt/trusted.gpg.d/mutlaqja_ppa*.gpg || true"
+  run "rm -f /etc/apt/trusted.gpg.d/*mutlaqja* || true"
+
+  # Mettre à jour la liste des paquets
+  run "apt-get update"
+
+  # Installer les paquets INDI de base depuis les dépôts officiels
+  log "Installation d'INDI depuis les dépôts officiels Debian"
+  if run "apt-get install -y indi-bin libindi1 libindi-dev"; then
+    log "✅ Installation d'INDI de base réussie"
+
+    # Essayer d'installer des drivers courants de manière sélective
+    log "Installation sélective des drivers INDI courants"
+
+    # Liste des drivers à installer avec vérification de conflit
+    SAFE_DRIVERS=(
+      "indi-asi:ZWO ASI Cameras"
+      "indi-qhy:QHY Cameras"
+      "indi-gphoto:Canon/Nikon DSLR via GPhoto"
+      "indi-celestron:Celestron Telescopes"
+      "indi-skywatcher:SkyWatcher Mounts"
+    )
+
+    # Exclure spécifiquement les drivers problématiques
+    PROBLEMATIC_DRIVERS=(
+      "indi-playerone"
+      "libplayerone"
+      "libplayeronecamera2"
+    )
+
+    for driver_info in "${SAFE_DRIVERS[@]}"; do
+      driver_name=$(echo "$driver_info" | cut -d: -f1)
+      driver_desc=$(echo "$driver_info" | cut -d: -f2)
+
+      # Vérifier si le driver est dans la liste des problématiques
+      skip_driver=false
+      for problematic in "${PROBLEMATIC_DRIVERS[@]}"; do
+        if [[ "$driver_name" == *"$problematic"* ]]; then
+          skip_driver=true
+          break
+        fi
+      done
+
+      if [ "$skip_driver" = false ]; then
+        log "Tentative d'installation: $driver_desc"
+        if run "apt-get install -y $driver_name"; then
+          log "✅ $driver_desc installé avec succès"
+        else
+          warn "⚠️  Échec de l'installation de $driver_desc (continuons sans)"
+        fi
+      else
+        warn "⚠️  Driver $driver_name ignoré (conflit connu)"
+      fi
+    done
+
+    return 0
+  else
+    warn "Échec de l'installation depuis les dépôts officiels"
+    return 1
+  fi
+}
+
 # Vérifier l'installation existante
 if check_indi_installation; then
   log "INDI déjà installé, vérification des drivers supplémentaires"
@@ -293,7 +420,7 @@ if check_indi_installation; then
   # Vérifier si des drivers spécifiques sont manquants
   MISSING_DRIVERS=()
 
-  # Vérifier les drivers courants
+  # Vérifier les drivers courants (éviter les conflits)
   if lsusb | grep -q "03c3" && ! [ -f "/usr/bin/indi_asi_ccd" ]; then
     MISSING_DRIVERS+=("indi-asi")
     log "Driver ASI manquant pour caméra détectée"
@@ -309,12 +436,17 @@ if check_indi_installation; then
     log "Driver GPhoto manquant pour caméra détectée"
   fi
 
-  # Installer uniquement les drivers manquants
+  # Installer uniquement les drivers manquants (éviter Player One)
   if [ ${#MISSING_DRIVERS[@]} -gt 0 ]; then
     log "Installation des drivers manquants: ${MISSING_DRIVERS[*]}"
+    fix_package_conflicts
     run "apt-get update -qq"
     for driver in "${MISSING_DRIVERS[@]}"; do
-      run "apt-get install -y $driver || true"
+      if [[ "$driver" != *"playerone"* ]]; then
+        run "apt-get install -y $driver || true"
+      else
+        warn "Driver $driver ignoré (conflit connu)"
+      fi
     done
   else
     log "✅ Tous les drivers nécessaires sont installés"
@@ -329,43 +461,11 @@ else
     "$INSTALL_DIR/server/scripts/maintain-indi-drivers.sh" update-all
     "$INSTALL_DIR/server/scripts/maintain-indi-drivers.sh" setup-auto-update
   else
-    log "Script de maintenance des drivers non trouvé, installation alternative"
+    # Utiliser la fonction d'installation sécurisée
+    if ! install_indi_safely; then
+      log "Installation d'INDI échouée, tentative de compilation depuis les sources..."
 
-    # Étape 1: Supprimer complètement le PPA incompatible
-    log "Étape 1: Suppression du PPA Ubuntu focal incompatible"
-    if command -v add-apt-repository >/dev/null; then
-      run "add-apt-repository --remove ppa:mutlaqja/ppa || true"
-    fi
-    run "rm -f /etc/apt/sources.list.d/mutlaqja-ubuntu-ppa-focal*.list || true"
-    run "rm -f /etc/apt/sources.list.d/*mutlaqja* || true"
-    run "rm -f /etc/apt/trusted.gpg.d/mutlaqja_ppa*.gpg || true"
-    run "rm -f /etc/apt/trusted.gpg.d/*mutlaqja* || true"
-
-    # Étape 2: Nettoyer les installations INDI partielles
-    log "Étape 2: Nettoyage des installations INDI partielles"
-    run "apt-get purge -y 'indi-*' 'libindi*' || true"
-    run "apt-get autoremove -y || true"
-
-    # Étape 3: Rafraîchir les listes de paquets et réparer
-    log "Étape 3: Rafraîchissement des dépôts et réparation"
-    run "apt-get update"
-    run "apt-get --fix-broken install -y || true"
-
-    # Étape 4: Installer INDI depuis les dépôts Debian officiels
-    log "Étape 4: Installation d'INDI depuis les dépôts Debian Bookworm"
-    if run "apt-get install -y indi-bin libindi1"; then
-      log "Installation d'INDI de base réussie"
-
-      # Essayer d'installer des drivers supplémentaires si disponibles
-      log "Installation de drivers supplémentaires (optionnel)"
-      run "apt-get install -y indi-full || true"
-
-      log "Installation d'INDI terminée avec succès"
-    else
-      log "Échec de l'installation d'INDI depuis les dépôts Debian"
-      log "Tentative de compilation depuis les sources..."
-
-      # Fallback: compilation depuis les sources si les paquets Debian échouent aussi
+      # Fallback: compilation depuis les sources
       run "apt-get install -y cmake libcfitsio-dev libgsl-dev libjpeg-dev libfftw3-dev libftdi1-dev libusb-1.0-0-dev libnova-dev"
 
       TEMP_DIR=$(mktemp -d)
@@ -497,9 +597,19 @@ chmod +x "$INSTALL_DIR/server/scripts/brands/"*/*.sh 2>/dev/null || true
 
 # Détection et installation automatique des équipements
 log "Détection et installation automatique des équipements"
+
+# Rendre le gestionnaire d'équipements exécutable
+chmod +x "$INSTALL_DIR/server/scripts/equipment-manager.sh" 2>/dev/null || true
+
 if [ -f "$INSTALL_DIR/server/scripts/equipment-manager.sh" ]; then
+  log "Utilisation du gestionnaire d'équipements pour la détection et l'installation"
+
+  # Détection automatique des équipements connectés
   log "Détection automatique des équipements connectés"
   "$INSTALL_DIR/server/scripts/equipment-manager.sh" detect
+
+  # Installation automatique basée sur la détection USB
+  log "Installation automatique des drivers détectés"
 
   # Installation automatique des caméras ASI si détectées
   if lsusb | grep -q "03c3"; then
@@ -525,22 +635,60 @@ if [ -f "$INSTALL_DIR/server/scripts/equipment-manager.sh" ]; then
     "$INSTALL_DIR/server/scripts/equipment-manager.sh" install nikon
   fi
 
+  # Éviter explicitement Player One (conflit connu)
+  if lsusb | grep -q "a0a0"; then
+    warn "Caméra(s) Player One détectée(s) - Installation manuelle recommandée"
+    warn "Raison: Conflits de packages connus avec libplayerone/libplayeronecamera2"
+    warn "Utilisez le script de résolution de conflits si nécessaire:"
+    warn "   $INSTALL_DIR/server/scripts/fix-package-conflicts.sh player-one"
+  fi
+
   log "Installation automatique des équipements terminée"
 else
-  log "Script de gestion des équipements non trouvé, détection manuelle"
+  log "Gestionnaire d'équipements non trouvé, utilisation de la méthode de fallback"
 
-  # Détection manuelle et installation si nécessaire
+  # Fallback simplifié utilisant uniquement les scripts spécifiques
   if lsusb | grep -q "03c3"; then
     log "Caméra(s) ZWO ASI détectée(s)"
     if [ -f "$INSTALL_DIR/server/scripts/brands/asi/install-asi-complete.sh" ]; then
       log "Installation automatique du support ASI"
+      chmod +x "$INSTALL_DIR/server/scripts/brands/asi/install-asi-complete.sh"
       "$INSTALL_DIR/server/scripts/brands/asi/install-asi-complete.sh"
-    else
-      log "Installation manuelle des modules Python pour ASI"
-      if command -v python3 >/dev/null && command -v pip3 >/dev/null; then
-        python3 -m pip install --user zwoasi pyindi-client astropy numpy
-      fi
     fi
+  fi
+
+  if lsusb | grep -q "1618"; then
+    log "Caméra(s) QHY détectée(s)"
+    if [ -f "$INSTALL_DIR/server/scripts/brands/qhy/install-qhy.sh" ]; then
+      log "Installation automatique du support QHY"
+      chmod +x "$INSTALL_DIR/server/scripts/brands/qhy/install-qhy.sh"
+      "$INSTALL_DIR/server/scripts/brands/qhy/install-qhy.sh"
+    fi
+  fi
+
+  if lsusb | grep -q "04a9"; then
+    log "Caméra(s) Canon détectée(s)"
+    if [ -f "$INSTALL_DIR/server/scripts/brands/canon/install-canon.sh" ]; then
+      log "Installation automatique du support Canon"
+      chmod +x "$INSTALL_DIR/server/scripts/brands/canon/install-canon.sh"
+      "$INSTALL_DIR/server/scripts/brands/canon/install-canon.sh"
+    fi
+  fi
+
+  if lsusb | grep -q "04b0"; then
+    log "Caméra(s) Nikon détectée(s)"
+    if [ -f "$INSTALL_DIR/server/scripts/brands/nikon/install-nikon.sh" ]; then
+      log "Installation automatique du support Nikon"
+      chmod +x "$INSTALL_DIR/server/scripts/brands/nikon/install-nikon.sh"
+      "$INSTALL_DIR/server/scripts/brands/nikon/install-nikon.sh"
+    fi
+  fi
+
+  # Éviter Player One même en fallback
+  if lsusb | grep -q "a0a0"; then
+    warn "Caméra(s) Player One détectée(s) - Installation automatique désactivée"
+    warn "Raison: Conflits de packages connus"
+    warn "Installation manuelle requise - voir documentation Player One"
   fi
 fi
 

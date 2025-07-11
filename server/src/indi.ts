@@ -30,6 +30,8 @@ export interface BrandInfo {
   description: string;
   installationScript?: string;
   diagnosticScript?: string;
+  hasKnownConflicts?: boolean;
+  conflictNote?: string;
 }
 
 // Base de données des marques connues
@@ -111,10 +113,24 @@ const KNOWN_BRANDS: Record<string, BrandInfo> = {
   playerone: {
     name: "Player One",
     vendorIds: ["a0a0"],
-    productPatterns: ["player", "one"],
+    productPatterns: [
+      "player",
+      "one",
+      "neptune",
+      "mars",
+      "uranus",
+      "saturn",
+      "apollo",
+      "ceres",
+      "poseidon",
+    ],
     driverPatterns: ["playerone"],
-    packageNames: ["indi-playerone"],
+    packageNames: ["indi-playerone", "libplayerone", "libplayeronecamera2"],
     description: "Player One Astronomy Cameras",
+    installationScript: "brands/playerone/install-playerone.sh",
+    diagnosticScript: "brands/playerone/diagnose-playerone.sh",
+    hasKnownConflicts: true, // Nouveau flag pour indiquer des conflits connus
+    conflictNote: "Conflits de packages connus entre libplayerone et libplayeronecamera2. Installation manuelle recommandée."
   },
   pegasus: {
     name: "Pegasus Astro",
@@ -750,5 +766,90 @@ export class DriverManager {
         output: error instanceof Error ? error.message : String(error),
       };
     }
+  }
+
+  // Méthode pour vérifier si une marque a des conflits connus
+  hasBrandConflicts(brandName: string): boolean {
+    const brand = this.getBrandInfo(brandName);
+    return brand?.hasKnownConflicts || false;
+  }
+
+  // Méthode pour obtenir la note de conflit d'une marque
+  getBrandConflictNote(brandName: string): string | null {
+    const brand = this.getBrandInfo(brandName);
+    return brand?.conflictNote || null;
+  }
+
+  // Méthode pour installer les drivers d'une marque de manière sécurisée
+  async installBrandDriversSafely(brandName: string): Promise<{
+    success: boolean;
+    installedPackages: string[];
+    failedPackages: string[];
+    scriptExecuted?: boolean;
+    conflictWarning?: string;
+  }> {
+    const brand = this.getBrandInfo(brandName);
+    if (!brand) {
+      throw new Error(`Marque ${brandName} non supportée`);
+    }
+
+    // Vérifier s'il y a des conflits connus
+    if (brand.hasKnownConflicts) {
+      console.warn(`⚠️  Marque ${brand.name} a des conflits connus: ${brand.conflictNote}`);
+      return {
+        success: false,
+        installedPackages: [],
+        failedPackages: brand.packageNames,
+        conflictWarning: brand.conflictNote,
+      };
+    }
+
+    // Utiliser la méthode d'installation normale si pas de conflits
+    return await this.installBrandDrivers(brandName);
+  }
+
+  // Méthode pour résoudre les conflits de packages (version améliorée)
+  async resolvePackageConflicts(brandName: string): Promise<{
+    success: boolean;
+    actions: string[];
+    recommendations: string[];
+  }> {
+    const brand = this.getBrandInfo(brandName);
+    if (!brand) {
+      throw new Error(`Marque ${brandName} non supportée`);
+    }
+
+    const actions: string[] = [];
+    const recommendations: string[] = [];
+
+    if (brand.hasKnownConflicts) {
+      console.log(`🔧 Résolution des conflits pour ${brand.name}...`);
+
+      // Actions spécifiques selon la marque
+      if (brandName.toLowerCase() === "player one") {
+        actions.push("Suppression des packages en conflit");
+        actions.push("sudo apt-get remove --purge indi-playerone libplayerone libplayeronecamera2");
+        actions.push("sudo rm -f /lib/udev/rules.d/99-player_one_astronomy.rules");
+        actions.push("sudo rm -f /etc/udev/rules.d/99-player_one_astronomy.rules");
+        actions.push("sudo apt-get autoremove");
+        actions.push("sudo apt-get autoclean");
+
+        recommendations.push("Installation manuelle recommandée depuis le site officiel Player One");
+        recommendations.push("Télécharger les drivers depuis https://player-one-astronomy.com/");
+        recommendations.push("Installer les drivers dans l'ordre: SDK -> INDI Driver");
+      }
+
+      return {
+        success: true,
+        actions,
+        recommendations,
+      };
+    }
+
+    return {
+      success: true,
+      actions: ["Aucune action nécessaire"],
+      recommendations: ["Aucun conflit détecté"],
+    };
   }
 }
