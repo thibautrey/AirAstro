@@ -1,8 +1,8 @@
+import { EventEmitter } from "events";
 import { exec as execCallback } from "child_process";
 import { promises as fs } from "fs";
 import path from "path";
 import { promisify } from "util";
-import { EventEmitter } from "events";
 
 const exec = promisify(execCallback);
 
