@@ -51,7 +51,10 @@ if [ -z "$COMMIT_MSG" ]; then
     exit 1
 fi
 
-echo "Analyzing commit message: $COMMIT_MSG"
+# Log the commit being analyzed to stderr so the script output contains only
+# the resulting version type. This avoids polluting the captured output in
+# GitHub Actions.
+echo "Analyzing commit message: $COMMIT_MSG" >&2
 
 if should_ignore_commit "$COMMIT_MSG"; then
     echo "IGNORE"
