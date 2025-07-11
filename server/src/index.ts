@@ -150,7 +150,8 @@ app.get("/api/drivers/search", async (req: Request, res: Response) => {
 
 app.get("/api/drivers/usb", async (_req: Request, res: Response) => {
   try {
-    const devices = await driverManager.listUsbDevices();
+    // Utiliser INDI au lieu de la détection USB manuelle
+    const devices = await driverManager.listConnectedEquipment();
     res.json(devices);
   } catch (err: any) {
     res.status(500).json({ error: err.message });

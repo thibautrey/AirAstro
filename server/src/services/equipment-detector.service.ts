@@ -66,7 +66,9 @@ export class EquipmentDetectorService {
       console.log("� Récupération des équipements via INDI...");
       const devices = await this.detectIndiDevices();
 
-      console.log(`✅ Détection terminée: ${devices.length} appareils trouvés via INDI`);
+      console.log(
+        `✅ Détection terminée: ${devices.length} appareils trouvés via INDI`
+      );
 
       // Mettre à jour le cache
       this.detectionCache.set(cacheKey, devices);
@@ -318,7 +320,9 @@ export class EquipmentDetectorService {
 
       // Si le driver n'est pas en cours d'exécution, essayer de le démarrer
       if (device.driverName) {
-        console.log(`🚀 Tentative de démarrage du driver ${device.driverName}...`);
+        console.log(
+          `🚀 Tentative de démarrage du driver ${device.driverName}...`
+        );
         const started = await this.autoStartDriver(device);
         if (started) {
           console.log(`✅ ${device.name} configuré avec succès`);
@@ -326,7 +330,9 @@ export class EquipmentDetectorService {
         }
       }
 
-      console.log(`⚠️ ${device.name} ne peut pas être configuré automatiquement`);
+      console.log(
+        `⚠️ ${device.name} ne peut pas être configuré automatiquement`
+      );
       return false;
     } catch (error) {
       console.error(
