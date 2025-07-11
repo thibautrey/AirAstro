@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import DashboardScreen from "./components/DashboardScreen";
 import DeviceWelcome from "./components/DeviceWelcome";
+import { EquipmentDetectionProvider } from "./contexts/EquipmentDetectionContext";
 import { EquipmentProvider } from "./contexts/EquipmentContext";
 import EquipmentSetup from "./components/EquipmentSetup";
 import PWAInstallModal from "./components/PWAInstallModal";
@@ -29,17 +30,19 @@ export default function App() {
 
   return (
     <EquipmentProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<DeviceWelcome />} />
-          <Route path="/setup" element={<EquipmentSetup />} />
-          <Route path="/control" element={<DashboardScreen />} />
-        </Routes>
-      </Router>
+      <EquipmentDetectionProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<DeviceWelcome />} />
+            <Route path="/setup" element={<EquipmentSetup />} />
+            <Route path="/control" element={<DashboardScreen />} />
+          </Routes>
+        </Router>
 
-      {showInstallModal && (
-        <PWAInstallModal onClose={() => setShowInstallModal(false)} />
-      )}
+        {showInstallModal && (
+          <PWAInstallModal onClose={() => setShowInstallModal(false)} />
+        )}
+      </EquipmentDetectionProvider>
     </EquipmentProvider>
   );
 }

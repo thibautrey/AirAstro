@@ -6,8 +6,8 @@ import {
 } from "../services/camera.service";
 import { useCallback, useEffect, useState } from "react";
 
-import { useDetectedCameras } from "../contexts/EquipmentDetectionContext";
 import { useEquipmentContext } from "../contexts/EquipmentContext";
+import { useINDI } from "./useINDI";
 import { useIndiWebSocket } from "./useIndiWebSocket";
 
 interface UseCameraReturn {
@@ -37,14 +37,35 @@ export function useCamera(): UseCameraReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Utiliser le contexte d'équipement
+  // Utiliser le contexte d'équipement et INDI
   const { selectedEquipment, updateEquipment } = useEquipmentContext();
+  const { devices: indiDevices } = useINDI();
 
-  // Utiliser le hook pour récupérer les caméras détectées
-  const availableINDICameras = useDetectedCameras();
+  // Filtrer les caméras disponibles depuis INDI
+  const availableINDICameras = indiDevices.filter(
+    (device) =>
+      device.name.toLowerCase().includes("camera") ||
+      device.name.toLowerCase().includes("ccd") ||
+      device.driver.toLowerCase().includes("camera") ||
+      device.driver.toLowerCase().includes("ccd")
+  );
 
   // Caméra actuellement sélectionnée depuis le contexte
   const selectedCamera = selectedEquipment.mainCamera;
+
+  // Fonction pour sélectionner une caméra depuis l'équipement détecté
+  const selectCameraFromEquipment = useCallback(async (cameraEquipment: any) => {
+    try {
+      // Mettre à jour le contexte d'équipement
+      updateEquipment("mainCamera", cameraEquipment);
+      // Sélectionner la caméra dans le service
+      await cameraService.selectCamera(cameraEquipment.name);
+      await refreshStatus();
+    } catch (error) {
+      console.error("Erreur lors de la sélection de la caméra:", error);
+      throw error;
+    }
+  }, [updateEquipment, refreshStatus]);
 
   // Configurer le WebSocket pour les mises à jour temps réel
   useIndiWebSocket({
@@ -216,11 +237,8 @@ export function useCamera(): UseCameraReturn {
         // Mettre à jour le contexte d'équipement
         updateEquipment("mainCamera", cameraEquipment);
 
-        // Utiliser le nom INDI si disponible, sinon utiliser le nom d'affichage
-        const cameraNameToUse = cameraEquipment.indiDeviceName || cameraEquipment.name;
-
         // Sélectionner la caméra dans le service
-        await cameraService.selectCamera(cameraNameToUse);
+        await cameraService.selectCamera(cameraEquipment.name);
         await refreshStatus();
         setError(null);
       } catch (err) {

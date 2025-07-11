@@ -120,7 +120,7 @@ export const useEquipmentSync = () => {
         error
       );
     }
-  }, [buildApiUrl, isOnline, setSelectedEquipment]);
+  }, [buildApiUrl, isOnline]); // Supprimer setSelectedEquipment des dépendances
 
   // Fonction pour effacer le contexte
   const clearEquipmentState = useCallback(async () => {
@@ -154,12 +154,12 @@ export const useEquipmentSync = () => {
         error
       );
     }
-  }, [buildApiUrl, isOnline, setSelectedEquipment]);
+  }, [buildApiUrl, isOnline]); // Supprimer setSelectedEquipment des dépendances
 
   // Charger l'état au montage
   useEffect(() => {
     loadEquipmentState();
-  }, [loadEquipmentState]);
+  }, []); // Supprimer la dépendance pour éviter la boucle infinie
 
   // Sauvegarder l'état à chaque changement (avec un délai pour éviter trop de requêtes)
   useEffect(() => {
@@ -168,7 +168,7 @@ export const useEquipmentSync = () => {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [saveEquipmentState]);
+  }, [selectedEquipment]); // Utiliser selectedEquipment directement plutôt que saveEquipmentState
 
   return {
     saveEquipmentState,

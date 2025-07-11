@@ -10,6 +10,11 @@ import {
 
 import { clsx } from "clsx";
 import { createPortal } from "react-dom";
+import { useEquipmentContext } from "../contexts/EquipmentContext";
+import {
+  useDetectedCameras,
+  useEquipmentDetection,
+} from "../contexts/EquipmentDetectionContext";
 import { usePortal } from "../hooks/usePortal";
 import { useState } from "react";
 
@@ -64,6 +69,7 @@ export default function EquipmentDrawer({
 }: EquipmentDrawerProps) {
   const [activeEquipment, setActiveEquipment] =
     useState<EquipmentType>("MainCamera");
+  const { selectedEquipment } = useEquipmentContext();
   const portal = usePortal("equipment-drawer-portal");
 
   const handleEquipmentSelect = (equipment: EquipmentType) => {
@@ -105,20 +111,31 @@ export default function EquipmentDrawer({
               const Icon = equipment.icon;
               const isActive = activeEquipment === equipment.key;
 
+              // Ajouter un indicateur de statut pour certains équipements
+              let hasConnection = false;
+              if (equipment.key === "MainCamera") {
+                hasConnection =
+                  selectedEquipment.mainCamera?.status === "connected";
+              }
+
               return (
-                <button
-                  key={equipment.key}
-                  onClick={() => handleEquipmentSelect(equipment.key)}
-                  className={clsx(
-                    "w-10 h-10 mx-3 my-2 flex items-center justify-center rounded-md transition-all duration-100",
-                    isActive
-                      ? "bg-cta-green/25 text-cta-green scale-105"
-                      : "text-white/70 hover:text-white"
+                <div key={equipment.key} className="relative">
+                  <button
+                    onClick={() => handleEquipmentSelect(equipment.key)}
+                    className={clsx(
+                      "w-10 h-10 mx-3 my-2 flex items-center justify-center rounded-md transition-all duration-100",
+                      isActive
+                        ? "bg-cta-green/25 text-cta-green scale-105"
+                        : "text-white/70 hover:text-white"
+                    )}
+                    aria-label={equipment.label}
+                  >
+                    <Icon size={20} />
+                  </button>
+                  {hasConnection && (
+                    <div className="absolute w-3 h-3 bg-green-500 border-2 border-black rounded-full -top-1 -right-1"></div>
                   )}
-                  aria-label={equipment.label}
-                >
-                  <Icon size={20} />
-                </button>
+                </div>
               );
             })}
           </div>
@@ -170,22 +187,89 @@ export default function EquipmentDrawer({
 
 // Placeholder components for different equipment types
 function MainCameraContent() {
+  const { selectedEquipment, updateEquipment } = useEquipmentContext();
+  const { refreshEquipment } = useEquipmentDetection();
+  const availableCameras = useDetectedCameras();
+
+  const handleCameraChange = (cameraId: string) => {
+    if (cameraId === "") {
+      updateEquipment("mainCamera", undefined);
+    } else {
+      const selectedCamera = availableCameras.find(
+        (cam) => cam.id === cameraId
+      );
+      updateEquipment("mainCamera", selectedCamera);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Camera Selector */}
       <fieldset className="bg-zinc-800/50 rounded-md px-4 py-3 space-y-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)]">
-        <select className="w-full px-3 text-sm rounded-md h-9 bg-zinc-700 text-text-primary">
+        <select
+          className="w-full px-3 text-sm rounded-md h-9 bg-zinc-700 text-text-primary"
+          value={selectedEquipment.mainCamera?.id || ""}
+          onChange={(e) => handleCameraChange(e.target.value)}
+        >
           <option value="">Aucune caméra sélectionnée</option>
+          {availableCameras.map((camera) => (
+            <option key={camera.id} value={camera.id}>
+              {camera.name} ({camera.manufacturer} {camera.model})
+            </option>
+          ))}
         </select>
         <div className="flex items-center justify-between">
-          <button className="flex items-center justify-center w-8 h-8 rounded bg-zinc-700/60 hover:bg-zinc-600 text-text-secondary">
+          <button
+            onClick={refreshEquipment}
+            className="flex items-center justify-center w-8 h-8 rounded bg-zinc-700/60 hover:bg-zinc-600 text-text-secondary"
+          >
             ↻
           </button>
           <div className="relative h-4 rounded-full w-14 bg-zinc-700">
-            <div className="w-3 h-3 bg-white rounded-full absolute top-0.5 left-0.5"></div>
+            <div
+              className={clsx(
+                "w-3 h-3 rounded-full absolute top-0.5 transition-colors",
+                selectedEquipment.mainCamera?.status === "connected"
+                  ? "bg-green-500 left-8"
+                  : "bg-white left-0.5"
+              )}
+            ></div>
           </div>
         </div>
       </fieldset>
+
+      {/* Camera Status */}
+      {selectedEquipment.mainCamera && (
+        <div className="bg-zinc-800/50 rounded-md px-4 py-3 space-y-2 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)]">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-text-secondary">Statut</span>
+            <span
+              className={clsx(
+                "text-xs px-2 py-1 rounded-full",
+                selectedEquipment.mainCamera.status === "connected"
+                  ? "bg-green-500/20 text-green-400"
+                  : "bg-yellow-500/20 text-yellow-400"
+              )}
+            >
+              {selectedEquipment.mainCamera.status === "connected"
+                ? "Connecté"
+                : "Déconnecté"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-text-secondary">Fabricant</span>
+            <span className="text-sm text-text-primary">
+              {selectedEquipment.mainCamera.manufacturer}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-text-secondary">Modèle</span>
+            <span className="text-sm text-text-primary">
+              {selectedEquipment.mainCamera.model}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Gain */}
       <div className="space-y-2">
@@ -222,9 +306,19 @@ function MainCameraContent() {
             Main Scope Focal Length
           </span>
           <span className="text-xs text-text-secondary">?</span>
-          <div className="flex items-center justify-center w-12 ml-2 text-xs rounded h-7 bg-zinc-700 text-text-secondary">
-            mm
-          </div>
+          <input
+            type="number"
+            value={selectedEquipment.mainFocalLength}
+            onChange={(e) =>
+              updateEquipment(
+                "mainFocalLength",
+                parseInt(e.target.value) || 1000
+              )
+            }
+            className="w-20 ml-2 text-xs text-center rounded h-7 bg-zinc-700 text-text-primary"
+            placeholder="1000"
+          />
+          <span className="ml-1 text-xs text-text-secondary">mm</span>
         </div>
       </div>
 

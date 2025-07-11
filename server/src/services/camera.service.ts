@@ -1,3 +1,5 @@
+import { DetectedDevice } from "./equipment-detector.service";
+import { EquipmentManagerService } from "./equipment-manager.service";
 import { EventEmitter } from "events";
 import { IndiCamera } from "./indi-devices";
 import { IndiClient } from "./indi-client";
@@ -347,6 +349,20 @@ export class CameraService extends EventEmitter {
 
   async selectCamera(cameraName: string): Promise<void> {
     try {
+      // Vérifier si la caméra est disponible via INDI
+      const availableCameras = await this.getAvailableCameras();
+      const cameraExists = availableCameras.some(
+        (camera) => camera.name === cameraName
+      );
+
+      if (!cameraExists) {
+        throw new Error(
+          `Device ${cameraName} not found in INDI. Available cameras: ${availableCameras
+            .map((c) => c.name)
+            .join(", ")}`
+        );
+      }
+
       // Déconnecter l'ancienne caméra si elle existe
       if (this.selectedCamera) {
         try {

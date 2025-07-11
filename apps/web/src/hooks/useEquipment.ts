@@ -24,6 +24,7 @@ export interface DetectedEquipment {
   status: "disconnected" | "connected" | "error" | "configuring";
   lastSeen?: Date;
   errorMessage?: string;
+  indiDeviceName?: string; // Nom du device INDI si différent du nom d'affichage
 }
 
 export interface EquipmentSummary {
@@ -323,7 +324,7 @@ export function useEquipment(
   // Chargement initial des équipements
   useEffect(() => {
     refreshEquipment();
-  }, [refreshEquipment]);
+  }, []); // Supprimer refreshEquipment des dépendances pour éviter la boucle infinie
 
   // Actualisation périodique (seulement si enablePolling est true)
   useEffect(() => {
@@ -334,7 +335,7 @@ export function useEquipment(
     }, pollingInterval);
 
     return () => clearInterval(interval);
-  }, [refreshEquipment, enablePolling, pollingInterval]);
+  }, [enablePolling, pollingInterval]); // Supprimer refreshEquipment des dépendances
 
   return {
     equipment,

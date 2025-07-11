@@ -32,6 +32,7 @@ export interface DetectedDevice {
     baudRate: number;
   };
   driverName?: string;
+  indiDeviceName?: string; // Nom du device INDI si différent du nom d'affichage
   driverStatus: "not-found" | "found" | "installed" | "running";
   autoInstallable: boolean;
   confidence: number; // 0-100 score de confiance de la détection

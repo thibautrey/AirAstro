@@ -1,12 +1,11 @@
 import { Camera, Clock, Download, Settings, Thermometer } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import CameraSelector from "../camera/CameraSelector";
 import CaptureParameters from "../camera/CaptureParameters";
 import CircularProgress from "../ui/CircularProgress";
 import { clsx } from "clsx";
 import { useCamera } from "../../hooks/useCamera";
-import { useEquipmentContext } from "../../contexts/EquipmentContext";
-import { useState } from "react";
 
 interface CameraRailProps {
   showHistogramBar?: boolean;
@@ -15,10 +14,10 @@ interface CameraRailProps {
 export default function CameraRail({
   showHistogramBar = false,
 }: CameraRailProps) {
-  const { selectedEquipment } = useEquipmentContext();
   const {
     cameraStatus,
     availableCameras,
+    availableINDICameras,
     isLoading,
     error,
     selectCamera,
@@ -26,18 +25,27 @@ export default function CameraRail({
     startCapture,
     cancelCapture,
     setCooling,
+    refreshStatus,
+    selectedCamera,
+    selectCameraFromEquipment,
   } = useCamera();
 
   const [showParameters, setShowParameters] = useState(false);
   const [showCameraSelector, setShowCameraSelector] = useState(false);
 
   // Utiliser la caméra sélectionnée du contexte global
-  const activeCamera =
-    selectedEquipment.mainCamera || selectedEquipment.guideCamera;
+  const activeCamera = selectedCamera;
+
+  // Synchroniser la caméra sélectionnée avec le hook useCamera
+  useEffect(() => {
+    if (activeCamera && activeCamera.name !== cameraStatus?.selectedCamera) {
+      selectCamera(activeCamera.name);
+    }
+  }, [activeCamera, cameraStatus?.selectedCamera, selectCamera]);
 
   const handleShutterClick = async () => {
-    if (!cameraStatus?.isConnected) {
-      alert("Aucune caméra connectée");
+    if (!activeCamera || !cameraStatus?.isConnected) {
+      alert("Aucune caméra sélectionnée ou connectée");
       return;
     }
 
@@ -52,9 +60,15 @@ export default function CameraRail({
     }
   };
 
-  const handleCameraSelect = async (cameraName: string) => {
+  const handleCameraSelect = async (cameraId: string) => {
     try {
-      await selectCamera(cameraName);
+      const selectedCameraEquipment = availableINDICameras.find(
+        (cam) => cam.id === cameraId
+      );
+      if (selectedCameraEquipment) {
+        // Utiliser la nouvelle fonction du hook useCamera
+        await selectCameraFromEquipment(selectedCameraEquipment);
+      }
     } catch (error) {
       console.error("Erreur lors de la sélection de la caméra:", error);
     }
@@ -107,31 +121,60 @@ export default function CameraRail({
       <button
         onClick={() => setShowCameraSelector(!showCameraSelector)}
         className="flex flex-col items-center gap-2 p-2 transition-colors rounded text-text-secondary hover:text-text-primary hover:bg-white/10"
-        title="Sélectionner caméra"
+        title={
+          activeCamera
+            ? `${activeCamera.manufacturer} ${activeCamera.model}`
+            : "Sélectionner caméra"
+        }
       >
         <div className="relative">
           <Camera size={20} />
           <div
             className={clsx(
               "absolute -top-1 -right-1 w-2 h-2 rounded-full",
-              cameraStatus?.isConnected ? "bg-cta-green" : "bg-red-500"
+              activeCamera?.status === "connected"
+                ? "bg-cta-green"
+                : "bg-red-500"
             )}
           />
         </div>
+        {activeCamera && (
+          <span className="text-xs text-center max-w-12">
+            {activeCamera.manufacturer.slice(0, 3)}
+          </span>
+        )}
       </button>
 
-      {/* Temperature Display */}
-      {cameraStatus?.isConnected && cameraStatus?.temperature !== undefined && (
+      {/* Equipment Status */}
+      {availableINDICameras.length > 0 && (
         <div className="flex flex-col items-center gap-1">
-          <Thermometer size={16} className="text-text-secondary" />
           <span className="text-xs text-text-secondary">
-            {cameraStatus.temperature}°C
+            {availableINDICameras.length} caméra
+            {availableINDICameras.length > 1 ? "s" : ""}
           </span>
+          <button
+            onClick={refreshStatus}
+            className="text-xs text-cta-green hover:text-cta-green/80"
+            title="Actualiser équipements"
+          >
+            ↻
+          </button>
         </div>
       )}
 
+      {/* Temperature Display */}
+      {activeCamera?.status === "connected" &&
+        cameraStatus?.temperature !== undefined && (
+          <div className="flex flex-col items-center gap-1">
+            <Thermometer size={16} className="text-text-secondary" />
+            <span className="text-xs text-text-secondary">
+              {cameraStatus.temperature}°C
+            </span>
+          </div>
+        )}
+
       {/* Binning option */}
-      {cameraStatus?.isConnected && (
+      {activeCamera?.status === "connected" && cameraStatus?.isConnected && (
         <div className="flex flex-col items-center gap-2">
           <label className="text-xs text-text-secondary">Bin</label>
           <select
@@ -154,7 +197,7 @@ export default function CameraRail({
       )}
 
       {/* Main shutter button */}
-      {cameraStatus?.isConnected && (
+      {activeCamera?.status === "connected" && cameraStatus?.isConnected && (
         <button
           onClick={handleShutterClick}
           className={clsx(
@@ -182,6 +225,22 @@ export default function CameraRail({
         </button>
       )}
 
+      {/* No camera selected state */}
+      {!activeCamera && (
+        <div className="flex flex-col items-center gap-2 p-4 text-center">
+          <Camera size={24} className="text-text-secondary" />
+          <span className="text-xs text-text-secondary">
+            Aucune caméra sélectionnée
+          </span>
+          <button
+            onClick={() => setShowCameraSelector(true)}
+            className="px-3 py-1 text-xs transition-colors rounded bg-cta-green/20 text-cta-green hover:bg-cta-green/30"
+          >
+            Sélectionner
+          </button>
+        </div>
+      )}
+
       {/* Exposure time remaining */}
       {cameraStatus?.isCapturing && (
         <div className="text-xs text-center text-text-secondary">
@@ -192,7 +251,7 @@ export default function CameraRail({
 
       {/* Sub-buttons */}
       <div className="flex flex-col gap-3">
-        {cameraStatus?.isConnected && (
+        {activeCamera?.status === "connected" && cameraStatus?.isConnected && (
           <button
             onClick={() => setShowParameters(!showParameters)}
             disabled={cameraStatus?.isCapturing}
@@ -207,7 +266,7 @@ export default function CameraRail({
           </button>
         )}
 
-        {cameraStatus?.isConnected && (
+        {activeCamera?.status === "connected" && cameraStatus?.isConnected && (
           <button
             className="p-2 transition-colors rounded text-text-secondary hover:text-text-primary hover:bg-white/10"
             aria-label="Télécharger"
@@ -229,14 +288,57 @@ export default function CameraRail({
         <div className="absolute top-0 z-50 mr-2 border rounded shadow-lg right-full w-72 bg-black/90 border-zinc-700/60">
           <div className="p-4">
             <h4 className="mb-3 text-sm font-semibold text-text-primary">
-              Sélectionner une caméra
+              Caméras INDI disponibles
             </h4>
-            <CameraSelector
-              cameras={availableCameras}
-              selectedCamera={cameraStatus?.selectedCamera}
-              onCameraSelect={handleCameraSelect}
-              disabled={cameraStatus?.isCapturing}
-            />
+
+            {availableINDICameras.length === 0 ? (
+              <div className="py-4 text-center text-text-secondary">
+                <Camera size={24} className="mx-auto mb-2" />
+                <p className="text-sm">Aucune caméra détectée</p>
+                <button
+                  onClick={refreshStatus}
+                  className="px-3 py-1 mt-2 text-xs transition-colors rounded bg-cta-green/20 text-cta-green hover:bg-cta-green/30"
+                >
+                  Actualiser
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {availableINDICameras.map((camera) => (
+                  <button
+                    key={camera.id}
+                    onClick={() => {
+                      handleCameraSelect(camera.id);
+                      setShowCameraSelector(false);
+                    }}
+                    className={clsx(
+                      "w-full p-3 text-left transition-colors rounded border",
+                      activeCamera?.id === camera.id
+                        ? "border-cta-green bg-cta-green/10 text-cta-green"
+                        : "border-zinc-700/60 hover:border-zinc-600 text-text-primary hover:bg-white/5"
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-medium">{camera.name}</div>
+                        <div className="text-xs text-text-secondary">
+                          {camera.manufacturer} {camera.model}
+                        </div>
+                      </div>
+                      <div
+                        className={clsx(
+                          "w-2 h-2 rounded-full",
+                          camera.status === "connected"
+                            ? "bg-cta-green"
+                            : "bg-red-500"
+                        )}
+                      />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
             <button
               onClick={() => setShowCameraSelector(false)}
               className="w-full mt-3 text-xs text-text-secondary hover:text-text-primary"
@@ -250,6 +352,7 @@ export default function CameraRail({
       {/* Parameters Modal */}
       {showParameters &&
         cameraStatus?.lastParameters &&
+        activeCamera?.status === "connected" &&
         cameraStatus?.isConnected && (
           <div className="absolute top-0 z-50 mr-2 border rounded shadow-lg right-full w-80 bg-black/90 border-zinc-700/60">
             <div className="p-4">
@@ -263,6 +366,9 @@ export default function CameraRail({
                 >
                   ×
                 </button>
+              </div>
+              <div className="mb-3 text-xs text-text-secondary">
+                {activeCamera.manufacturer} {activeCamera.model}
               </div>
               <CaptureParameters
                 parameters={cameraStatus.lastParameters}

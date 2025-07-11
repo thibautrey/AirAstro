@@ -1,6 +1,7 @@
 import {
   ReactNode,
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -92,26 +93,29 @@ export const EquipmentProvider = ({ children }: { children: ReactNode }) => {
   }, [selectedEquipment]);
 
   // Fonction pour mettre à jour la configuration complète
-  const setSelectedEquipment = (config: Partial<SelectedEquipmentConfig>) => {
-    setSelectedEquipmentState((prev) => ({
-      ...prev,
-      ...config,
-    }));
-  };
+  const setSelectedEquipment = useCallback(
+    (config: Partial<SelectedEquipmentConfig>) => {
+      setSelectedEquipmentState((prev) => ({
+        ...prev,
+        ...config,
+      }));
+    },
+    []
+  );
 
   // Fonction pour mettre à jour un équipement spécifique
-  const updateEquipment = (
-    type: keyof SelectedEquipmentConfig,
-    equipment: any
-  ) => {
-    setSelectedEquipmentState((prev) => ({
-      ...prev,
-      [type]: equipment,
-    }));
-  };
+  const updateEquipment = useCallback(
+    (type: keyof SelectedEquipmentConfig, equipment: any) => {
+      setSelectedEquipmentState((prev) => ({
+        ...prev,
+        [type]: equipment,
+      }));
+    },
+    []
+  );
 
   // Fonction pour effacer un équipement spécifique
-  const clearEquipment = (type: keyof SelectedEquipmentConfig) => {
+  const clearEquipment = useCallback((type: keyof SelectedEquipmentConfig) => {
     setSelectedEquipmentState((prev) => ({
       ...prev,
       [type]:
@@ -121,25 +125,31 @@ export const EquipmentProvider = ({ children }: { children: ReactNode }) => {
           ? 240
           : undefined,
     }));
-  };
+  }, []);
 
   // Fonction pour effacer tous les équipements
-  const clearAllEquipment = () => {
+  const clearAllEquipment = useCallback(() => {
     setSelectedEquipmentState(defaultEquipmentConfig);
-  };
+  }, []);
 
   // Fonction pour vérifier si un type d'équipement est sélectionné
-  const hasEquipmentOfType = (type: keyof SelectedEquipmentConfig): boolean => {
-    const equipment = selectedEquipment[type];
-    return equipment !== undefined && equipment !== null;
-  };
+  const hasEquipmentOfType = useCallback(
+    (type: keyof SelectedEquipmentConfig): boolean => {
+      const equipment = selectedEquipment[type];
+      return equipment !== undefined && equipment !== null;
+    },
+    [selectedEquipment]
+  );
 
   // Fonction pour obtenir un équipement spécifique
-  const getEquipmentOfType = (
-    type: keyof SelectedEquipmentConfig
-  ): DetectedEquipment | number | undefined => {
-    return selectedEquipment[type];
-  };
+  const getEquipmentOfType = useCallback(
+    (
+      type: keyof SelectedEquipmentConfig
+    ): DetectedEquipment | number | undefined => {
+      return selectedEquipment[type];
+    },
+    [selectedEquipment]
+  );
 
   const contextValue: EquipmentContextType = {
     selectedEquipment,
