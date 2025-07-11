@@ -4,6 +4,7 @@ import { AutoConfigurationService } from "../services/auto-configuration.service
 import { DriverManager } from "../indi";
 import { EquipmentDatabaseService } from "../services/equipment-database.service";
 import { EquipmentManagerService } from "../services/equipment-manager.service";
+import { mountStateService } from "../services/mount-state.service";
 
 const router = Router();
 const driverManager = new DriverManager();
@@ -542,6 +543,48 @@ router.get("/database/stats", async (req: Request, res: Response) => {
     console.error("Erreur lors de la récupération des statistiques:", error);
     res.status(500).json({
       error: "Erreur lors de la récupération des statistiques",
+      details: error instanceof Error ? error.message : "Erreur inconnue",
+    });
+  }
+});
+
+// GET /api/equipment/state - Get persisted mount state
+router.get("/state", (req: Request, res: Response) => {
+  try {
+    const state = mountStateService.getState();
+    res.json(state);
+  } catch (error) {
+    res.status(500).json({
+      error: "Erreur lors de la lecture de l\u0027état",
+      details: error instanceof Error ? error.message : "Erreur inconnue",
+    });
+  }
+});
+
+// POST /api/equipment/state - Update persisted mount state
+router.post("/state", async (req: Request, res: Response) => {
+  try {
+    const { selectedMount, lastPosition } = req.body as {
+      selectedMount?: string;
+      lastPosition?: { ra: number; dec: number };
+    };
+
+    if (selectedMount !== undefined) {
+      if (selectedMount) {
+        await mountStateService.updateSelectedMount(selectedMount);
+      } else {
+        await mountStateService.clearSelectedMount();
+      }
+    }
+
+    if (lastPosition) {
+      await mountStateService.updatePosition(lastPosition);
+    }
+
+    res.json({ success: true, state: mountStateService.getState() });
+  } catch (error) {
+    res.status(500).json({
+      error: "Erreur lors de la mise \u00e0 jour de l\u0027\e9tat",
       details: error instanceof Error ? error.message : "Erreur inconnue",
     });
   }
