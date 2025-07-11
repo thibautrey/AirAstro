@@ -1,5 +1,6 @@
 import { useAirAstroUrl } from "../hooks/useAirAstroUrl";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export default function AirAstroConnectionManager() {
   const {
@@ -12,6 +13,7 @@ export default function AirAstroConnectionManager() {
     setManualUrl,
     reset,
   } = useAirAstroUrl();
+  const { t } = useTranslation();
 
   const [manualUrl, setManualUrlInput] = useState("");
   const [showManualInput, setShowManualInput] = useState(false);
@@ -39,24 +41,24 @@ export default function AirAstroConnectionManager() {
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-green-500 rounded-full"></div>
             <span className="text-green-800 font-medium">
-              Connecté à AirAstro
+              {t('connected')}
             </span>
           </div>
           <button
             onClick={handleReset}
             className="text-sm text-green-600 hover:text-green-800 underline"
           >
-            Changer
+            {t('change')}
           </button>
         </div>
 
         <div className="mt-2 text-sm text-green-700">
           <div>
-            URL: <code className="bg-green-100 px-1 rounded">{baseUrl}</code>
+            {t('url')}: <code className="bg-green-100 px-1 rounded">{baseUrl}</code>
           </div>
           {detectionInfo && (
             <div className="mt-1">
-              Détecté via: {detectionInfo.method} • Dernière vérification:{" "}
+              {t('detectedVia')}: {detectionInfo.method} • {t('lastCheck')}: {" "}
               {detectionInfo.lastCheck.toLocaleTimeString()}
             </div>
           )}
@@ -71,12 +73,10 @@ export default function AirAstroConnectionManager() {
         <div className="flex items-center space-x-2">
           <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
           <span className="text-blue-800 font-medium">
-            Recherche d'AirAstro en cours...
+            {t('searching')}
           </span>
         </div>
-        <div className="mt-2 text-sm text-blue-700">
-          Scan automatique du réseau local et mDNS
-        </div>
+        <div className="mt-2 text-sm text-blue-700">{t('scanning')}</div>
       </div>
     );
   }
@@ -85,9 +85,7 @@ export default function AirAstroConnectionManager() {
     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
       <div className="flex items-center space-x-2 mb-3">
         <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-        <span className="text-yellow-800 font-medium">
-          AirAstro non détecté
-        </span>
+        <span className="text-yellow-800 font-medium">{t('notDetected')}</span>
       </div>
 
       {error && (
@@ -102,17 +100,17 @@ export default function AirAstroConnectionManager() {
           disabled={isDetecting}
           className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
         >
-          🔍 Rechercher automatiquement
+          🔍 {t('autoSearch')}
         </button>
 
-        <div className="text-center text-sm text-gray-500">ou</div>
+        <div className="text-center text-sm text-gray-500">{t('or')}</div>
 
         {!showManualInput ? (
           <button
             onClick={() => setShowManualInput(true)}
             className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200"
           >
-            📝 Saisir l'adresse manuellement
+            📝 {t('manualAddress')}
           </button>
         ) : (
           <div className="space-y-2">
@@ -130,7 +128,7 @@ export default function AirAstroConnectionManager() {
                 disabled={!manualUrl.trim() || isDetecting}
                 className="flex-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
               >
-                Se connecter
+                {t('connect')}
               </button>
               <button
                 onClick={() => {
@@ -139,7 +137,7 @@ export default function AirAstroConnectionManager() {
                 }}
                 className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
               >
-                Annuler
+                {t('cancel')}
               </button>
             </div>
           </div>
@@ -147,11 +145,11 @@ export default function AirAstroConnectionManager() {
       </div>
 
       <div className="mt-4 text-xs text-gray-500">
-        <div className="font-medium mb-1">Adresses communes :</div>
-        <div>• http://airastro.local (mDNS)</div>
-        <div>• http://airastro.local:3000</div>
-        <div>• http://192.168.x.x:3000 (réseau local)</div>
-        <div>• http://10.42.0.1:3000 (hotspot Raspberry Pi)</div>
+        <div className="font-medium mb-1">{t('commonAddresses')}</div>
+        <div>{t('mdns')}</div>
+        <div>{t('mdns3000')}</div>
+        <div>{t('lan')}</div>
+        <div>{t('hotspot')}</div>
       </div>
     </div>
   );

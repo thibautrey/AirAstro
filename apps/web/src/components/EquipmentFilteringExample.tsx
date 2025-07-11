@@ -3,10 +3,12 @@ import * as React from "react";
 import { DetectedEquipment } from "../hooks/useEquipment";
 import { useEquipment } from "../hooks/useEquipment";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 // Exemple d'utilisation du filtrage des équipements
 export function EquipmentFilteringExample() {
   const [showUnknown, setShowUnknown] = useState(false);
+  const { t } = useTranslation();
 
   const { equipment, summary, loading, error } = useEquipment({
     enablePolling: true,
@@ -19,16 +21,16 @@ export function EquipmentFilteringExample() {
   };
 
   if (loading) {
-    return <div>Chargement des équipements...</div>;
+    return <div>{t('loadingEquipment')}</div>;
   }
 
   if (error) {
-    return <div>Erreur: {error}</div>;
+    return <div>{t('error')}: {error}</div>;
   }
 
   return (
     <div className="equipment-filtering-example">
-      <h2>Équipements Détectés</h2>
+      <h2>{t('detectedEquipment')}</h2>
 
       <div className="filter-controls">
         <label>
@@ -37,24 +39,22 @@ export function EquipmentFilteringExample() {
             checked={showUnknown}
             onChange={handleToggleUnknown}
           />
-          Afficher les équipements inconnus
+          {t('showUnknown')}
         </label>
       </div>
 
       <div className="equipment-summary">
-        <p>Total: {summary.totalCount} équipements</p>
-        <p>Connectés: {summary.connectedCount}</p>
+        <p>{t('total')}: {summary.totalCount}</p>
+        <p>{t('connected')}: {summary.connectedCount}</p>
         <p>
-          Mode:{" "}
-          {showUnknown
-            ? "Tous les équipements"
-            : "Équipements pertinents uniquement"}
+          {t('mode')}: {" "}
+          {showUnknown ? t('allEquipment') : t('relevantOnly')}
         </p>
       </div>
 
       <div className="equipment-list">
         {equipment.length === 0 ? (
-          <p>Aucun équipement détecté</p>
+          <p>{t('noEquipment')}</p>
         ) : (
           equipment.map((device) => (
             <EquipmentCard key={device.id} device={device} />
@@ -143,12 +143,12 @@ function EquipmentCard({ device }: { device: DetectedEquipment }) {
               : "bg-gray-100 text-gray-800"
           }`}
         >
-          {device.autoInstallable ? "Auto-installable" : "Manuel"}
+          {device.autoInstallable ? t('autoInstallable') : t('manual')}
         </span>
 
         {device.confidence < 50 && (
           <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-800">
-            Confiance faible
+            {t('lowConfidence')}
           </span>
         )}
       </div>

@@ -26,8 +26,8 @@ export class DriversController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        error: "Erreur lors de la récupération du statut des drivers",
-        details: error instanceof Error ? error.message : "Erreur inconnue",
+        error: "Error retrieving driver status",
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -46,8 +46,8 @@ export class DriversController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        error: "Erreur lors de la récupération des drivers disponibles",
-        details: error instanceof Error ? error.message : "Erreur inconnue",
+        error: "Error retrieving available drivers",
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -66,8 +66,8 @@ export class DriversController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        error: "Erreur lors de la récupération des drivers installés",
-        details: error instanceof Error ? error.message : "Erreur inconnue",
+        error: "Error retrieving installed drivers",
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -80,7 +80,7 @@ export class DriversController {
       if (!driverName) {
         res.status(400).json({
           success: false,
-          error: "Nom du driver requis",
+          error: "Driver name required",
         });
         return;
       }
@@ -90,12 +90,12 @@ export class DriversController {
       if (success) {
         res.json({
           success: true,
-          message: `Driver ${driverName} installé avec succès`,
+          message: `Driver ${driverName} installed successfully`,
         });
       } else {
         res.status(500).json({
           success: false,
-          error: `Échec de l'installation du driver ${driverName}`,
+          error: `Failed to install driver ${driverName}`,
         });
       }
     } catch (error) {
