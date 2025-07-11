@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import AirAstroConnectionManager from "./AirAstroConnectionManager";
 import EquipmentCard from "./EquipmentCard";
 import EquipmentFilterInfo from "./EquipmentFilterInfo";
+import EquipmentWarningModal from "./EquipmentWarningModal";
 import LocationDisplay from "./LocationDisplay";
 import NumberInput from "./ui/NumberInput";
 import Select from "./ui/Select";
@@ -43,6 +44,7 @@ export default function EquipmentSetup() {
 
   const [autoSetupStarted, setAutoSetupStarted] = useState(false);
   const [setupMessage, setSetupMessage] = useState("");
+  const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
 
   const [status] = useState<"Connected" | "Connecting…" | "Lost">("Connected");
 
@@ -138,12 +140,32 @@ export default function EquipmentSetup() {
   const isFormValid = true;
 
   const handleSubmit = () => {
+    // Vérifier si des équipements sont connectés
+    const hasConnectedEquipment = summary.connectedCount > 0;
+
+    if (!hasConnectedEquipment) {
+      // Ouvrir la modal d'avertissement
+      setIsWarningModalOpen(true);
+      return;
+    }
+
+    // Continuer normalement si des équipements sont connectés
     console.log("Equipment setup completed:", formData);
     handleComplete();
   };
 
+  const handleContinueAnyway = () => {
+    // Fermer la modal et continuer quand même
+    setIsWarningModalOpen(false);
+    console.log(
+      "Equipment setup completed without connected equipment:",
+      formData
+    );
+    handleComplete();
+  };
+
   return (
-    <div className="viewport-height bg-bg-surface overflow-hidden flex flex-col">
+    <div className="flex flex-col overflow-hidden viewport-height bg-bg-surface">
       <TopBar
         onBack={handleBack}
         status={status}
@@ -151,10 +173,10 @@ export default function EquipmentSetup() {
         appVersion="v1.0.0"
       />
 
-      <div className="flex-1 overflow-y-auto px-4 py-8 pb-20">
+      <div className="flex-1 px-4 py-8 pb-20 overflow-y-auto">
         <div className="max-w-lg mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-semibold text-text-primary mb-2">
+          <div className="mb-8 text-center">
+            <h1 className="mb-2 text-2xl font-semibold text-text-primary">
               Configuration de l'équipement
             </h1>
             <p className="text-text-secondary">
@@ -163,47 +185,43 @@ export default function EquipmentSetup() {
           </div>
 
           {/* Location Display */}
-          <div className="mb-6">
+          <div className="mb-4">
             <LocationDisplay
               location={location}
-              showAccuracy={true}
-              className="mb-4"
+              compact={true}
+              showAccuracy={false}
+              className="mb-2"
             />
           </div>
 
           {/* Auto Setup Section */}
-          <div className="mb-8 p-4 bg-zinc-800 rounded-lg border border-zinc-700">
-            <h2 className="text-lg font-semibold text-white mb-4">
-              Configuration automatique
-            </h2>
-
+          <div className="relative p-4 mb-8 border rounded-lg bg-zinc-800 border-zinc-700">
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-sm text-gray-300">
-                  {summary.totalCount} équipement(s) détecté(s)
-                </p>
-                <p className="text-sm text-gray-300">
-                  {summary.connectedCount} connecté(s)
-                </p>
-              </div>
-              <div className="flex gap-2">
+              <h2 className="text-lg font-semibold text-white">
+                Configuration automatique
+              </h2>
+
+              {/* Boutons secondaires dans le coin supérieur droit */}
+              <div className="flex gap-1">
                 <button
                   onClick={handleScanEquipment}
                   disabled={loading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-sm"
+                  className="p-2 text-gray-400 transition-colors rounded-md hover:text-white hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Actualiser la recherche d'équipements"
                 >
-                  {loading ? "Scan..." : "Scanner"}
-                </button>
-                <button
-                  onClick={handleAutoSetup}
-                  disabled={
-                    loading || summary.isSetupInProgress || autoSetupStarted
-                  }
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-sm"
-                >
-                  {summary.isSetupInProgress || autoSetupStarted
-                    ? "Configuration..."
-                    : "Auto Config"}
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
                 </button>
                 <button
                   onClick={async () => {
@@ -216,38 +234,67 @@ export default function EquipmentSetup() {
                     }
                   }}
                   disabled={loading}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-sm"
-                  title="Met à jour la base de données d'équipements depuis GitHub"
+                  className="p-2 text-gray-400 transition-colors rounded-md hover:text-white hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Mettre à jour la base de données d'équipements depuis GitHub"
                 >
-                  {loading ? "MAJ..." : "MAJ DB"}
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
                 </button>
               </div>
             </div>
 
+            {/* Statistiques des équipements */}
+            <div className="mb-6">
+              <p className="text-sm text-gray-300">
+                {summary.totalCount} équipement(s) détecté(s),{" "}
+                {summary.connectedCount} connecté(s)
+              </p>
+            </div>
+
+            {/* Bouton principal de configuration automatique */}
+            <button
+              onClick={handleAutoSetup}
+              disabled={
+                loading || summary.isSetupInProgress || autoSetupStarted
+              }
+              className="w-full px-4 py-3 font-semibold text-white transition-colors bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed"
+            >
+              {summary.isSetupInProgress || autoSetupStarted
+                ? "Configuration en cours..."
+                : "🚀 Configuration automatique"}
+            </button>
+
             {/* Option pour afficher tous les équipements */}
-            <div className="mb-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showAllEquipment}
-                  onChange={(e) => setShowAllEquipment(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
-                />
-                <span className="text-sm text-gray-300">
-                  Afficher tous les équipements (y compris les contrôleurs
-                  inconnus)
-                </span>
-              </label>
+            <div className="mt-4 mb-4 text-center">
+              <button
+                onClick={() => setShowAllEquipment(!showAllEquipment)}
+                className="text-sm text-blue-400 underline transition-colors hover:text-blue-300"
+              >
+                {showAllEquipment
+                  ? "Masquer les contrôleurs inconnus"
+                  : "Afficher tous les équipements (y compris les contrôleurs inconnus)"}
+              </button>
             </div>
 
             {setupMessage && (
-              <div className="mb-4 p-3 bg-zinc-900 rounded-md">
+              <div className="p-3 mb-4 rounded-md bg-zinc-900">
                 <p className="text-sm text-white">{setupMessage}</p>
               </div>
             )}
 
             {error && (
-              <div className="mb-4 p-3 bg-red-900 rounded-md">
+              <div className="p-3 mb-4 bg-red-900 rounded-md">
                 <p className="text-sm text-red-300">{error}</p>
               </div>
             )}
@@ -263,11 +310,11 @@ export default function EquipmentSetup() {
           {/* Detected Equipment */}
           {equipment.length > 0 && (
             <div className="mb-8">
-              <h2 className="text-lg font-semibold text-white mb-4">
+              <h2 className="mb-4 text-lg font-semibold text-white">
                 Équipements détectés
               </h2>
 
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {equipment.map((item) => (
                   <EquipmentCard
                     key={item.id}
@@ -283,7 +330,7 @@ export default function EquipmentSetup() {
 
           {/* Manual Configuration */}
           <div className="mb-8">
-            <h2 className="text-lg font-semibold text-white mb-4">
+            <h2 className="mb-4 text-lg font-semibold text-white">
               Configuration manuelle
             </h2>
 
@@ -354,7 +401,7 @@ export default function EquipmentSetup() {
       </div>
 
       {/* Bottom CTA - Fixé en bas */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-bg-surface/95 backdrop-blur-sm border-t border-zinc-700">
+      <div className="fixed bottom-0 left-0 right-0 p-4 border-t bg-bg-surface/95 backdrop-blur-sm border-zinc-700">
         <button
           onClick={handleSubmit}
           className="w-full h-11 rounded-md font-semibold shadow-elevation bg-cta-green text-white hover:bg-cta-green/90 active:scale-[.98] transition-all"
@@ -362,6 +409,15 @@ export default function EquipmentSetup() {
           ENTRER
         </button>
       </div>
+
+      {/* Modal d'avertissement pour les équipements non configurés */}
+      <EquipmentWarningModal
+        isOpen={isWarningModalOpen}
+        onClose={() => setIsWarningModalOpen(false)}
+        onContinue={handleContinueAnyway}
+        equipmentCount={summary.totalCount}
+        connectedCount={summary.connectedCount}
+      />
     </div>
   );
 }
