@@ -62,15 +62,15 @@ export default function TopBarDashboard({
   };
 
   const iconButtons = [
-    { icon: Wifi, label: "Wifi", active: true },
-    { icon: Camera, label: "Photo", active: false },
-    { icon: BarChart3, label: "Histogram", active: false },
-    { icon: Telescope, label: "Scope", active: true },
-    { icon: Filter, label: "EFW", active: false },
-    { icon: Focus, label: "EAF", active: false },
-    { icon: Target, label: "CAA", active: false },
-    { icon: HardDrive, label: "SD", active: true },
-    { icon: Info, label: "Info", active: false },
+    { icon: Wifi, label: "Wifi", active: true, implemented: true },
+    { icon: Camera, label: "Photo", active: false, implemented: false },
+    { icon: BarChart3, label: "Histogram", active: false, implemented: false },
+    { icon: Telescope, label: "Scope", active: true, implemented: true },
+    { icon: Filter, label: "EFW", active: false, implemented: false },
+    { icon: Focus, label: "EAF", active: false, implemented: false },
+    { icon: Target, label: "CAA", active: false, implemented: false },
+    { icon: HardDrive, label: "SD", active: true, implemented: true },
+    { icon: Info, label: "Info", active: false, implemented: false },
   ];
 
   return (
@@ -121,20 +121,29 @@ export default function TopBarDashboard({
           )}
         </button>
 
-        {iconButtons.map(({ icon: Icon, label, active }, index) => (
-          <button
-            key={index}
-            className={clsx(
-              "p-1.5 rounded transition-colors",
-              active
-                ? "text-cta-green bg-cta-green/20"
-                : "text-text-secondary hover:text-text-primary hover:bg-white/10"
-            )}
-            aria-label={label}
-          >
-            <Icon size={20} />
-          </button>
-        ))}
+        {iconButtons.map(
+          ({ icon: Icon, label, active, implemented }, index) => (
+            <button
+              key={index}
+              disabled={!implemented}
+              className={clsx(
+                "p-1.5 rounded transition-colors relative",
+                !implemented && "opacity-30 cursor-not-allowed",
+                implemented && active
+                  ? "text-cta-green bg-cta-green/20"
+                  : implemented
+                  ? "text-text-secondary hover:text-text-primary hover:bg-white/10"
+                  : "text-text-secondary"
+              )}
+              aria-label={implemented ? label : `${label} (Non implémenté)`}
+            >
+              <Icon size={20} />
+              {!implemented && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500/60 rounded-full" />
+              )}
+            </button>
+          )
+        )}
       </div>
 
       {/* Update Modal */}

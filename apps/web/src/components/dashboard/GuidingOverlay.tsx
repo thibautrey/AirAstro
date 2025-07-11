@@ -18,7 +18,7 @@ export default function GuidingOverlay() {
   });
 
   useEffect(() => {
-    // Simuler des données de guidage qui changent
+    // Simuler des données de guidage qui changent - pas encore implémenté
     const interval = setInterval(() => {
       setGuidingData((prev) => ({
         ra: (Math.random() - 0.5) * 2,
@@ -54,8 +54,11 @@ export default function GuidingOverlay() {
   };
 
   return (
-    <div className="absolute top-4 left-4 w-38 h-25 bg-black/80 backdrop-blur-sm border border-zinc-700/60 rounded shadow-elevation">
-      <div className="p-3 space-y-1">
+    <div className="absolute top-4 left-4 w-38 h-25 bg-black/80 backdrop-blur-sm border border-zinc-700/60 rounded shadow-elevation opacity-60">
+      <div className="p-3 space-y-1 relative">
+        <div className="absolute -top-2 -right-2 text-xs text-yellow-500/80 bg-yellow-500/10 px-2 py-1 rounded">
+          Simulé
+        </div>
         <div className="flex justify-between items-center text-xs">
           <span className="text-text-secondary">RA:</span>
           <span

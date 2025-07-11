@@ -12,6 +12,52 @@
   --visual-viewport-height: 100vh;
 }
 
+/* Styles pour les éléments non implémentés */
+.not-implemented {
+  position: relative;
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.not-implemented::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(255, 255, 255, 0.1) 10px,
+    rgba(255, 255, 255, 0.1) 20px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.feature-status-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  z-index: 10;
+}
+
+.feature-status-badge.not-implemented {
+  background-color: rgba(239, 68, 68, 0.6);
+  opacity: 1;
+}
+
+.feature-status-badge.simulated {
+  background-color: rgba(245, 158, 11, 0.6);
+  opacity: 1;
+}
+
 html,
 body {
   height: 100%;
@@ -193,7 +239,7 @@ textarea {
   }
 
   .z-modal-pwa {
-    z-index: 10000;
+    z-index: 99999;
   }
 
   .z-notification {
