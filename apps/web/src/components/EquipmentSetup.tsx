@@ -9,13 +9,17 @@ import NumberInput from "./ui/NumberInput";
 import Select from "./ui/Select";
 import TopBar from "./ui/TopBar";
 import { useEquipment } from "../hooks/useEquipment";
+import { usePersistentState } from "../hooks/usePersistentState";
 import { useLocation } from "../hooks/useLocation";
 import { useNavigate } from "react-router-dom";
 
 export default function EquipmentSetup() {
   const navigate = useNavigate();
   const { location } = useLocation();
-  const [showAllEquipment, setShowAllEquipment] = useState(false);
+  const [showAllEquipment, setShowAllEquipment] = usePersistentState(
+    "showAllEquipment",
+    false
+  );
 
   const {
     equipment,
@@ -34,7 +38,7 @@ export default function EquipmentSetup() {
     includeUnknown: showAllEquipment, // Filtrage conditionnel
   });
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState("equipmentForm", {
     mount: "",
     mainCamera: "",
     mainFocalLength: 1000,
@@ -292,6 +296,15 @@ export default function EquipmentSetup() {
       // Mettre à jour le champ actuel
       if (field === "mount") {
         newData.mount = value;
+        try {
+          fetch("/api/equipment/state", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ selectedMount: value }),
+          });
+        } catch (err) {
+          console.warn("Failed to persist mount selection", err);
+        }
       } else if (field === "mainCamera") {
         newData.mainCamera = value;
       } else if (field === "guideCamera") {
