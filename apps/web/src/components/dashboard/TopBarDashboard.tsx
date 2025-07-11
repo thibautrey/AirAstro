@@ -74,20 +74,20 @@ export default function TopBarDashboard({
   ];
 
   return (
-    <div className="h-11 bg-black/70 backdrop-blur-sm border-b border-zinc-700/40 flex items-center justify-between">
+    <div className="flex items-center justify-between border-b h-11 bg-black/70 backdrop-blur-sm border-zinc-700/40">
       {/* Left section */}
       <div className="flex items-center gap-2 pl-3">
         <button
           onClick={() => navigate("/")}
-          className="p-1 hover:bg-white/10 rounded transition-colors"
+          className="p-1 transition-colors rounded hover:bg-white/10"
           aria-label="Retour"
         >
           <ChevronLeft size={16} className="text-text-primary" />
         </button>
-        <span className="font-semibold text-sm text-text-primary tracking-wider">
+        <span className="text-sm font-semibold tracking-wider text-text-primary">
           AIRASTRO
         </span>
-        <Battery size={14} className="text-text-secondary ml-2" />
+        <Battery size={14} className="ml-2 text-text-secondary" />
         <span className="text-xs text-text-secondary">{currentTime}</span>
       </div>
 
@@ -117,7 +117,7 @@ export default function TopBarDashboard({
         >
           <Download size={20} />
           {updateStatus === UpdateStatus.AVAILABLE && (
-            <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full" />
+            <div className="absolute w-2 h-2 bg-yellow-400 rounded-full -top-1 -right-1" />
           )}
         </button>
 
@@ -139,7 +139,7 @@ export default function TopBarDashboard({
             >
               <Icon size={20} />
               {!implemented && (
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500/60 rounded-full" />
+                <div className="absolute w-2 h-2 rounded-full -top-1 -right-1 bg-red-500/60" />
               )}
             </button>
           )

@@ -14,6 +14,7 @@ import { useUpdate } from "../hooks/useUpdate";
 export default function DashboardScreen() {
   const { id } = useParams<{ id: string }>();
   const [notificationDismissed, setNotificationDismissed] = useState(false);
+  const [showGuidingOverlay, setShowGuidingOverlay] = useState(false);
 
   // Construire l'URL du device
   const deviceUrl = id ? `http://${id}` : "";
@@ -43,6 +44,10 @@ export default function DashboardScreen() {
     setNotificationDismissed(true);
   };
 
+  const handleToggleGuidingOverlay = () => {
+    setShowGuidingOverlay(!showGuidingOverlay);
+  };
+
   return (
     <div className="viewport-height bg-bg-surface overflow-hidden relative">
       {/* Global toolbar at top */}
@@ -69,12 +74,15 @@ export default function DashboardScreen() {
       {/* Main content area with overlays */}
       <div className="relative dashboard-content-height flex">
         {/* Left vertical mode rail */}
-        <ModeRail />
+        <ModeRail
+          showGuidingOverlay={showGuidingOverlay}
+          onToggleGuidingOverlay={handleToggleGuidingOverlay}
+        />
 
         {/* Central stage area */}
         <div className="flex-1 relative">
           <LiveCanvas />
-          <GuidingOverlay />
+          <GuidingOverlay isVisible={showGuidingOverlay} />
         </div>
 
         {/* Right camera control rail */}
