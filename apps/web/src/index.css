@@ -231,6 +231,41 @@ textarea {
   user-select: text;
 }
 
+/* Masquer les barres de défilement sur mobile tout en conservant la fonctionnalité */
+.hide-scrollbar {
+  /* Masquer la barre de défilement pour Webkit (Chrome, Safari) */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer et Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Masquer la barre de défilement pour Webkit */
+}
+
+/* Styles spécifiques pour les éléments avec overflow-y: auto et overflow-x: hidden */
+.mobile-scroll-container {
+  /* Masquer les barres de défilement sur mobile */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE et Edge */
+}
+
+.mobile-scroll-container::-webkit-scrollbar {
+  display: none; /* Webkit browsers */
+}
+
+/* Application automatique sur mobile pour les éléments avec overflow-y: auto */
+@media (max-width: 768px) {
+  /* Cibler tous les éléments avec overflow-y: auto */
+  [class*="overflow-y-auto"] {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE et Edge */
+  }
+
+  [class*="overflow-y-auto"]::-webkit-scrollbar {
+    display: none; /* Webkit browsers */
+  }
+}
+
 /* Utilitaires pour les hauteurs de viewport dynamiques */
 @layer utilities {
   .h-viewport {

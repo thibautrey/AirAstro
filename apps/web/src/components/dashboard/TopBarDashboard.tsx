@@ -59,7 +59,7 @@ export default function TopBarDashboard({
   };
 
   return (
-    <div className="flex items-center justify-between border-b h-11 bg-black/70 backdrop-blur-sm border-zinc-700/40">
+    <div className="flex items-center justify-between border-b h-11 bg-black/70 backdrop-blur-sm border-zinc-700/40 hide-scrollbar">
       {/* Left section */}
       <div className="flex items-center gap-2 pl-3">
         <button

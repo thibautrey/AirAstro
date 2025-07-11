@@ -368,7 +368,7 @@ export default function EquipmentSetup() {
         )}
       </div>
 
-      <div className="flex-1 px-4 py-8 pb-20 overflow-y-auto">
+      <div className="flex-1 px-4 py-8 pb-20 overflow-y-auto hide-scrollbar">
         <div className="max-w-lg mx-auto">
           <div className="mb-8 text-center">
             <h1 className="mb-2 text-2xl font-semibold text-text-primary">

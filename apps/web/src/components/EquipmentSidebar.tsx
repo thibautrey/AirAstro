@@ -411,7 +411,7 @@ export default function EquipmentSidebar({
           </div>
 
           {/* Equipment List */}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-4 hide-scrollbar">
             {availableEquipment.length === 0 ? (
               <div className="text-center py-8">
                 <div className="text-4xl mb-2">🔧</div>
@@ -499,7 +499,7 @@ export default function EquipmentSidebar({
               </div>
 
               {/* Settings Content */}
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="flex-1 overflow-y-auto p-4 hide-scrollbar">
                 {renderEquipmentSettings(selectedEquipment)}
               </div>
             </>

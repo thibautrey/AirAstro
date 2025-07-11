@@ -51,7 +51,7 @@ export default function CameraSelector({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-black/90 border border-zinc-700/60 rounded shadow-lg z-50 max-h-60 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-black/90 border border-zinc-700/60 rounded shadow-lg z-50 max-h-60 overflow-y-auto hide-scrollbar">
           {cameras.length === 0 ? (
             <div className="p-3 text-text-secondary text-sm">
               Aucune caméra disponible

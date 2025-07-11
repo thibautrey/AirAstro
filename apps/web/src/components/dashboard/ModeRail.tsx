@@ -34,7 +34,7 @@ export default function ModeRail({
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 py-8 pb-20 overflow-x-hidden overflow-y-auto rounded-r w-14 bg-black/40 backdrop-blur-sm">
+    <div className="flex flex-col items-center gap-4 py-8 pb-20 overflow-x-hidden overflow-y-auto rounded-r w-14 bg-black/40 backdrop-blur-sm hide-scrollbar">
       {modes.map(({ id, label, icon: Icon, implemented }) => {
         const isActive =
           id === "guide" ? showGuidingOverlay : activeMode === id;

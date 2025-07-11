@@ -150,7 +150,7 @@ export default function EquipmentDrawer({
           </div>
 
           {/* Scrollable content */}
-          <div className="flex-1 px-4 pb-24 overflow-y-auto">
+          <div className="flex-1 px-4 pb-24 overflow-y-auto hide-scrollbar">
             {activeEquipment === "MainCamera" && <MainCameraContent />}
             {activeEquipment === "Connection" && <ConnectionContent />}
             {activeEquipment === "PolarAlign" && <PolarAlignContent />}
