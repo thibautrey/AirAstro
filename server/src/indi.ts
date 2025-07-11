@@ -1,10 +1,39 @@
 import { ChildProcess, exec as execCallback, spawn } from "child_process";
 
+import { IndiClient } from "./services/indi-client";
 import { promises as fs } from "fs";
 import path from "path";
 import { promisify } from "util";
 
 const exec = promisify(execCallback);
+
+export interface IndiDevice {
+  name: string;
+  label: string;
+  type:
+    | "camera"
+    | "mount"
+    | "focuser"
+    | "filterwheel"
+    | "dome"
+    | "weather"
+    | "aux"
+    | "unknown";
+  driver: string;
+  connected: boolean;
+  properties: IndiProperty[];
+  brand?: string;
+  model?: string;
+}
+
+export interface IndiProperty {
+  name: string;
+  label: string;
+  type: "text" | "number" | "switch" | "light" | "blob";
+  value: any;
+  writable: boolean;
+  state: "idle" | "ok" | "busy" | "alert";
+}
 
 export interface UsbDevice {
   bus: string;
@@ -165,8 +194,9 @@ export class DriverManager {
   private running: Map<string, ChildProcess> = new Map();
   private availableCache?: { names: string[]; timestamp: number };
   private readonly CACHE_DURATION = 60 * 60 * 1000; // 1 hour
+  private indiClient: IndiClient;
 
-  constructor() {
+  constructor(indiHost: string = "localhost", indiPort: number = 7624) {
     this.searchDirs = [
       "/usr/local/bin",
       "/usr/bin",
@@ -178,6 +208,397 @@ export class DriverManager {
       "/usr/lib/arm-linux-gnueabihf/indi",
       "/usr/share/indi",
     ];
+    this.indiClient = new IndiClient(indiHost, indiPort);
+  }
+
+  // Nouvelles méthodes pour communiquer avec les équipements via INDI
+
+  /**
+   * Obtenir la liste des équipements connectés via INDI
+   */
+  async getConnectedDevices(): Promise<IndiDevice[]> {
+    try {
+      // Obtenir la liste des devices depuis INDI
+      const devicesOutput = await this.indiClient.getProp(
+        "*.CONNECTION.CONNECT"
+      );
+      const devices: IndiDevice[] = [];
+
+      if (devicesOutput) {
+        const lines = devicesOutput.split("\n").filter((line) => line.trim());
+
+        for (const line of lines) {
+          const match = line.match(/^([^.]+)\.CONNECTION\.CONNECT=(.+)$/);
+          if (match) {
+            const [, deviceName, connectionStatus] = match;
+            const connected =
+              connectionStatus === "On" || connectionStatus === "true";
+
+            // Obtenir les informations détaillées du device
+            const deviceInfo = await this.getDeviceInfo(deviceName);
+            devices.push({
+              name: deviceName,
+              label: deviceInfo.label || deviceName,
+              type: deviceInfo.type || "unknown",
+              driver: deviceInfo.driver || "unknown",
+              connected,
+              properties: deviceInfo.properties || [],
+              brand: deviceInfo.brand,
+              model: deviceInfo.model,
+            });
+          }
+        }
+      }
+
+      return devices;
+    } catch (error) {
+      console.error(
+        "Erreur lors de la récupération des équipements connectés:",
+        error
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Obtenir les informations détaillées d'un équipement
+   */
+  private async getDeviceInfo(
+    deviceName: string
+  ): Promise<Partial<IndiDevice>> {
+    try {
+      const info: Partial<IndiDevice> = {};
+
+      // Obtenir le type de device
+      const driverExec = await this.indiClient.getProp(
+        `${deviceName}.DRIVER_INFO.DRIVER_EXEC`
+      );
+      if (driverExec) {
+        info.driver = driverExec.trim();
+        info.type = this.inferDeviceType(driverExec);
+      }
+
+      // Obtenir le nom affiché
+      const driverName = await this.indiClient.getProp(
+        `${deviceName}.DRIVER_INFO.DRIVER_NAME`
+      );
+      if (driverName) {
+        info.label = driverName.trim();
+      }
+
+      // Obtenir la version du driver
+      const driverVersion = await this.indiClient.getProp(
+        `${deviceName}.DRIVER_INFO.DRIVER_VERSION`
+      );
+
+      // Obtenir les propriétés importantes
+      info.properties = await this.getDeviceProperties(deviceName);
+
+      // Détecter la marque et le modèle à partir du nom du driver
+      const brandModel = this.detectBrandFromDriverName(
+        info.driver || deviceName
+      );
+      if (brandModel) {
+        info.brand = brandModel.brand;
+        info.model = brandModel.model;
+      }
+
+      return info;
+    } catch (error) {
+      console.warn(
+        `Erreur lors de la récupération des informations pour ${deviceName}:`,
+        error
+      );
+      return {};
+    }
+  }
+
+  /**
+   * Inférer le type d'équipement à partir du nom du driver
+   */
+  private inferDeviceType(driverName: string): IndiDevice["type"] {
+    const name = driverName.toLowerCase();
+
+    if (name.includes("ccd") || name.includes("camera")) return "camera";
+    if (
+      name.includes("telescope") ||
+      name.includes("mount") ||
+      name.includes("eqmod")
+    )
+      return "mount";
+    if (name.includes("focuser") || name.includes("focus")) return "focuser";
+    if (name.includes("wheel") || name.includes("filter")) return "filterwheel";
+    if (name.includes("dome")) return "dome";
+    if (name.includes("weather")) return "weather";
+
+    return "aux";
+  }
+
+  /**
+   * Obtenir les propriétés d'un équipement
+   */
+  private async getDeviceProperties(
+    deviceName: string
+  ): Promise<IndiProperty[]> {
+    try {
+      const properties: IndiProperty[] = [];
+
+      // Obtenir toutes les propriétés du device
+      const allProps = await this.indiClient.getProp(`${deviceName}.*`);
+
+      if (allProps) {
+        const lines = allProps.split("\n").filter((line) => line.trim());
+
+        for (const line of lines) {
+          const match = line.match(/^([^.]+)\.([^.]+)\.([^=]+)=(.+)$/);
+          if (match) {
+            const [, device, group, propName, value] = match;
+
+            // Filtrer les propriétés importantes
+            if (this.isImportantProperty(group, propName)) {
+              properties.push({
+                name: `${group}.${propName}`,
+                label: propName,
+                type: this.inferPropertyType(propName, value),
+                value: this.parsePropertyValue(value),
+                writable: this.isWritableProperty(group, propName),
+                state: "idle", // On pourrait l'obtenir depuis INDI mais c'est plus complexe
+              });
+            }
+          }
+        }
+      }
+
+      return properties;
+    } catch (error) {
+      console.warn(
+        `Erreur lors de la récupération des propriétés pour ${deviceName}:`,
+        error
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Vérifier si une propriété est importante à afficher
+   */
+  private isImportantProperty(group: string, propName: string): boolean {
+    const importantGroups = [
+      "CONNECTION",
+      "DRIVER_INFO",
+      "CCD_INFO",
+      "TELESCOPE_INFO",
+      "FOCUSER_INFO",
+      "FILTER_INFO",
+      "WEATHER_INFO",
+    ];
+
+    const importantProps = [
+      "CONNECT",
+      "DRIVER_NAME",
+      "DRIVER_VERSION",
+      "DRIVER_EXEC",
+      "CCD_MAX_X",
+      "CCD_MAX_Y",
+      "CCD_PIXEL_SIZE",
+      "CCD_PIXEL_SIZE_X",
+      "CCD_PIXEL_SIZE_Y",
+      "TELESCOPE_INFO",
+      "MOUNT_TYPE",
+      "FOCUSER_INFO",
+      "FILTER_COUNT",
+    ];
+
+    return importantGroups.includes(group) || importantProps.includes(propName);
+  }
+
+  /**
+   * Inférer le type d'une propriété
+   */
+  private inferPropertyType(
+    propName: string,
+    value: string
+  ): IndiProperty["type"] {
+    if (propName.includes("CONNECT") || propName.includes("ENABLE"))
+      return "switch";
+    if (!isNaN(Number(value))) return "number";
+    return "text";
+  }
+
+  /**
+   * Parser la valeur d'une propriété
+   */
+  private parsePropertyValue(value: string): any {
+    if (value === "On" || value === "true") return true;
+    if (value === "Off" || value === "false") return false;
+    if (!isNaN(Number(value))) return Number(value);
+    return value;
+  }
+
+  /**
+   * Vérifier si une propriété est modifiable
+   */
+  private isWritableProperty(group: string, propName: string): boolean {
+    const writableProps = [
+      "CONNECT",
+      "CCD_EXPOSURE",
+      "CCD_TEMPERATURE",
+      "TELESCOPE_COORD",
+      "FOCUSER_POSITION",
+      "FILTER_SLOT",
+    ];
+
+    return writableProps.some((prop) => propName.includes(prop));
+  }
+
+  /**
+   * Détecter la marque et le modèle à partir du nom du driver
+   */
+  private detectBrandFromDriverName(
+    driverName: string
+  ): { brand: string; model?: string } | null {
+    const name = driverName.toLowerCase();
+
+    for (const [key, brand] of Object.entries(KNOWN_BRANDS)) {
+      for (const pattern of brand.driverPatterns) {
+        if (name.includes(pattern)) {
+          return {
+            brand: brand.name,
+            model: this.extractModelFromDriverName(name, brand),
+          };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Extraire le modèle du nom du driver
+   */
+  private extractModelFromDriverName(
+    driverName: string,
+    brand: BrandInfo
+  ): string | undefined {
+    // Logique similaire à extractModelFromDevice mais adaptée aux noms de drivers
+    switch (brand.name) {
+      case "ZWO":
+        const asiMatch = driverName.match(/asi.*?(\d+\w*)/i);
+        if (asiMatch) return `ASI ${asiMatch[1]}`;
+        break;
+
+      case "QHYCCD":
+        const qhyMatch = driverName.match(/qhy.*?(\d+\w*)/i);
+        if (qhyMatch) return `QHY ${qhyMatch[1]}`;
+        break;
+
+      // Ajouter d'autres marques si nécessaire
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Connecter un équipement via INDI
+   */
+  async connectDevice(deviceName: string): Promise<void> {
+    try {
+      await this.indiClient.setProp(`${deviceName}.CONNECTION.CONNECT`, "On");
+      console.log(`Équipement ${deviceName} connecté`);
+    } catch (error) {
+      console.error(`Erreur lors de la connexion à ${deviceName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Déconnecter un équipement via INDI
+   */
+  async disconnectDevice(deviceName: string): Promise<void> {
+    try {
+      await this.indiClient.setProp(`${deviceName}.CONNECTION.CONNECT`, "Off");
+      console.log(`Équipement ${deviceName} déconnecté`);
+    } catch (error) {
+      console.error(`Erreur lors de la déconnexion de ${deviceName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtenir la valeur d'une propriété d'un équipement
+   */
+  async getDeviceProperty(
+    deviceName: string,
+    propertyName: string
+  ): Promise<string> {
+    try {
+      return await this.indiClient.getProp(`${deviceName}.${propertyName}`);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la lecture de ${deviceName}.${propertyName}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Définir la valeur d'une propriété d'un équipement
+   */
+  async setDeviceProperty(
+    deviceName: string,
+    propertyName: string,
+    value: string
+  ): Promise<void> {
+    try {
+      await this.indiClient.setProp(`${deviceName}.${propertyName}`, value);
+      console.log(`Propriété ${deviceName}.${propertyName} définie à ${value}`);
+    } catch (error) {
+      console.error(
+        `Erreur lors de la définition de ${deviceName}.${propertyName}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Vérifier si le serveur INDI est en cours d'exécution
+   */
+  async isIndiServerRunning(): Promise<boolean> {
+    try {
+      const result = await this.indiClient.getProp("*.CONNECTION.CONNECT");
+      return result !== null && result !== "";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Obtenir le statut du serveur INDI
+   */
+  async getIndiServerStatus(): Promise<{
+    running: boolean;
+    connectedDevices: number;
+    availableDevices: string[];
+  }> {
+    try {
+      const running = await this.isIndiServerRunning();
+      const devices = await this.getConnectedDevices();
+
+      return {
+        running,
+        connectedDevices: devices.filter((d) => d.connected).length,
+        availableDevices: devices.map((d) => d.name),
+      };
+    } catch (error) {
+      console.error("Erreur lors de la récupération du statut INDI:", error);
+      return {
+        running: false,
+        connectedDevices: 0,
+        availableDevices: [],
+      };
+    }
   }
 
   private async fetchDriverNamesFromGitHub(repo: string): Promise<string[]> {
@@ -403,7 +824,35 @@ export class DriverManager {
     return Array.from(this.running.keys());
   }
 
+  /**
+   * Obtenir la liste des équipements (remplace listUsbDevices)
+   * Cette méthode utilise INDI au lieu de la détection USB directe
+   */
+  async listConnectedEquipment(): Promise<IndiDevice[]> {
+    try {
+      console.log("🔍 Récupération des équipements via INDI...");
+      const devices = await this.getConnectedDevices();
+      console.log(`📱 ${devices.length} équipements trouvés via INDI`);
+      return devices;
+    } catch (error) {
+      console.error(
+        "Erreur lors de la récupération des équipements via INDI:",
+        error
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Méthode dépréciée : listUsbDevices
+   * Utiliser listConnectedEquipment() à la place
+   * @deprecated Utiliser listConnectedEquipment() qui communique avec INDI
+   */
   async listUsbDevices(): Promise<UsbDevice[]> {
+    console.warn(
+      "⚠️ listUsbDevices() est déprécié. Utilisez listConnectedEquipment() à la place."
+    );
+
     try {
       const { stdout } = await exec("lsusb");
       const lines = stdout.trim().split("\n");
@@ -419,8 +868,8 @@ export class DriverManager {
         const [, bus, device, vendorId, productId, desc] = match;
         const id = `${vendorId}:${productId}`;
 
-        // Obtenir des informations détaillées sur l'appareil
-        const detailedInfo = await this.getUsbDeviceDetails(bus, device);
+        // Obtenir des informations détaillées sur l'appareil (méthode simplifiée)
+        // const detailedInfo = await this.getUsbDeviceDetails(bus, device);
 
         // Créer l'objet device de base
         const usbDevice: UsbDevice = {
@@ -431,8 +880,8 @@ export class DriverManager {
           productId,
           description: desc,
           matchingDrivers: [],
-          manufacturer: detailedInfo.manufacturer,
-          product: detailedInfo.product,
+          // manufacturer: detailedInfo.manufacturer,
+          // product: detailedInfo.product,
         };
 
         // Détecter la marque
@@ -543,332 +992,335 @@ export class DriverManager {
     return undefined;
   }
 
-  // Méthode pour obtenir les informations détaillées d'une marque
-  getBrandInfo(brandName: string): BrandInfo | null {
-    const brand = Object.values(KNOWN_BRANDS).find(
-      (b) => b.name.toLowerCase() === brandName.toLowerCase()
-    );
-    return brand || null;
-  }
-
-  // Méthode pour lister toutes les marques supportées
-  getSupportedBrands(): BrandInfo[] {
-    return Object.values(KNOWN_BRANDS);
-  }
-
-  // Méthode pour détecter automatiquement les équipements connectés avec leurs marques
-  async detectConnectedEquipment(): Promise<{
-    devices: UsbDevice[];
-    brandSummary: Record<
-      string,
-      {
-        brand: BrandInfo;
-        devices: UsbDevice[];
-        hasDrivers: boolean;
-        recommendations: {
-          missingPackages: string[];
-          installationScript?: string;
-          diagnosticScript?: string;
-        };
-      }
-    >;
-  }> {
-    const devices = await this.listUsbDevices();
-    const brandSummary: Record<string, any> = {};
-
-    for (const device of devices) {
-      if (device.brand) {
-        const brandKey = device.brand.toLowerCase();
-        const brandInfo = this.getBrandInfo(device.brand);
-
-        if (brandInfo) {
-          if (!brandSummary[brandKey]) {
-            brandSummary[brandKey] = {
-              brand: brandInfo,
-              devices: [],
-              hasDrivers: false,
-              recommendations: await this.getBrandInstallationSuggestions(
-                brandInfo
-              ),
-            };
-          }
-
-          brandSummary[brandKey].devices.push(device);
-          if (device.matchingDrivers.length > 0) {
-            brandSummary[brandKey].hasDrivers = true;
-          }
-        }
-      }
-    }
-
-    return {
-      devices,
-      brandSummary,
-    };
-  }
-
-  private async getUsbDeviceDetails(
-    bus: string,
-    device: string
-  ): Promise<{ manufacturer?: string; product?: string }> {
+  /**
+   * Prendre une photo avec une caméra
+   */
+  async captureImage(
+    cameraName: string,
+    exposureTime: number = 1.0
+  ): Promise<void> {
     try {
-      const { stdout } = await exec(`lsusb -s ${bus}:${device} -v 2>/dev/null`);
-      const lines = stdout.split("\n");
+      console.log(`📸 Prise de photo avec ${cameraName} (${exposureTime}s)`);
 
-      let manufacturer: string | undefined;
-      let product: string | undefined;
-
-      for (const line of lines) {
-        if (line.includes("iManufacturer")) {
-          const match = line.match(/iManufacturer\s+\d+\s+(.+)/);
-          if (match) manufacturer = match[1].trim();
-        } else if (line.includes("iProduct")) {
-          const match = line.match(/iProduct\s+\d+\s+(.+)/);
-          if (match) product = match[1].trim();
-        }
+      // Vérifier que la caméra est connectée
+      const isConnected = await this.indiClient.getProp(
+        `${cameraName}.CONNECTION.CONNECT`
+      );
+      if (isConnected !== "On") {
+        throw new Error(`La caméra ${cameraName} n'est pas connectée`);
       }
 
-      return { manufacturer, product };
+      // Définir le temps d'exposition
+      await this.indiClient.setProp(
+        `${cameraName}.CCD_EXPOSURE.CCD_EXPOSURE_VALUE`,
+        exposureTime.toString()
+      );
+
+      // Démarrer l'exposition
+      await this.indiClient.setProp(
+        `${cameraName}.CCD_EXPOSURE.CCD_EXPOSURE_REQUEST`,
+        "On"
+      );
+
+      console.log(`✅ Exposition démarrée pour ${cameraName}`);
     } catch (error) {
+      console.error(`❌ Erreur lors de la prise de photo:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bouger une monture vers des coordonnées spécifiées
+   */
+  async moveMount(mountName: string, ra: number, dec: number): Promise<void> {
+    try {
+      console.log(
+        `🔭 Mouvement de la monture ${mountName} vers RA: ${ra}, DEC: ${dec}`
+      );
+
+      // Vérifier que la monture est connectée
+      const isConnected = await this.indiClient.getProp(
+        `${mountName}.CONNECTION.CONNECT`
+      );
+      if (isConnected !== "On") {
+        throw new Error(`La monture ${mountName} n'est pas connectée`);
+      }
+
+      // Définir les coordonnées
+      await this.indiClient.setProp(
+        `${mountName}.EQUATORIAL_EOD_COORD.RA`,
+        ra.toString()
+      );
+      await this.indiClient.setProp(
+        `${mountName}.EQUATORIAL_EOD_COORD.DEC`,
+        dec.toString()
+      );
+
+      // Démarrer le mouvement
+      await this.indiClient.setProp(`${mountName}.ON_COORD_SET.SLEW`, "On");
+
+      console.log(`✅ Mouvement démarré pour ${mountName}`);
+    } catch (error) {
+      console.error(`❌ Erreur lors du mouvement de la monture:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Ajuster la position d'un focuser
+   */
+  async adjustFocuser(focuserName: string, position: number): Promise<void> {
+    try {
+      console.log(
+        `🔧 Ajustement du focuser ${focuserName} à la position ${position}`
+      );
+
+      // Vérifier que le focuser est connecté
+      const isConnected = await this.indiClient.getProp(
+        `${focuserName}.CONNECTION.CONNECT`
+      );
+      if (isConnected !== "On") {
+        throw new Error(`Le focuser ${focuserName} n'est pas connecté`);
+      }
+
+      // Définir la position
+      await this.indiClient.setProp(
+        `${focuserName}.ABS_FOCUS_POSITION.FOCUS_ABSOLUTE_POSITION`,
+        position.toString()
+      );
+
+      console.log(`✅ Position du focuser ${focuserName} ajustée`);
+    } catch (error) {
+      console.error(`❌ Erreur lors de l'ajustement du focuser:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Changer de filtre sur une roue à filtres
+   */
+  async changeFilter(
+    filterWheelName: string,
+    filterSlot: number
+  ): Promise<void> {
+    try {
+      console.log(
+        `🎨 Changement vers le filtre ${filterSlot} sur ${filterWheelName}`
+      );
+
+      // Vérifier que la roue à filtres est connectée
+      const isConnected = await this.indiClient.getProp(
+        `${filterWheelName}.CONNECTION.CONNECT`
+      );
+      if (isConnected !== "On") {
+        throw new Error(
+          `La roue à filtres ${filterWheelName} n'est pas connectée`
+        );
+      }
+
+      // Changer de filtre
+      await this.indiClient.setProp(
+        `${filterWheelName}.FILTER_SLOT.FILTER_SLOT_VALUE`,
+        filterSlot.toString()
+      );
+
+      console.log(`✅ Filtre changé sur ${filterWheelName}`);
+    } catch (error) {
+      console.error(`❌ Erreur lors du changement de filtre:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtenir les informations météo d'une station météo
+   */
+  async getWeatherInfo(weatherStationName: string): Promise<{
+    temperature?: number;
+    humidity?: number;
+    pressure?: number;
+    windSpeed?: number;
+    cloudCover?: number;
+    skyQuality?: number;
+  }> {
+    try {
+      console.log(
+        `🌤️ Récupération des informations météo de ${weatherStationName}`
+      );
+
+      const weatherInfo: any = {};
+
+      // Essayer de récupérer diverses informations météo
+      const tempProp = await this.indiClient.getProp(
+        `${weatherStationName}.WEATHER_TEMPERATURE.TEMPERATURE`
+      );
+      if (tempProp) weatherInfo.temperature = parseFloat(tempProp);
+
+      const humidityProp = await this.indiClient.getProp(
+        `${weatherStationName}.WEATHER_HUMIDITY.HUMIDITY`
+      );
+      if (humidityProp) weatherInfo.humidity = parseFloat(humidityProp);
+
+      const pressureProp = await this.indiClient.getProp(
+        `${weatherStationName}.WEATHER_PRESSURE.PRESSURE`
+      );
+      if (pressureProp) weatherInfo.pressure = parseFloat(pressureProp);
+
+      const windProp = await this.indiClient.getProp(
+        `${weatherStationName}.WEATHER_WIND_SPEED.WIND_SPEED`
+      );
+      if (windProp) weatherInfo.windSpeed = parseFloat(windProp);
+
+      const cloudProp = await this.indiClient.getProp(
+        `${weatherStationName}.WEATHER_CLOUD_COVER.CLOUD_COVER`
+      );
+      if (cloudProp) weatherInfo.cloudCover = parseFloat(cloudProp);
+
+      const skyProp = await this.indiClient.getProp(
+        `${weatherStationName}.WEATHER_SKY_QUALITY.SKY_QUALITY`
+      );
+      if (skyProp) weatherInfo.skyQuality = parseFloat(skyProp);
+
+      return weatherInfo;
+    } catch (error) {
+      console.error(
+        `❌ Erreur lors de la récupération des informations météo:`,
+        error
+      );
       return {};
     }
   }
 
-  async installDriver(packageName: string): Promise<void> {
+  /**
+   * Obtenir l'état d'une exposition en cours
+   */
+  async getExposureStatus(cameraName: string): Promise<{
+    exposing: boolean;
+    remainingTime?: number;
+    progress?: number;
+  }> {
     try {
-      console.log(`🔧 Installation du driver ${packageName}...`);
-
-      // Vérifier si le package existe
-      const { stdout: searchResult } = await exec(
-        `apt-cache search ${packageName}`
+      const exposureState = await this.indiClient.getProp(
+        `${cameraName}.CCD_EXPOSURE.CCD_EXPOSURE_REQUEST`
       );
-      if (!searchResult.includes(packageName)) {
-        throw new Error(`Package ${packageName} non trouvé dans les dépôts`);
+      const exposing = exposureState === "On";
+
+      let remainingTime: number | undefined;
+      let progress: number | undefined;
+
+      if (exposing) {
+        const remainingProp = await this.indiClient.getProp(
+          `${cameraName}.CCD_EXPOSURE.CCD_EXPOSURE_VALUE`
+        );
+        if (remainingProp) {
+          remainingTime = parseFloat(remainingProp);
+        }
       }
 
-      // Mettre à jour la liste des packages
-      await exec(`sudo apt-get update`);
-
-      // Installer le package
-      await exec(`sudo apt-get install -y ${packageName}`);
-
-      console.log(`✅ Driver ${packageName} installé avec succès`);
+      return {
+        exposing,
+        remainingTime,
+        progress,
+      };
     } catch (error) {
       console.error(
-        `❌ Erreur lors de l'installation du driver ${packageName}:`,
+        `❌ Erreur lors de la récupération de l'état d'exposition:`,
+        error
+      );
+      return { exposing: false };
+    }
+  }
+
+  /**
+   * Obtenir la position actuelle d'une monture
+   */
+  async getMountPosition(mountName: string): Promise<{
+    ra?: number;
+    dec?: number;
+    isTracking?: boolean;
+    isParked?: boolean;
+  }> {
+    try {
+      const position: any = {};
+
+      const raProp = await this.indiClient.getProp(
+        `${mountName}.EQUATORIAL_EOD_COORD.RA`
+      );
+      if (raProp) position.ra = parseFloat(raProp);
+
+      const decProp = await this.indiClient.getProp(
+        `${mountName}.EQUATORIAL_EOD_COORD.DEC`
+      );
+      if (decProp) position.dec = parseFloat(decProp);
+
+      const trackingProp = await this.indiClient.getProp(
+        `${mountName}.TELESCOPE_TRACK_STATE.TRACK_ON`
+      );
+      if (trackingProp) position.isTracking = trackingProp === "On";
+
+      const parkProp = await this.indiClient.getProp(
+        `${mountName}.TELESCOPE_PARK.PARK`
+      );
+      if (parkProp) position.isParked = parkProp === "On";
+
+      return position;
+    } catch (error) {
+      console.error(
+        `❌ Erreur lors de la récupération de la position de la monture:`,
+        error
+      );
+      return {};
+    }
+  }
+
+  /**
+   * Démarrer/arrêter le suivi d'une monture
+   */
+  async setMountTracking(mountName: string, tracking: boolean): Promise<void> {
+    try {
+      console.log(
+        `🔭 ${tracking ? "Démarrage" : "Arrêt"} du suivi pour ${mountName}`
+      );
+
+      const trackingValue = tracking ? "On" : "Off";
+      await this.indiClient.setProp(
+        `${mountName}.TELESCOPE_TRACK_STATE.TRACK_${trackingValue.toUpperCase()}`,
+        "On"
+      );
+
+      console.log(
+        `✅ Suivi ${tracking ? "démarré" : "arrêté"} pour ${mountName}`
+      );
+    } catch (error) {
+      console.error(
+        `❌ Erreur lors du ${tracking ? "démarrage" : "arrêt"} du suivi:`,
         error
       );
       throw error;
     }
   }
 
-  // Méthode pour installer les drivers d'une marque spécifique
-  async installBrandDrivers(brandName: string): Promise<{
-    success: boolean;
-    installedPackages: string[];
-    failedPackages: string[];
-    scriptExecuted?: boolean;
-  }> {
-    const brand = this.getBrandInfo(brandName);
-    if (!brand) {
-      throw new Error(`Marque ${brandName} non supportée`);
-    }
-
-    console.log(`🔧 Installation des drivers pour ${brand.name}...`);
-
-    const installedPackages: string[] = [];
-    const failedPackages: string[] = [];
-    let scriptExecuted = false;
-
-    // Essayer d'exécuter le script d'installation spécifique s'il existe
-    if (brand.installationScript) {
-      try {
-        const scriptPath = path.join(
-          process.cwd(),
-          "scripts",
-          brand.installationScript
-        );
-        console.log(`🔧 Exécution du script d'installation: ${scriptPath}`);
-
-        // Vérifier si le script existe
-        try {
-          await fs.access(scriptPath);
-          await exec(`chmod +x ${scriptPath}`);
-          await exec(`${scriptPath}`);
-          scriptExecuted = true;
-          console.log(`✅ Script d'installation exécuté avec succès`);
-        } catch (scriptError) {
-          console.warn(
-            `⚠️  Script d'installation non trouvé ou échec: ${scriptError}`
-          );
-          // Continuer avec l'installation des packages
-        }
-      } catch (error) {
-        console.warn(`⚠️  Erreur lors de l'exécution du script: ${error}`);
-      }
-    }
-
-    // Installation des packages individuels
-    for (const packageName of brand.packageNames) {
-      try {
-        await this.installDriver(packageName);
-        installedPackages.push(packageName);
-      } catch (error) {
-        console.warn(`⚠️  Échec de l'installation de ${packageName}: ${error}`);
-        failedPackages.push(packageName);
-      }
-    }
-
-    const success = installedPackages.length > 0 || scriptExecuted;
-
-    if (success) {
-      console.log(`✅ Installation terminée pour ${brand.name}`);
-      if (installedPackages.length > 0) {
-        console.log(`   Packages installés: ${installedPackages.join(", ")}`);
-      }
-      if (failedPackages.length > 0) {
-        console.log(`   Packages échoués: ${failedPackages.join(", ")}`);
-      }
-    } else {
-      console.log(`❌ Aucun driver installé pour ${brand.name}`);
-    }
-
-    return {
-      success,
-      installedPackages,
-      failedPackages,
-      scriptExecuted,
-    };
-  }
-
-  // Méthode pour exécuter le diagnostic d'une marque
-  async runBrandDiagnostic(brandName: string): Promise<{
-    success: boolean;
-    output: string;
-  }> {
-    const brand = this.getBrandInfo(brandName);
-    if (!brand || !brand.diagnosticScript) {
-      throw new Error(`Diagnostic non disponible pour ${brandName}`);
-    }
-
+  /**
+   * Parker/déparker une monture
+   */
+  async setMountParking(mountName: string, park: boolean): Promise<void> {
     try {
-      const scriptPath = path.join(
-        process.cwd(),
-        "scripts",
-        brand.diagnosticScript
+      console.log(
+        `🔭 ${park ? "Parking" : "Déparking"} de la monture ${mountName}`
       );
-      console.log(`🔍 Exécution du diagnostic pour ${brand.name}...`);
 
-      const { stdout } = await exec(`chmod +x ${scriptPath} && ${scriptPath}`);
+      const parkValue = park ? "PARK" : "UNPARK";
+      await this.indiClient.setProp(
+        `${mountName}.TELESCOPE_PARK.${parkValue}`,
+        "On"
+      );
 
-      return {
-        success: true,
-        output: stdout,
-      };
+      console.log(`✅ Monture ${mountName} ${park ? "parkée" : "déparkée"}`);
     } catch (error) {
-      return {
-        success: false,
-        output: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
-
-  // Méthode pour vérifier si une marque a des conflits connus
-  hasBrandConflicts(brandName: string): boolean {
-    const brand = this.getBrandInfo(brandName);
-    return brand?.hasKnownConflicts || false;
-  }
-
-  // Méthode pour obtenir la note de conflit d'une marque
-  getBrandConflictNote(brandName: string): string | null {
-    const brand = this.getBrandInfo(brandName);
-    return brand?.conflictNote || null;
-  }
-
-  // Méthode pour installer les drivers d'une marque de manière sécurisée
-  async installBrandDriversSafely(brandName: string): Promise<{
-    success: boolean;
-    installedPackages: string[];
-    failedPackages: string[];
-    scriptExecuted?: boolean;
-    conflictWarning?: string;
-  }> {
-    const brand = this.getBrandInfo(brandName);
-    if (!brand) {
-      throw new Error(`Marque ${brandName} non supportée`);
-    }
-
-    // Vérifier s'il y a des conflits connus
-    if (brand.hasKnownConflicts) {
-      console.warn(
-        `⚠️  Marque ${brand.name} a des conflits connus: ${brand.conflictNote}`
+      console.error(
+        `❌ Erreur lors du ${park ? "parking" : "déparking"}:`,
+        error
       );
-      return {
-        success: false,
-        installedPackages: [],
-        failedPackages: brand.packageNames,
-        conflictWarning: brand.conflictNote,
-      };
+      throw error;
     }
-
-    // Utiliser la méthode d'installation normale si pas de conflits
-    return await this.installBrandDrivers(brandName);
-  }
-
-  // Méthode pour résoudre les conflits de packages (version améliorée)
-  async resolvePackageConflicts(brandName: string): Promise<{
-    success: boolean;
-    actions: string[];
-    recommendations: string[];
-  }> {
-    const brand = this.getBrandInfo(brandName);
-    if (!brand) {
-      throw new Error(`Marque ${brandName} non supportée`);
-    }
-
-    const actions: string[] = [];
-    const recommendations: string[] = [];
-
-    if (brand.hasKnownConflicts) {
-      console.log(`🔧 Résolution des conflits pour ${brand.name}...`);
-
-      // Actions spécifiques selon la marque
-      if (brandName.toLowerCase() === "player one") {
-        actions.push("Suppression des packages en conflit");
-        actions.push(
-          "sudo apt-get remove --purge indi-playerone libplayerone libplayeronecamera2"
-        );
-        actions.push(
-          "sudo rm -f /lib/udev/rules.d/99-player_one_astronomy.rules"
-        );
-        actions.push(
-          "sudo rm -f /etc/udev/rules.d/99-player_one_astronomy.rules"
-        );
-        actions.push("sudo apt-get autoremove");
-        actions.push("sudo apt-get autoclean");
-
-        recommendations.push(
-          "Installation manuelle recommandée depuis le site officiel Player One"
-        );
-        recommendations.push(
-          "Télécharger les drivers depuis https://player-one-astronomy.com/"
-        );
-        recommendations.push(
-          "Installer les drivers dans l'ordre: SDK -> INDI Driver"
-        );
-      }
-
-      return {
-        success: true,
-        actions,
-        recommendations,
-      };
-    }
-
-    return {
-      success: true,
-      actions: ["Aucune action nécessaire"],
-      recommendations: ["Aucun conflit détecté"],
-    };
   }
 }
