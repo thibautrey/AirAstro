@@ -1,5 +1,9 @@
 import "dotenv/config";
 
+import autoIndiRouter, {
+  cleanupAutoIndiOnShutdown,
+  initAutoIndiOnStartup,
+} from "./routes/auto-indi";
 import express, { Request, Response } from "express";
 
 import { DriverManager } from "./indi";
@@ -86,6 +90,10 @@ async function initializeServices() {
     console.log("🔄 Initializing INDI integration service...");
     await indiIntegrationService.initialize();
 
+    // Initialiser le gestionnaire automatique INDI
+    console.log("🔄 Initializing Auto-INDI manager...");
+    await initAutoIndiOnStartup();
+
     console.log("✅ Services initialized successfully");
   } catch (error) {
     console.error("❌ Error during services initialization:", error);
@@ -111,6 +119,7 @@ app.use("/api/images", imageRouter);
 app.use("/api/equipment", equipmentRouter);
 app.use("/api/camera", cameraRouter);
 app.use("/api/drivers-management", driversRouter);
+app.use("/api/auto-indi", autoIndiRouter);
 
 // Serve the web UI built from apps/web
 const webDir = path.resolve(__dirname, "../..", "apps/web/dist");
@@ -243,15 +252,17 @@ const server = httpServer.listen(port, () => {
   });
 
   // Cleanly stop the mDNS service when shutting down the server
-  process.on("SIGINT", () => {
+  process.on("SIGINT", async () => {
     console.log("\n🛑 Shutting down server...");
+    await cleanupAutoIndiOnShutdown();
     service.stop();
     bonjourInstance.destroy();
     process.exit(0);
   });
 
-  process.on("SIGTERM", () => {
+  process.on("SIGTERM", async () => {
     console.log("\n🛑 Shutting down server...");
+    await cleanupAutoIndiOnShutdown();
     service.stop();
     bonjourInstance.destroy();
     process.exit(0);
