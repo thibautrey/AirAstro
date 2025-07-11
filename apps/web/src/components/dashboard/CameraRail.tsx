@@ -7,7 +7,13 @@ import { clsx } from "clsx";
 import { useCamera } from "../../hooks/useCamera";
 import { useState } from "react";
 
-export default function CameraRail() {
+interface CameraRailProps {
+  showHistogramBar?: boolean;
+}
+
+export default function CameraRail({
+  showHistogramBar = false,
+}: CameraRailProps) {
   const {
     cameraStatus,
     availableCameras,
@@ -80,7 +86,12 @@ export default function CameraRail() {
   }
 
   return (
-    <div className="relative flex flex-col items-center gap-6 pt-3 rounded-l w-18 bg-black/45 backdrop-blur-sm pb-histogram-bar">
+    <div
+      className={clsx(
+        "relative flex flex-col items-center gap-6 pt-3 rounded-l w-18 bg-black/45 backdrop-blur-sm",
+        showHistogramBar ? "pb-histogram-bar" : "pb-20"
+      )}
+    >
       {/* Title */}
       <h3 className="text-sm font-semibold tracking-wider text-cta-green">
         PREVIEW

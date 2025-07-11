@@ -6,10 +6,12 @@ import { useState } from "react";
 interface ModeRailProps {
   showGuidingOverlay?: boolean;
   onToggleGuidingOverlay?: () => void;
+  showHistogramBar?: boolean;
+  onToggleHistogramBar?: () => void;
 }
 
 const modes = [
-  { id: "hist", label: "Hist.", icon: BarChart3, implemented: false },
+  { id: "hist", label: "Hist.", icon: BarChart3, implemented: true },
   { id: "guide", label: "Guide", icon: Crosshair, implemented: true },
   { id: "solve", label: "Solve", icon: Target, implemented: false },
   { id: "detect", label: "Detect", icon: Eye, implemented: false },
@@ -20,6 +22,8 @@ const modes = [
 export default function ModeRail({
   showGuidingOverlay = false,
   onToggleGuidingOverlay,
+  showHistogramBar = false,
+  onToggleHistogramBar,
 }: ModeRailProps) {
   const [activeMode, setActiveMode] = useState("hist");
 
@@ -28,16 +32,27 @@ export default function ModeRail({
 
     if (id === "guide") {
       onToggleGuidingOverlay?.();
+    } else if (id === "hist") {
+      onToggleHistogramBar?.();
     } else {
       setActiveMode(id);
     }
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 py-8 pb-20 overflow-x-hidden overflow-y-auto rounded-r w-14 bg-black/40 backdrop-blur-sm hide-scrollbar">
+    <div
+      className={clsx(
+        "flex flex-col items-center gap-4 py-8 overflow-x-hidden overflow-y-auto rounded-r w-14 bg-black/40 backdrop-blur-sm hide-scrollbar",
+        showHistogramBar ? "pb-histogram-bar" : "pb-20"
+      )}
+    >
       {modes.map(({ id, label, icon: Icon, implemented }) => {
         const isActive =
-          id === "guide" ? showGuidingOverlay : activeMode === id;
+          id === "guide"
+            ? showGuidingOverlay
+            : id === "hist"
+            ? showHistogramBar
+            : activeMode === id;
 
         return (
           <button

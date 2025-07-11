@@ -13,6 +13,7 @@ import { useUpdate } from "../hooks/useUpdate";
 export default function DashboardScreen() {
   const [notificationDismissed, setNotificationDismissed] = useState(false);
   const [showGuidingOverlay, setShowGuidingOverlay] = useState(false);
+  const [showHistogramBar, setShowHistogramBar] = useState(false);
   const [hasInitialCheckRun, setHasInitialCheckRun] = useState(false);
 
   const {
@@ -52,6 +53,10 @@ export default function DashboardScreen() {
     setShowGuidingOverlay(!showGuidingOverlay);
   };
 
+  const handleToggleHistogramBar = () => {
+    setShowHistogramBar(!showHistogramBar);
+  };
+
   return (
     <div className="relative overflow-hidden viewport-height bg-bg-surface">
       {/* Global toolbar at top */}
@@ -81,6 +86,8 @@ export default function DashboardScreen() {
         <ModeRail
           showGuidingOverlay={showGuidingOverlay}
           onToggleGuidingOverlay={handleToggleGuidingOverlay}
+          showHistogramBar={showHistogramBar}
+          onToggleHistogramBar={handleToggleHistogramBar}
         />
 
         {/* Central stage area */}
@@ -90,11 +97,11 @@ export default function DashboardScreen() {
         </div>
 
         {/* Right camera control rail */}
-        <CameraRail />
+        <CameraRail showHistogramBar={showHistogramBar} />
       </div>
 
       {/* Bottom histogram/stats bar */}
-      <HistogramBar />
+      {showHistogramBar && <HistogramBar />}
     </div>
   );
 }
