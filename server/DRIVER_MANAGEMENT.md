@@ -17,6 +17,7 @@ Le système de gestion des drivers d'AirAstro permet de détecter, installer et 
 - Installation des drivers essentiels au démarrage
 - Installation sur demande de drivers spécifiques
 - Gestion des dépendances et des librairies
+- Mise en place automatique du service `indi.service`
 
 ### 🔄 Mise à jour
 

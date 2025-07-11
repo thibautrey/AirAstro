@@ -11,6 +11,7 @@ Ce répertoire contient plusieurs scripts pour l'installation des drivers INDI n
    - Installe tous les drivers manquants
    - Met à jour les drivers existants
    - Peut configurer une mise à jour automatique quotidienne
+   - Crée et lance automatiquement le service `indi.service` si nécessaire
 
 2. **`install-on-rpi.sh`** - Script d'installation principal
    - Installe AirAstro complet sur Raspberry Pi
