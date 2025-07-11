@@ -44,19 +44,14 @@ Le système AirAstro télécharge et installe automatiquement **TOUS** les drive
 
 ## 📋 Scripts Disponibles
 
-### 1. `install-indi-drivers.sh`
+### 1. `maintain-indi-drivers.sh`
 
-**Script principal d'installation des drivers INDI**
+**Script principal de maintenance et d'installation des drivers INDI**
 
 ```bash
 # Installation complète (prioritaires + tous les autres)
-./install-indi-drivers.sh full
-
-# Installation des drivers prioritaires uniquement
-./install-indi-drivers.sh priority
-
-# Mise à jour des drivers existants
-./install-indi-drivers.sh update
+./maintain-indi-drivers.sh install-missing
+./maintain-indi-drivers.sh update-all
 ```
 
 **Fonctionnalités :**
@@ -66,9 +61,9 @@ Le système AirAstro télécharge et installe automatiquement **TOUS** les drive
 - Configuration automatique des permissions USB
 - Création du service INDI systemd
 
-### 2. `maintain-indi-drivers.sh`
+### 2. `update-airastro-system.sh`
 
-**Script de maintenance et mise à jour des drivers**
+**Script de mise à jour complète du système**
 
 ```bash
 # Lister les drivers disponibles
@@ -87,9 +82,9 @@ Le système AirAstro télécharge et installe automatiquement **TOUS** les drive
 ./maintain-indi-drivers.sh setup-auto-update
 ```
 
-### 3. `update-airastro-system.sh`
+### 3. `startup-drivers.sh`
 
-**Script de mise à jour complète du système**
+**Script de démarrage automatique**
 
 ```bash
 # Mise à jour complète
@@ -99,9 +94,9 @@ Le système AirAstro télécharge et installe automatiquement **TOUS** les drive
 ./update-airastro-system.sh --drivers-only
 ```
 
-### 4. `startup-drivers.sh`
+### 4. `install-indi-drivers.sh` *(legacy)*
 
-**Script de démarrage automatique**
+**Ancien script d'installation complet (toujours disponible au besoin)**
 
 Ce script s'exécute automatiquement au démarrage du serveur AirAstro.
 
@@ -127,7 +122,8 @@ Ce script s'exécute automatiquement au démarrage du serveur AirAstro.
 ```bash
 cd /path/to/airastro/server/scripts
 chmod +x *.sh
-./install-indi-drivers.sh full
+./maintain-indi-drivers.sh install-missing
+./maintain-indi-drivers.sh update-all
 ```
 
 ### 2. Configuration de la mise à jour automatique

@@ -16,10 +16,10 @@ echo "$(printf '═%.0s' {1..45})"
 echo ""
 
 # Vérifier les processus d'installation
-if pgrep -f "install-indi-drivers.sh\|apt-get install" > /dev/null 2>&1; then
+if pgrep -f "maintain-indi-drivers.sh\|install-indi-drivers.sh\|apt-get install" > /dev/null 2>&1; then
     echo -e "${GREEN}🔄 Installation en cours${NC}"
     echo "   Processus actifs:"
-    pgrep -f "install-indi-drivers.sh\|apt-get install" | while read pid; do
+    pgrep -f "maintain-indi-drivers.sh\|install-indi-drivers.sh\|apt-get install" | while read pid; do
         echo -e "   PID: ${YELLOW}$pid${NC}"
     done
 else
