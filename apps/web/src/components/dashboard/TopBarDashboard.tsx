@@ -1,19 +1,8 @@
-import {
-  BarChart3,
-  Battery,
-  Camera,
-  ChevronLeft,
-  Clock,
-  Download,
-  Filter,
-  Focus,
-  HardDrive,
-  Info,
-  Target,
-  Telescope,
-  Wifi,
-} from "lucide-react";
+import { Battery, ChevronLeft, Download, Settings } from "lucide-react";
 
+import { DetectedEquipment } from "../../hooks/useEquipment";
+import EquipmentModal from "../EquipmentModal";
+import EquipmentSidebar from "../EquipmentSidebar";
 import UpdateModal from "../UpdateModal";
 import { UpdateStatus } from "../../types/update";
 import { clsx } from "clsx";
@@ -28,6 +17,7 @@ interface TopBarDashboardProps {
   onCheckUpdate?: () => void;
   onDownloadAndInstall?: () => void;
   onResetUpdate?: () => void;
+  equipment?: DetectedEquipment[];
 }
 
 export default function TopBarDashboard({
@@ -38,9 +28,14 @@ export default function TopBarDashboard({
   onCheckUpdate,
   onDownloadAndInstall,
   onResetUpdate,
+  equipment = [],
 }: TopBarDashboardProps) {
   const navigate = useNavigate();
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showEquipmentModal, setShowEquipmentModal] = useState(false);
+  const [showEquipmentSidebar, setShowEquipmentSidebar] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] =
+    useState<DetectedEquipment | null>(null);
 
   const currentTime = new Date().toLocaleTimeString("fr-FR", {
     hour: "2-digit",
@@ -49,6 +44,20 @@ export default function TopBarDashboard({
 
   const handleUpdateClick = () => {
     setShowUpdateModal(true);
+  };
+
+  const handleEquipmentClick = () => {
+    setShowEquipmentModal(true);
+  };
+
+  const handleEquipmentSelect = (equipment: DetectedEquipment) => {
+    setSelectedEquipment(equipment);
+    setShowEquipmentSidebar(true);
+  };
+
+  const handleCloseSidebar = () => {
+    setShowEquipmentSidebar(false);
+    setSelectedEquipment(null);
   };
 
   const handleCloseModal = () => {
@@ -60,18 +69,6 @@ export default function TopBarDashboard({
       onResetUpdate?.();
     }
   };
-
-  const iconButtons = [
-    { icon: Wifi, label: "Wifi", active: true, implemented: true },
-    { icon: Camera, label: "Photo", active: false, implemented: false },
-    { icon: BarChart3, label: "Histogram", active: false, implemented: false },
-    { icon: Telescope, label: "Scope", active: true, implemented: true },
-    { icon: Filter, label: "EFW", active: false, implemented: false },
-    { icon: Focus, label: "EAF", active: false, implemented: false },
-    { icon: Target, label: "CAA", active: false, implemented: false },
-    { icon: HardDrive, label: "SD", active: true, implemented: true },
-    { icon: Info, label: "Info", active: false, implemented: false },
-  ];
 
   return (
     <div className="flex items-center justify-between border-b h-11 bg-black/70 backdrop-blur-sm border-zinc-700/40">
@@ -96,6 +93,15 @@ export default function TopBarDashboard({
 
       {/* Right section - Icon buttons */}
       <div className="flex items-center gap-4 pr-4">
+        {/* Equipment settings button */}
+        <button
+          onClick={handleEquipmentClick}
+          className="p-1.5 rounded transition-colors text-text-secondary hover:text-text-primary hover:bg-white/10"
+          aria-label="Paramètres des équipements"
+        >
+          <Settings size={20} />
+        </button>
+
         {/* Update button */}
         <button
           onClick={handleUpdateClick}
@@ -121,30 +127,32 @@ export default function TopBarDashboard({
           )}
         </button>
 
-        {iconButtons.map(
-          ({ icon: Icon, label, active, implemented }, index) => (
-            <button
-              key={index}
-              disabled={!implemented}
-              className={clsx(
-                "p-1.5 rounded transition-colors relative",
-                !implemented && "opacity-30 cursor-not-allowed",
-                implemented && active
-                  ? "text-cta-green bg-cta-green/20"
-                  : implemented
-                  ? "text-text-secondary hover:text-text-primary hover:bg-white/10"
-                  : "text-text-secondary"
-              )}
-              aria-label={implemented ? label : `${label} (Non implémenté)`}
-            >
-              <Icon size={20} />
-              {!implemented && (
-                <div className="absolute w-2 h-2 rounded-full -top-1 -right-1 bg-red-500/60" />
-              )}
-            </button>
-          )
-        )}
+        {/* Equipment settings button */}
+        <button
+          onClick={handleEquipmentClick}
+          className="p-1.5 rounded transition-colors text-text-secondary hover:text-text-primary hover:bg-white/10"
+          aria-label="Paramètres des équipements"
+        >
+          <Settings size={20} />
+        </button>
       </div>
+
+      {/* Equipment Modal */}
+      <EquipmentModal
+        isOpen={showEquipmentModal}
+        onClose={() => setShowEquipmentModal(false)}
+        equipment={equipment}
+        onEquipmentSelect={handleEquipmentSelect}
+      />
+
+      {/* Equipment Sidebar */}
+      <EquipmentSidebar
+        isOpen={showEquipmentSidebar}
+        onClose={handleCloseSidebar}
+        equipment={equipment}
+        selectedEquipment={selectedEquipment}
+        onEquipmentSelect={setSelectedEquipment}
+      />
 
       {/* Update Modal */}
       <UpdateModal

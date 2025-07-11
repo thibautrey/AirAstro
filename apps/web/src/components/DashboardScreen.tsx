@@ -8,6 +8,7 @@ import ModeRail from "./dashboard/ModeRail";
 import TopBarDashboard from "./dashboard/TopBarDashboard";
 import UpdateNotification from "./UpdateNotification";
 import { UpdateStatus } from "../types/update";
+import { useEquipment } from "../hooks/useEquipment";
 import { useParams } from "react-router-dom";
 import { useUpdate } from "../hooks/useUpdate";
 
@@ -27,6 +28,13 @@ export default function DashboardScreen() {
     downloadAndInstallUpdate,
     resetUpdate,
   } = useUpdate(deviceUrl);
+
+  // Hook pour récupérer les équipements
+  const { equipment } = useEquipment({
+    enablePolling: true,
+    pollingInterval: 30000,
+    includeUnknown: false,
+  });
 
   // Vérifier automatiquement les mises à jour au chargement
   useEffect(() => {
@@ -59,6 +67,7 @@ export default function DashboardScreen() {
         onCheckUpdate={checkForUpdate}
         onDownloadAndInstall={downloadAndInstallUpdate}
         onResetUpdate={resetUpdate}
+        equipment={equipment}
       />
 
       {/* Update notification */}
