@@ -20,4 +20,5 @@ primary backend.
 4. Update installation scripts to start `indigo_server` instead of `indiserver`.
 
 Both backends can coexist during the transition. Set the environment variable
-`DRIVER_BACKEND=indigo` to enable the new integration.
+`DRIVER_BACKEND=indigo` to enable the new integration. The install script will
+automatically build or install **indigo_server** when this variable is set.

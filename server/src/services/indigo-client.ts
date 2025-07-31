@@ -19,19 +19,20 @@ export class IndigoClient extends EventEmitter {
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.ws = new WebSocket(`ws://${this.host}:${this.port}/ws`);
-      this.ws.on("open", () => {
+      const ws = new WebSocket(`ws://${this.host}:${this.port}/ws`);
+      this.ws = ws as any;
+      ws.on("open", () => {
         this.emit("connected");
         resolve();
       });
-      this.ws.on("message", (data) => {
+      ws.on("message", (data: any) => {
         this.handleMessage(data.toString());
       });
-      this.ws.on("error", (err) => {
+      ws.on("error", (err: any) => {
         this.emit("error", err);
-        if (this.ws && this.ws.readyState !== WebSocket.OPEN) reject(err);
+        if (ws.readyState !== WebSocket.OPEN) reject(err);
       });
-      this.ws.on("close", () => {
+      ws.on("close", () => {
         this.emit("disconnected");
       });
     });
@@ -41,7 +42,7 @@ export class IndigoClient extends EventEmitter {
     try {
       const msg: IndigoMessage = JSON.parse(raw);
       this.emit("message", msg);
-    } catch (err) {
+    } catch (err: any) {
       this.emit("error", err);
     }
   }
@@ -49,8 +50,9 @@ export class IndigoClient extends EventEmitter {
   disconnect(): Promise<void> {
     return new Promise((resolve) => {
       if (!this.ws) return resolve();
-      this.ws.once("close", () => resolve());
-      this.ws.close();
+      const ws: any = this.ws;
+      ws.once("close", () => resolve());
+      ws.close();
     });
   }
 }

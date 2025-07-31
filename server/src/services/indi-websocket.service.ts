@@ -1,5 +1,8 @@
 import { Server } from "socket.io";
-import { indiIntegrationService } from "./indi-integration.service";
+import {
+  driverIntegrationService,
+  driverBackend,
+} from "./driver-backend.service";
 
 export class IndiWebSocketService {
   private io: Server;
@@ -10,45 +13,50 @@ export class IndiWebSocketService {
   }
 
   private setupEventHandlers(): void {
-    // Forwarding des événements INDI vers les clients WebSocket
-    indiIntegrationService.on("connected", () => {
+    // Forward driver backend events to WebSocket clients
+    driverIntegrationService.on("connected", () => {
       this.io.emit("indi:connected", { timestamp: new Date() });
     });
 
-    indiIntegrationService.on("disconnected", () => {
+    driverIntegrationService.on("disconnected", () => {
       this.io.emit("indi:disconnected", { timestamp: new Date() });
     });
 
-    indiIntegrationService.on("error", (error) => {
+    driverIntegrationService.on("error", (error: any) => {
       this.io.emit("indi:error", {
         error: error.message,
         timestamp: new Date(),
       });
     });
 
-    indiIntegrationService.on("propertyDefined", (device, property, prop) => {
-      this.io.emit("indi:propertyDefined", {
-        device,
-        property,
-        prop: {
-          name: prop.name,
-          label: prop.label,
-          group: prop.group,
-          state: prop.state,
-          perm: prop.perm,
-          elementCount: prop.elements.size,
-        },
-        timestamp: new Date(),
-      });
-    });
+    driverIntegrationService.on(
+      "propertyDefined",
+      (device: string, property: string, prop: any) => {
+        this.io.emit("indi:propertyDefined", {
+          device,
+          property,
+          prop: {
+            name: prop.name,
+            label: prop.label,
+            group: prop.group,
+            state: prop.state,
+            perm: prop.perm,
+            elementCount: prop.elements.size,
+          },
+          timestamp: new Date(),
+        });
+      }
+    );
 
-    indiIntegrationService.on("propertyUpdated", (device, property, prop) => {
-      this.io.emit("indi:propertyUpdated", {
-        device,
-        property,
-        state: prop.state,
-        timestamp: new Date(),
-      });
+    driverIntegrationService.on(
+      "propertyUpdated",
+      (device: string, property: string, prop: any) => {
+        this.io.emit("indi:propertyUpdated", {
+          device,
+          property,
+          state: prop.state,
+          timestamp: new Date(),
+        });
 
       // Événements spécialisés pour les caméras
       if (property === "CCD_EXPOSURE") {
@@ -84,15 +92,19 @@ export class IndiWebSocketService {
           timestamp: new Date(),
         });
       }
-    });
+      }
+    );
 
-    indiIntegrationService.on("message", (device, message, timestamp) => {
-      this.io.emit("indi:message", {
-        device,
-        message,
-        timestamp,
-      });
-    });
+    driverIntegrationService.on(
+      "message",
+      (device: string, message: string, timestamp: string) => {
+        this.io.emit("indi:message", {
+          device,
+          message,
+          timestamp,
+        });
+      }
+    );
 
     // Gestion des connexions des clients
     this.io.on("connection", (socket) => {
@@ -101,7 +113,7 @@ export class IndiWebSocketService {
       // Envoyer l'état actuel lors de la connexion
       socket.emit("indi:status", {
         connected: true,
-        devices: indiIntegrationService.getIndiClient().getDevices(),
+        devices: driverIntegrationService.getIndiClient().getDevices(),
         timestamp: new Date(),
       });
 
@@ -111,7 +123,7 @@ export class IndiWebSocketService {
 
       // Permettre aux clients de demander des informations
       socket.on("indi:requestDeviceList", () => {
-        const devices = indiIntegrationService.getIndiClient().getDevices();
+        const devices = driverIntegrationService.getIndiClient().getDevices();
         socket.emit("indi:deviceList", {
           devices,
           timestamp: new Date(),
@@ -119,7 +131,7 @@ export class IndiWebSocketService {
       });
 
       socket.on("indi:requestDeviceStatus", (deviceName: string) => {
-        const client = indiIntegrationService.getIndiClient();
+        const client = driverIntegrationService.getIndiClient();
         const device = client.getDevice(deviceName);
 
         if (device) {
@@ -129,13 +141,13 @@ export class IndiWebSocketService {
             connected:
               device.properties.get("CONNECTION")?.elements.get("CONNECT")
                 ?.value === "On",
-            properties: Array.from(device.properties.entries()).map(
-              ([name, prop]) => ({
-                name,
-                state: prop.state,
-                elementCount: prop.elements.size,
-              })
-            ),
+            properties: Array.from(
+              device.properties.entries() as Iterable<[string, any]>
+            ).map(([name, prop]: [string, any]) => ({
+              name,
+              state: prop.state,
+              elementCount: prop.elements.size,
+            })),
           };
 
           socket.emit("indi:deviceStatus", {
