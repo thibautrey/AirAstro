@@ -18,7 +18,10 @@ import { createServer } from "http";
 import driversRouter from "./routes/drivers";
 import equipmentRouter from "./routes/equipment.route";
 import imageRouter from "./routes/image.route";
-import { indiIntegrationService } from "./services/indi-integration.service";
+import {
+  driverIntegrationService,
+  driverBackend,
+} from "./services/driver-backend.service";
 import path from "path";
 import updateRouter from "./routes/update.route";
 
@@ -86,9 +89,11 @@ async function initializeServices() {
     console.log("🔄 Initializing services...");
     await equipmentDatabase.initializeDatabase();
 
-    // Initialiser le service d'intégration INDI
-    console.log("🔄 Initializing INDI integration service...");
-    await indiIntegrationService.initialize();
+    // Initialise the chosen driver backend
+    console.log(
+      `🔄 Initializing ${driverBackend.toUpperCase()} integration service...`
+    );
+    await driverIntegrationService.initialize();
 
     // Initialiser le gestionnaire automatique INDI
     console.log("🔄 Initializing Auto-INDI manager...");
@@ -97,9 +102,12 @@ async function initializeServices() {
     console.log("✅ Services initialized successfully");
   } catch (error) {
     console.error("❌ Error during services initialization:", error);
-    if (error instanceof Error && error.message.includes("INDI")) {
+    if (
+      error instanceof Error &&
+      (error.message.includes("INDI") || error.message.includes("INDIGO"))
+    ) {
       console.log(
-        "⚠️  INDI service failed to initialize, continuing without INDI support"
+        `⚠️  ${driverBackend.toUpperCase()} service failed to initialize, continuing without driver support`
       );
     } else {
       console.log("⚠️  Continuing with default database");

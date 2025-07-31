@@ -5,7 +5,10 @@ import { IndiCamera } from "./indi-devices";
 import { IndiClient } from "./indi-client";
 import { cameraStateService } from "./camera-state.service";
 import { promises as fs } from "fs";
-import { indiIntegrationService } from "./indi-integration.service";
+import {
+  driverIntegrationService,
+  driverBackend,
+} from "./driver-backend.service";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 
@@ -80,20 +83,20 @@ export class CameraService extends EventEmitter {
     this.imagesDirectory = path.join(process.cwd(), "images");
     this.ensureImagesDirectory();
 
-    // Utiliser le service d'intégration INDI
-    this.indiClient = indiIntegrationService.getIndiClient();
+    // Use the selected driver backend
+    this.indiClient = driverIntegrationService.getIndiClient();
     this.setupIndiEventHandlers();
 
     // Charger l'état persistant
     this.loadPersistedState();
 
-    // Initialiser le service INDI
+    // Initialize driver backend service
     this.initializeIndiService();
   }
 
   private async initializeIndiService(): Promise<void> {
     try {
-      await indiIntegrationService.initialize();
+      await driverIntegrationService.initialize();
 
       // Attendre un peu pour que les devices soient détectés
       setTimeout(() => {
@@ -102,8 +105,12 @@ export class CameraService extends EventEmitter {
         }
       }, 2000);
     } catch (error) {
-      console.error("❌ Impossible d'initialiser le service INDI:", error);
-      this.cameraStatus.error = "Impossible de se connecter au serveur INDI";
+      console.error(
+        `❌ Impossible d'initialiser le service ${driverBackend.toUpperCase()}:`,
+        error
+      );
+      this.cameraStatus.error =
+        "Impossible de se connecter au serveur de pilotes";
     }
   }
 

@@ -411,6 +411,37 @@ install_indi_safely() {
   fi
 }
 
+# Check if INDIGO server is installed
+check_indigo_installation() {
+  if command -v indigo_server >/dev/null 2>&1; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+# Install INDIGO from packages or source as fallback
+install_indigo() {
+  log "Installation d'INDIGO..."
+  if run "apt-get install -y indigo-server"; then
+    log "✅ INDIGO installé via les paquets"
+    return 0
+  fi
+
+  log "Compilation d'INDIGO depuis les sources"
+  TEMP_DIR=$(mktemp -d)
+  cd "$TEMP_DIR"
+  if git clone https://github.com/indigo-astronomy/indigo.git; then
+    cd indigo && make all
+    run "cp build/bin/indigo_server /usr/local/bin/"
+    log "✅ INDIGO compilé et installé"
+  else
+    warn "Échec du clonage INDIGO"
+  fi
+  cd "$INSTALL_DIR/server"
+  rm -rf "$TEMP_DIR"
+}
+
 # Vérifier l'installation existante
 if check_indi_installation; then
   log "INDI déjà installé, vérification des drivers supplémentaires"
@@ -519,6 +550,16 @@ if command -v indiserver >/dev/null; then
   indiserver --version 2>/dev/null || echo "indiserver installé"
 else
   log "⚠️  ATTENTION: indiserver non disponible, fonctionnalités limitées"
+fi
+
+# Install INDIGO if the backend was selected
+if [ "${DRIVER_BACKEND:-indi}" = "indigo" ]; then
+  log "Backend INDIGO sélectionné"
+  if check_indigo_installation; then
+    log "✅ INDIGO déjà installé"
+  else
+    install_indigo
+  fi
 fi
 
 AIRASTRO_SERVICE=/etc/systemd/system/airastro.service
